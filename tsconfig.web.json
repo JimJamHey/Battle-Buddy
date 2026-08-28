@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["src/core/*"],
+      "@overlay/*": ["src/overlay/*"],
+      "@settings/*": ["src/settings/*"]
+    }
+  },
+  "include": [
+    "src/renderer/**/*",
+    "src/overlay/**/*",
+    "src/settings/**/*",
+    "src/ui/**/*",
+    "src/core/**/*",
+    "src/preload/index.d.ts"
+  ],
+  "exclude": ["src/**/*.test.ts"]
+}
