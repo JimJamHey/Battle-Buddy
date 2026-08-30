@@ -37,6 +37,9 @@ const SWP_FRAMECHANGED = 0x0020
 const SWP_SHOWWINDOW = 0x0040
 const SWP_NOCOPYBITS = 0x0100
 const MONITOR_DEFAULTTONEAREST = 2
+const SW_RESTORE = 9
+const EXCLUSIVE_RETRY_MS = 2500
+const EXCLUSIVE_RETRY_LIMIT = 4
 
 type Koffi = typeof import('koffi')
 
@@ -74,12 +77,15 @@ interface Native {
   ) => number
   ShowWindow: (hwnd: unknown, cmd: number) => number
   SHQueryUserNotificationState: (state: { value: number }) => number
+  ChangeDisplaySettingsW: (mode: unknown, flags: number) => number
   monitorInfoSize: number
 }
 
 let native: Native | null = null
 let cachedHwnd: unknown = null
 let lastBorderlessKey = ''
+let lastExclusiveApplyAt = 0
+let exclusiveApplyTries = 0
 let lastDisplayMode: OverlayDisplayMode = 'unknown'
 
 function hwndOk(value: unknown): boolean {
@@ -162,6 +168,7 @@ function loadNative(): Native {
     GetMonitorInfoW: user32.func('bool __stdcall GetMonitorInfoW(void *hMonitor, _Inout_ MONITORINFO *lpmi)'),
     ShowWindow: user32.func('bool __stdcall ShowWindow(void *hWnd, int nCmdShow)'),
     SHQueryUserNotificationState: shell32.func('int32 __stdcall SHQueryUserNotificationState(_Out_ QUNS *pquns)'),
+    ChangeDisplaySettingsW: user32.func('int32 __stdcall ChangeDisplaySettingsW(void *lpDevMode, uint32 dwFlags)'),
     monitorInfoSize: koffi.sizeof(MONITORINFO) as number
   }
   void POINT
@@ -223,6 +230,9 @@ function notificationState(): number {
 
 function applyBorderless(hwnd: unknown, monitor: Rect): void {
   const api = loadNative()
+  // Restore the desktop mode so a D3D exclusive swap chain loses the display.
+  api.ChangeDisplaySettingsW(null, 0)
+  api.ShowWindow(hwnd, SW_RESTORE)
   const style = styleBits(api.GetWindowLongPtrW(hwnd, GWL_STYLE))
   const nextStyle = borderlessStyle(style)
   if (nextStyle !== style) api.SetWindowLongPtrW(hwnd, GWL_STYLE, nextStyle)
@@ -236,7 +246,7 @@ function applyBorderless(hwnd: unknown, monitor: Rect): void {
     monitor.y,
     monitor.width,
     monitor.height,
-    SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOACTIVATE
+    SWP_FRAMECHANGED | SWP_SHOWWINDOW | SWP_NOCOPYBITS
   )
 }
 
@@ -414,12 +424,21 @@ export function ensureGameOverlayFriendly(enabled: boolean): OverlayDisplayMode 
         monitor
       })
     ) {
+      exclusiveApplyTries = 0
+      lastExclusiveApplyAt = 0
       return lastDisplayMode
     }
 
     const key = `${hwndBits(hwnd)}:${monitor.x},${monitor.y},${monitor.width}x${monitor.height}:${borderlessStyle(style)}`
-    if (key !== lastBorderlessKey) {
+    const now = Date.now()
+    if (key !== lastBorderlessKey) exclusiveApplyTries = 0
+    if (
+      exclusiveApplyTries < EXCLUSIVE_RETRY_LIMIT &&
+      (key !== lastBorderlessKey || now - lastExclusiveApplyAt >= EXCLUSIVE_RETRY_MS)
+    ) {
       lastBorderlessKey = key
+      lastExclusiveApplyAt = now
+      exclusiveApplyTries += 1
       applyBorderless(hwnd, monitor)
     }
     const after = windowRect(hwnd)

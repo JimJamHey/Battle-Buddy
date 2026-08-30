@@ -1,8 +1,11 @@
 ; Write Hearthstone log.config during Setup so the next (or first) HS launch
 ; already prints Power.log. Keys must match src/core/logConfig.ts.
+; options.txt is key=value (not INI); ConfigWrite keeps other graphics keys.
+!include "TextFunc.nsh"
 !macro customInstall
   SetShellVarContext current
   CreateDirectory "$LOCALAPPDATA\Blizzard\Hearthstone"
+  ${ConfigWrite} "$LOCALAPPDATA\Blizzard\Hearthstone\options.txt" "graphicsfullscreen=" "False" $R0
   WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "LogLevel" "1"
   WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "FilePrinting" "true"
   WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "ConsolePrinting" "false"

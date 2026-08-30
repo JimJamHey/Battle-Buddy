@@ -17,4 +17,10 @@ describe('Hearthstone options.txt', () => {
     expect(changed).toBe(false)
     expect(next).toBe(src)
   })
+
+  it('creates graphicsfullscreen=False when options.txt is missing', () => {
+    const { next, changed } = ensureWindowedGraphics('')
+    expect(changed).toBe(true)
+    expect(next).toContain('graphicsfullscreen=False')
+  })
 })

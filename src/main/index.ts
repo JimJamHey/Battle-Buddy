@@ -114,7 +114,7 @@ let lastBoundsKey = ''
 let lastSizeKey = ''
 let lastPinAt = 0
 let overlayTickBusy = false
-let lastOptionsFix = 0
+let hsWasFound = false
 let displayMode: OverlayDisplayMode = 'unknown'
 let lastBroadcastMode: OverlayDisplayMode = 'unknown'
 let leaderboardRefreshing = false
@@ -378,17 +378,19 @@ function scheduleBroadcast(): void {
 }
 
 async function ensureWindowedOptions(): Promise<void> {
-  const now = Date.now()
-  if (now - lastOptionsFix < 30_000) return
-  lastOptionsFix = now
+  // Hearthstone rewrites options.txt on exit. Only persist while the process is gone.
+  if (await host.findHearthstone()) return
   const path = join(dirname(host.logConfigPath()), 'options.txt')
+  let existing = ''
   try {
-    const existing = await readFile(path, 'utf8')
-    const { next, changed } = ensureWindowedGraphics(existing)
-    if (changed) await writeFile(path, next, 'utf8')
+    existing = await readFile(path, 'utf8')
   } catch {
-    /* options.txt appears after the first Hearthstone launch */
+    existing = ''
   }
+  const { next, changed } = ensureWindowedGraphics(existing)
+  if (!changed) return
+  await mkdir(dirname(path), { recursive: true })
+  await writeFile(path, next, 'utf8')
 }
 
 async function powerLogAlreadyVerbose(): Promise<boolean> {
@@ -785,6 +787,8 @@ async function tickOverlay(): Promise<void> {
 async function tickOverlayBody(): Promise<void> {
   const hwnd = await host.findHearthstone()
   hsFound = hwnd != null
+  if (hsWasFound && !hsFound) void ensureWindowedOptions()
+  hsWasFound = hsFound
   hsFocused = hsFound ? await host.isForeground() : false
   if (!hsFocused && overlayWindow && !overlayWindow.isDestroyed() && process.platform === 'win32') {
     hsFocused = isOverlayForeground(overlayWindow.getNativeWindowHandle())
@@ -809,9 +813,6 @@ async function tickOverlayBody(): Promise<void> {
   if (!win || win.isDestroyed()) return
 
   displayMode = ensureGameOverlayFriendly(settings.overlayEnabled && settings.keepFullscreenOverlay)
-  if (displayMode === 'exclusive' && settings.overlayEnabled && settings.keepFullscreenOverlay) {
-    void ensureWindowedOptions()
-  }
   if (displayMode !== lastBroadcastMode) {
     lastBroadcastMode = displayMode
     scheduleBroadcast()
@@ -1103,6 +1104,7 @@ app.whenReady().then(async () => {
 
   registerIpc()
   await ensureLogConfig()
+  await ensureWindowedOptions()
   createTray()
   settingsWindow = createSettingsWindow()
   overlayWindow = createOverlayWindow()
