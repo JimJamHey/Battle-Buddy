@@ -5,6 +5,7 @@ import { promisify } from 'node:util'
 import { unlink, writeFile } from 'node:fs/promises'
 import { encodeBmp32, parseRatingObservation, ratingCaptureRects, resultCaptureRects, mergeRatingObservations, type CaptureRect, type RatingObservation } from '../core/playRating'
 import { captureGameClientBgra } from './winCapture'
+import { macOcrRegion } from '../platform/macos'
 
 const execFileAsync = promisify(execFile)
 
@@ -57,6 +58,11 @@ async function ocrRegion(region: CaptureRect, allowLoneDelta = false): Promise<R
   const width = Math.round(region.width)
   const height = Math.round(region.height)
   if (width < 40 || height < 40) return { rating: null, delta: null }
+  if (process.platform === 'darwin') {
+    const text = await macOcrRegion(region.x, region.y, width, height)
+    return parseRatingObservation(text, { allowLoneDelta })
+  }
+  if (process.platform !== 'win32') return { rating: null, delta: null }
   const pixels = captureGameClientBgra(region.x, region.y, width, height)
   if (!pixels) return { rating: null, delta: null }
   const bmp = encodeBmp32(width, height, pixels)
@@ -73,7 +79,7 @@ export async function readRatingObservation(
   client: CaptureRect,
   opts?: { includeResults?: boolean }
 ): Promise<RatingObservation> {
-  if (process.platform !== 'win32') return { rating: null, delta: null }
+  if (process.platform !== 'win32' && process.platform !== 'darwin') return { rating: null, delta: null }
   const includeResults = Boolean(opts?.includeResults)
   const regions = includeResults ? resultCaptureRects(client) : ratingCaptureRects(client)
   const parts: RatingObservation[] = []

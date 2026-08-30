@@ -57,7 +57,7 @@ export function SettingsApp() {
         <div>
           <p className="eyebrow">Battlegrounds overlay</p>
           <h1>BattleBuddy</h1>
-          <p className="lede">Launch anytime. The overlay follows the Hearthstone window in windowed or borderless. Exclusive fullscreen needs a switch in Hearthstone options.</p>
+          <p className="lede">Launch anytime. The overlay follows the Hearthstone window.</p>
         </div>
         <span className="version-pill">v{state.update.currentVersion}</span>
       </header>
@@ -72,7 +72,6 @@ export function SettingsApp() {
         <p className="hint">Logs: {state.status.logsDirectory || '—'}</p>
         <p className="hint">
           Live tracking: {state.status.logsLive ? 'yes' : 'no'}
-          {state.status.needsHearthstoneRestart ? ' · restart Hearthstone once' : ''}
         </p>
         <p className="hint">
           Cards: {state.status.cardCount} · Leaderboard: {state.status.leaderboardCount} players cached
@@ -106,10 +105,6 @@ export function SettingsApp() {
             ? ' Installed copies check the rolling test release as well as numbered tags.'
             : ''}
         </p>
-        <p className="hint">
-          Windows may warn once (SmartScreen) until a code-signing certificate is added to CI as
-          CSC_LINK. Choose More info → Run anyway.
-        </p>
         <div className="row" style={{ marginTop: 10 }}>
           <button
             className="primary"
@@ -133,7 +128,7 @@ export function SettingsApp() {
           />
         </label>
         <label className="toggle">
-          <span>Prefer windowed graphics in Hearthstone options (does not send Alt+Enter)</span>
+          <span>Keep overlay on exclusive fullscreen</span>
           <input
             type="checkbox"
             checked={state.settings.keepFullscreenOverlay}
@@ -166,7 +161,7 @@ export function SettingsApp() {
         </label>
         <p className="hint">
           {state.status.displayMode === 'exclusive'
-            ? 'Hearthstone is exclusive fullscreen. Switch it to windowed or borderless — BattleBuddy will not send Alt+Enter or change your display mode.'
+            ? 'Converting exclusive fullscreen so the overlay can sit on the game.'
             : state.status.displayMode === 'borderless'
               ? 'Borderless fullscreen — overlay follows the game window.'
               : 'Windowed — overlay follows the Hearthstone window in any size.'}
@@ -234,7 +229,7 @@ export function SettingsApp() {
         <p className="hint">
           {state.status.cardsError
             ? `Minion catalog failed to load: ${state.status.cardsError}`
-            : 'Combat odds on top. Unique card scripts the text parser cannot read show as Partial on the combat bar. Hands and trinkets are included in the sim when Power.log prints them. Click tavern 1–7 to peek a tier; the right-hand number is remaining shared-pool copies while a match is live.'}
+            : 'Combat odds on top. Hands and trinkets are included when Power.log prints them. Click tavern 1–7 to peek a tier.'}
         </p>
       </section>
 

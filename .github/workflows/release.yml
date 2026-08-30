@@ -80,7 +80,12 @@ jobs:
       - run: npm run dist:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK || secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD || secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ (secrets.MAC_CSC_LINK || secrets.CSC_LINK) && 'true' || 'false' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - uses: actions/upload-artifact@v4
         with:
           name: macos
@@ -119,8 +124,6 @@ jobs:
             - `BattleBuddy-windows.zip` — unzip and run `BattleBuddy.exe`
 
             **macOS**
-            - `BattleBuddy.dmg` — drag to Applications (unsigned until an Apple cert is added)
+            - `BattleBuddy.dmg` — drag to Applications
 
-            Windows SmartScreen: if this build is signed (`CSC_LINK` secret), the warning should be milder; otherwise **More info → Run anyway**.
-
-            Start BattleBuddy, then Hearthstone (windowed or borderless). Restart the game once if the log banner appears.
+            Start BattleBuddy, then Hearthstone. The overlay follows the game window.

@@ -9,8 +9,6 @@ export function CombatBar({
   vsName: string | null
 }) {
   const phase = combat.simulating ? 'Simulating' : vsName ? `vs ${vsName}` : 'Combat'
-  const partialTitle =
-    'Some cards on this board have scripts the text parser cannot fully simulate. Odds are an estimate.'
   return (
     <div className="combat-bar" aria-live="polite">
       <div className="combat-side">
@@ -31,14 +29,8 @@ export function CombatBar({
         <span className="combat-stat loss">
           LOSS <strong>{formatPct(combat.loss)}%</strong>
         </span>
-        <span className="combat-phase" title={combat.partial ? partialTitle : vsName ?? undefined}>
+        <span className="combat-phase" title={vsName ?? undefined}>
           {phase}
-          {combat.partial ? (
-            <abbr className="combat-partial" title={partialTitle}>
-              {' '}
-              · Partial
-            </abbr>
-          ) : null}
         </span>
       </div>
       <div className="combat-side right">

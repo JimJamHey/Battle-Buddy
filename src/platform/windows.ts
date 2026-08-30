@@ -407,7 +407,7 @@ export function ensureGameOverlayFriendly(enabled: boolean): OverlayDisplayMode 
     if (
       !shouldApplyBorderless({
         enabled,
-        exclusive: false,
+        exclusive,
         covers,
         chrome,
         window: win,

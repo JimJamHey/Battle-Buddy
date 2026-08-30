@@ -92,12 +92,7 @@ export function OverlayApp() {
     >
       <div className="toast-stack">
         <UpdateBanner update={state.update} compact />
-        {state.status.banner ? <div className="notice interactive capture-mouse">{state.status.banner}</div> : null}
-        {state.status.displayMode === 'exclusive' ? (
-          <div className="notice interactive capture-mouse">
-            Hearthstone is exclusive fullscreen. Switch to windowed or borderless so the overlay can sit on the game.
-          </div>
-        ) : null}
+          {state.status.banner ? <div className="notice interactive capture-mouse">{state.status.banner}</div> : null}
       </div>
       {unlocked ? (
         <div className="layout-hint interactive capture-mouse" role="status">
@@ -184,7 +179,6 @@ export function OverlayApp() {
             inCombat={state.match.inCombat}
             tavernTier={live ? state.match.tavernTier : 0}
             selectedTier={state.selectedTier}
-            remaining={live ? state.poolRemaining : undefined}
             onTier={(tier) => window.battleBuddy.setTier(tier)}
           />
         ) : (

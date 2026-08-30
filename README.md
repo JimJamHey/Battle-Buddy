@@ -10,28 +10,23 @@ Testers should **not** install Node or run from source. Grab a build from GitHub
 
 | File | What to do |
 |---|---|
-| `BattleBuddy-Setup.exe` | Double-click to install. Fast on disk; auto-update follows this test channel. |
-| `BattleBuddy-windows.zip` | Unzip and run `BattleBuddy.exe`. Same fast app, no installer. |
-| `BattleBuddy.dmg` | macOS: drag to Applications (unsigned until an Apple cert is added). |
+| `BattleBuddy-Setup.exe` | Double-click to install. Later launches check for updates. |
+| `BattleBuddy-windows.zip` | Unzip and run `BattleBuddy.exe`. |
+| `BattleBuddy.dmg` | Drag to Applications and open. |
 
-Stable links once the first test release exists:
+Direct links:
 
 - https://github.com/JimJamHey/Battle-Buddy/releases/download/test/BattleBuddy-Setup.exe
 - https://github.com/JimJamHey/Battle-Buddy/releases/download/test/BattleBuddy-windows.zip
 - https://github.com/JimJamHey/Battle-Buddy/releases/download/test/BattleBuddy.dmg
 
-Windows SmartScreen may still warn until a code-signing cert is set as GitHub secret `CSC_LINK`. Choose **More info → Run anyway**.
+Start BattleBuddy, then Hearthstone (or the other way around). The overlay attaches to the game window, including exclusive fullscreen on Windows. If the test release is missing, a pull request’s **Actions → Release** artifacts (`windows` / `macos`) are the same files.
 
-Start BattleBuddy, then Hearthstone (**windowed or borderless**). Exclusive fullscreen is detected and a banner asks you to switch — BattleBuddy will not send Alt+Enter or change the display mode. If a banner asks you to enable file logs, **restart Hearthstone once**. You can open BattleBuddy whether or not the game is already running; the overlay attaches when the window appears.
-
-Private-repo testers cannot auto-update until the repo is public (or a GitHub token is configured). Grab a new artifact from Actions / Releases instead.
-
-If the test release is missing, a pull request’s **Actions → Release** artifacts (`windows` / `macos`) are the same files.
+Private-repo testers need collaborator access to download. Auto-update also needs the repo public (or a GitHub token).
 
 ## What it shows
 
-- Combat odds at the top once a fight starts. Left is **Lethal** (you kill them); right is **Death** (you die). Boards, tavern-tier damage, keywords, deathrattles, Avenge, Rally, and Start of Combat come from card text. **Hands** and **trinkets** in Power.log are included. Unique scripts the text parser cannot read show as **Partial** on the combat bar (hover it).
-- Live remaining shop copies on each minion row (bought minions leave the shared pool; sells return them; deaths and combat clones do not)
+- Combat odds at the top once a fight starts. Left is **Lethal** (you kill them); right is **Death** (you die). Boards, tavern-tier damage, keywords, deathrattles, Avenge, Rally, and Start of Combat come from card text. **Hands** and **trinkets** in Power.log are included.
 - Composition suggestions for this lobby’s tribes, generated from the live HearthstoneJSON pool (curated comps override candidates). The list waits until lobby types are known.
 - Hero name and this lobby’s tribes once you pick
 - Session: start/current public MMR, games today, average finish, latest places. Hover a game for the final board.
@@ -55,13 +50,13 @@ Region is auto-detected from Battle.net (change it in settings if lobby MMR is w
 
 - **Cards:** `https://api.hearthstonejson.com/v1/latest/enUS/cards.json` (cached in app data)
 - **Live match:** Hearthstone `Logs/Power.log`, `LoadingScreen.log`, and `GameNetLogger.log`
-- **MMR:** `https://hearthstone.blizzard.com/en-us/api/community/leaderboardsData` (cached). On **Windows**, post-game rating is also OCR’d from the Play/results screen. macOS uses the public leaderboard only.
+- **MMR:** `https://hearthstone.blizzard.com/en-us/api/community/leaderboardsData` (cached). Post-game rating is also OCR’d from the Play/results screen on Windows and macOS.
 
 BattleBuddy does not read Hearthstone process memory.
 
 ## Requirements
 
-- Hearthstone running (windowed, borderless, or fullscreen)
+- Hearthstone running
 - Node.js 20+ only if you develop from source; testers using Setup.exe / the zip do not need Node
 
 ## Run from source
@@ -73,11 +68,11 @@ npm run dev
 
 The control window opens immediately. Start (or already have) Hearthstone. The overlay should snap to the client area within a second.
 
-If this machine has never enabled Hearthstone file logs, BattleBuddy writes `%LocalAppData%\Blizzard\Hearthstone\log.config` (Windows) or `~/Library/Preferences/Blizzard/Hearthstone/log.config` (macOS). **Restart Hearthstone once** when the banner asks. If Hearthstone Deck Tracker already enabled logs, live tracking works on the current session.
+If this machine has never enabled Hearthstone file logs, BattleBuddy writes `%LocalAppData%\Blizzard\Hearthstone\log.config` (Windows) or `~/Library/Preferences/Blizzard/Hearthstone/log.config` (macOS) before the game launches. If Hearthstone Deck Tracker already enabled logs, live tracking works on the current session.
 
-### macOS
+### macOS (from source)
 
-Grant **Accessibility** if the overlay cannot follow the Hearthstone window (System Settings → Privacy & Security → Accessibility).
+`npm run dist:mac` compiles `src/platform/macHost.swift` into `resources/mac-host` so the overlay can follow the window without Accessibility. `npm run dev` falls back to System Events if that binary is missing.
 
 ## Packaged builds
 

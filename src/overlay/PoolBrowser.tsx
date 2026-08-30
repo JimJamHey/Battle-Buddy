@@ -25,7 +25,6 @@ export function PoolBrowser({
   inCombat,
   tavernTier,
   selectedTier,
-  remaining,
   onTier
 }: {
   groups: PoolGroup[]
@@ -38,7 +37,6 @@ export function PoolBrowser({
   inCombat: boolean
   tavernTier: number
   selectedTier: number
-  remaining?: Record<string, number>
   onTier: (tier: number) => void
 }) {
   const [tribe, setTribe] = useState<string | null>(null)
@@ -68,7 +66,6 @@ export function PoolBrowser({
               <strong>{baconPhaseLabel(rawTurn, inCombat, turn)}</strong>
               <span>Tavern {tavernTier || '—'}</span>
             </p>
-            <p className="pool-legend">Right number is remaining shared-pool copies</p>
           </div>
         ) : null}
         <div className="tier-track" role="tablist" aria-label="Tavern tier">
@@ -149,8 +146,6 @@ export function PoolBrowser({
       <PoolList
         groups={visible}
         showTierBubble={showPoolTierBubbles(Boolean(tribe), selectedTier)}
-        remaining={remaining}
-        remainingLive={Boolean(live && remaining)}
         cardUnavailable={(card) => !cardAvailableInLobby(card, availableTribes, buddyAvailable, tribesComplete)}
       />
     </section>

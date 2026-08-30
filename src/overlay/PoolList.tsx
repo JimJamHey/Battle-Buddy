@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { BgMinion } from '../core/types'
 import { boardCardUrls, goldenCardId, cardTavernRenderUrls } from '../core/cards'
-import { groupLabel, isTierGroupTitle, poolCopies } from '../core/pool'
-import { poolBaseId } from '../core/cards'
+import { groupLabel, isTierGroupTitle } from '../core/pool'
 import { tribeSlug } from '../core/heroes'
 import { firstAvailable, warmUrls } from './imageCache'
 import { CardArt } from './CardArt'
@@ -137,15 +136,11 @@ function LazyTile({ cardId, name }: { cardId: string; name: string }) {
 export function PoolList({
   groups,
   cardUnavailable,
-  showTierBubble = true,
-  remaining,
-  remainingLive = false
+  showTierBubble = true
 }: {
   groups: { title: string; cards: BgMinion[] }[]
   cardUnavailable?: (card: BgMinion) => boolean
   showTierBubble?: boolean
-  remaining?: Record<string, number>
-  remainingLive?: boolean
 }) {
   const [hover, setHover] = useState<Hover | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -237,10 +232,6 @@ export function PoolList({
               <span>{groupLabel(group.title)}</span>
             </header>
             {group.cards.map((card) => {
-              const copies = remaining?.[poolBaseId(card.id)] ?? poolCopies(card)
-              const title = remainingLive
-                ? `${copies} remaining in the shared shop pool`
-                : `${poolCopies(card)} starting copies`
               return (
                 <div
                   className={`pool-row ${cardUnavailable?.(card) ? 'unavailable' : ''}`}
@@ -251,9 +242,6 @@ export function PoolList({
                   {showTierBubble ? <span className="pool-tier">{card.techLevel}</span> : null}
                   <span className="pool-name">{card.name}</span>
                   {card.kind === 'spell' ? <span className="pool-cost">{card.cost}</span> : null}
-                  <span className="pool-copies" title={title}>
-                    {copies}
-                  </span>
                   <LazyTile cardId={card.id} name={card.name} />
                 </div>
               )

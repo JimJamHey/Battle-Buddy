@@ -12,3 +12,5 @@ coverage/
 *.tsbuildinfo
 data/pool-diff.json
 data/strategies/status.json
+resources/mac-host
+

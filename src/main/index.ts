@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, open, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -161,13 +161,7 @@ function status(): TrackerStatus {
     logsLive,
     logConfigChanged,
     needsHearthstoneRestart,
-    banner: needsHearthstoneRestart
-      ? 'Restart Hearthstone once to enable live match tracking.'
-      : displayMode === 'exclusive'
-        ? 'Hearthstone is exclusive fullscreen. Switch to windowed or borderless for the overlay.'
-        : !hsFound
-          ? 'Waiting for Hearthstone…'
-          : null,
+    banner: !hsFound ? 'Waiting for Hearthstone…' : null,
     lastError,
     leaderboardReady: boardRows.length > 0,
     leaderboardCount: boardRows.length,
@@ -351,7 +345,6 @@ function snapshot(): OverlaySnapshot {
       errorMessage: null
     },
     combat: match.gameActive ? combat : { ...EMPTY_COMBAT },
-    poolRemaining: parser.getPoolRemaining(),
     strategies:
       match.gameActive && !match.tribesComplete
         ? []
@@ -398,6 +391,30 @@ async function ensureWindowedOptions(): Promise<void> {
   }
 }
 
+async function powerLogAlreadyVerbose(): Promise<boolean> {
+  const install = settings.hearthstonePath || host.defaultInstallPath()
+  const logsDir = resolveLogsDirectory(install) ?? join(install, 'Logs')
+  return powerFileHasDebugPrint(join(logsDir, 'Power.log'))
+}
+
+async function powerFileHasDebugPrint(path: string): Promise<boolean> {
+  try {
+    const st = await stat(path)
+    if (st.size < 80) return false
+    const fh = await open(path, 'r')
+    try {
+      const start = Math.max(0, st.size - 65_536)
+      const buf = Buffer.alloc(st.size - start)
+      await fh.read(buf, 0, buf.length, start)
+      return buf.toString('utf8').includes('DebugPrintPower')
+    } finally {
+      await fh.close()
+    }
+  } catch {
+    return false
+  }
+}
+
 async function ensureLogConfig(): Promise<void> {
   const path = host.logConfigPath()
   let existing = ''
@@ -410,7 +427,9 @@ async function ensureLogConfig(): Promise<void> {
   if (changed) {
     await mkdir(dirname(path), { recursive: true })
     await writeFile(path, next, 'utf8')
-    logConfigChanged = true
+    const hsAlready = Boolean(await host.findHearthstone())
+    const alreadyLive = await powerLogAlreadyVerbose()
+    logConfigChanged = hsAlready && !alreadyLive
   }
 }
 
@@ -523,7 +542,6 @@ async function attachLogs(install: string): Promise<void> {
     currentLogsDir = logsDir
     if (!keepParser) {
       parser = new BattlegroundsParser(settings.battleTag)
-      parser.setPoolCatalog(minions)
       match = parser.getMatch()
     }
     tailer = bindTailer()
@@ -791,7 +809,9 @@ async function tickOverlayBody(): Promise<void> {
   if (!win || win.isDestroyed()) return
 
   displayMode = ensureGameOverlayFriendly(settings.overlayEnabled && settings.keepFullscreenOverlay)
-  if (displayMode === 'exclusive' && settings.keepFullscreenOverlay) void ensureWindowedOptions()
+  if (displayMode === 'exclusive' && settings.overlayEnabled && settings.keepFullscreenOverlay) {
+    void ensureWindowedOptions()
+  }
   if (displayMode !== lastBroadcastMode) {
     lastBroadcastMode = displayMode
     scheduleBroadcast()
@@ -1094,7 +1114,6 @@ app.whenReady().then(async () => {
       minions = catalog.minions
       heroNames = catalog.heroes
       summons = catalog.summons
-      parser.setPoolCatalog(minions)
       scheduleBroadcast()
     })
     .catch((err: unknown) => {

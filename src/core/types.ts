@@ -284,7 +284,6 @@ export interface OverlaySnapshot {
   overlayVisible: boolean
   update: UpdateState
   combat: CombatOdds
-  poolRemaining: Record<string, number>
   strategies: StrategyCompView[]
 }
 
