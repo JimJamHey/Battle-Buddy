@@ -122,10 +122,12 @@ jobs:
             Build `${{ github.sha }}` (`${{ needs.version.outputs.version }}`).
 
             **Windows**
-            - `BattleBuddy-Setup.exe` — one-click install (auto-update on this test channel)
+            - `BattleBuddy-Setup.exe` — double-click to install (auto-update on this test channel)
             - `BattleBuddy-windows.zip` — unzip and run `BattleBuddy.exe`
+            - If SmartScreen warns about an unknown publisher: **More info** → **Run anyway** (one time)
 
             **macOS**
             - `BattleBuddy.dmg` — drag to Applications
+            - If macOS blocks the first open: right-click **BattleBuddy** → **Open**, then confirm
 
             Start BattleBuddy, then Hearthstone. The overlay follows the game window.
