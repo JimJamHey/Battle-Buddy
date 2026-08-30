@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            release/BattleBuddy-Setup.exe
+            release/BattleBuddy-windows.zip
+            release/latest.yml
+          if-no-files-found: error
+      - name: Publish GitHub Release
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'test' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Test build' }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          make_latest: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          files: |
+            release/BattleBuddy-Setup.exe
+            release/BattleBuddy-windows.zip
+            release/latest.yml
+          body: |
+            Build `${{ github.sha }}`.
+
+            **Windows (pick one file on this release)**
+            - `BattleBuddy-Setup.exe` — one-click install (recommended; auto-update later)
+            - `BattleBuddy-windows.zip` — unzip and run `BattleBuddy.exe`
+
+            Both run from disk (fast). There is no single-file portable exe; those unpack to a temp folder on every launch.
+
+            Windows SmartScreen may say the app is unrecognized (unsigned). **More info → Run anyway**.
+
+            Start BattleBuddy, then Hearthstone (windowed or borderless). If a banner asks you to enable logs, restart Hearthstone once.

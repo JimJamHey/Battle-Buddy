@@ -1,0 +1,5 @@
+{
+  "skillBand": "mid",
+  "notes": "Human-reviewed comps for typical lobby MMR — not Jeef/high-ladder lines. Promote from data/strategy-candidates.json after a patch; drop anything markStale flags.",
+  "comps": []
+}

@@ -10,6 +10,16 @@ export { ensureWindowedGraphics } from './hsOptions'
 export { indexLeaderboard, leaderboardAccountId, leaderboardUrl, matchLobby, rowsFromPage } from './mmr'
 export { applyGameMmr, applyRatingObservation, averageFinish, bindCurrentMmr, dedupeGames, emptySession, ensureToday, gamesToday, gameMmrIsSettled, hydrateGameMmr, recordFinish, MAX_RECENT_GAMES } from './session'
 export { parsePlayRating, parseRatingObservation, mergeRatingObservations, isSessionTotalDelta, acceptObservedRating, battleTagDiscriminator, ratingCaptureRect, ratingCaptureRects, resultCaptureRects } from './playRating'
+export {
+  strategyCandidates,
+  snapshotFromCatalog,
+  diffSnapshots,
+  reviewCurated,
+  markStale,
+  parseHsjsonBuild,
+  latestHsjsonBuild
+} from './strategy'
+export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strategy'
 export { mergeLogConfig } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
 export { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'

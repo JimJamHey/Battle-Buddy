@@ -10,3 +10,5 @@ Thumbs.db
 .vscode/
 coverage/
 *.tsbuildinfo
+data/pool-diff.json
+data/strategies/status.json

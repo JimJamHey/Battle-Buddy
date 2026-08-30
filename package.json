@@ -19,6 +19,7 @@
     "dist:mac": "electron-vite build && electron-builder --mac",
     "publish:win": "electron-vite build && electron-builder --win nsis --publish always",
     "publish:mac": "electron-vite build && electron-builder --mac --publish always",
+    "curate": "tsx scripts/curate-strategies.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -36,6 +37,7 @@
     "electron-vite": "^3.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.8.3",
     "vite": "^6.3.4",
     "vitest": "^3.1.2"
@@ -53,17 +55,21 @@
       "resources/icon.png"
     ],
     "icon": "resources/icon.png",
+    "electronLanguages": ["en-US"],
     "asarUnpack": [
       "**/node_modules/koffi/**"
     ],
     "win": {
       "signAndEditExecutable": false,
+      "artifactName": "BattleBuddy-windows.${ext}",
       "target": [
         "nsis",
-        "portable"
+        "zip"
       ]
     },
     "mac": {
+      "identity": null,
+      "artifactName": "BattleBuddy.${ext}",
       "target": [
         "dmg",
         "zip"
@@ -71,8 +77,11 @@
       "category": "public.app-category.games"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "artifactName": "BattleBuddy-Setup.exe",
+      "oneClick": true,
+      "perMachine": false,
+      "shortcutName": "BattleBuddy",
+      "uninstallDisplayName": "BattleBuddy"
     },
     "publish": {
       "provider": "github",
