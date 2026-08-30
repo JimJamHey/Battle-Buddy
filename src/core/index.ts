@@ -22,7 +22,7 @@ export {
   overlayStrategies
 } from './strategy'
 export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strategy'
-export { mergeLogConfig } from './logConfig'
+export { mergeLogConfig, trackerBanner } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
 export { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
 export { isNewerVersion, isPrerelease } from './version'

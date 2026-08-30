@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { selectSessionLogDir } from './logPaths'
 import { BattlegroundsParser, baconPhaseLabel, isCombatSpectatorCreateGame, isPlaceholderName } from './parser'
-import { mergeLogConfig } from './logConfig'
+import { mergeLogConfig, trackerBanner } from './logConfig'
 import { matchLobby, indexLeaderboard } from './mmr'
 import { catalogFromCardsJson, cardTileUrls, cardSlug, cardGoldenRenderUrls, boardCardUrls, baseCardId, heroBuddyCardId, heroHasBuddy, type RawCard } from './cards'
 import { applyGameMmr, applyRatingObservation, bindCurrentMmr, recordFinish, emptySession, ensureToday, averageFinish, dedupeGames, gameMmrIsSettled } from './session'
@@ -21,6 +21,16 @@ describe('logConfig', () => {
     const first = mergeLogConfig('')
     const second = mergeLogConfig(first.next)
     expect(second.changed).toBe(false)
+  })
+
+  it('asks testers to restart Hearthstone when logs are not live yet', () => {
+    expect(trackerBanner({ hearthstoneFound: false, needsHearthstoneRestart: false })).toBe(
+      'Waiting for Hearthstone…'
+    )
+    expect(trackerBanner({ hearthstoneFound: true, needsHearthstoneRestart: true })).toBe(
+      'Restart Hearthstone to start live tracking.'
+    )
+    expect(trackerBanner({ hearthstoneFound: true, needsHearthstoneRestart: false })).toBeNull()
   })
 })
 

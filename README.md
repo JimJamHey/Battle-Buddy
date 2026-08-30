@@ -90,49 +90,40 @@ Windows artifacts land in `release/`:
 - `BattleBuddy-windows.zip` — unzip and run `BattleBuddy.exe`
 - `win-unpacked/BattleBuddy.exe` — same app, unpacked
 
-Owner setup (not a tester step): Windows signing uses GitHub secrets `CSC_LINK` + `CSC_KEY_PASSWORD`. macOS signing/notarization uses `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`. Auto-update from a private repo needs the repo public or a GitHub token.
-
 ### Code signing (owner)
 
-This is **not a URL**. GitHub Actions reads a certificate file from repository secrets, then electron-builder signs `BattleBuddy-Setup.exe` / `BattleBuddy.dmg`.
+GitHub cannot store a certificate *file*. You buy a Windows code-signing certificate, export it as a `.pfx` on your PC, convert that file to a long text string, and paste the text into a GitHub secret. There is no link to add.
 
-1. Open the repo on GitHub → **Settings → Secrets and variables → Actions → New repository secret**.
-2. Add these secrets:
+You need a paid certificate from a vendor (Sectigo, DigiCert, SSL.com, etc.). Export it from Windows as a `.pfx` and pick a password. If you do not have that file yet, skip this section — testers will still see SmartScreen “unknown publisher.”
 
-**Windows (Authenticode `.pfx`)**
-
-| Secret | Value |
-|---|---|
-| `CSC_LINK` | Base64 of the `.pfx` file |
-| `CSC_KEY_PASSWORD` | Password for that PFX |
-
-Encode the PFX in PowerShell:
+1. On your PC, convert the `.pfx` to text. In PowerShell, use the real path to your file:
 
 ```powershell
 [Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\path\to\cert.pfx'))
 ```
 
-Paste the one-line output as `CSC_LINK`. Do not wrap it in quotes.
+That prints one long line of letters and numbers. Copy the whole line.
 
-**macOS (Developer ID Application `.p12`)**
+2. GitHub → this repo → **Settings → Secrets and variables → Actions → New repository secret**.
 
-| Secret | Value |
+| Secret name | What to paste |
 |---|---|
-| `MAC_CSC_LINK` | Base64 of the `.p12` file |
-| `MAC_CSC_KEY_PASSWORD` | Password for that p12 |
-| `APPLE_ID` | Apple ID email used for notarization |
-| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password (not the Apple ID login) |
+| `CSC_LINK` | The long line from step 1 (no quotes) |
+| `CSC_KEY_PASSWORD` | The password you set when exporting the `.pfx` |
+
+**macOS** (optional, for Gatekeeper): same idea with a Developer ID Application `.p12`.
+
+| Secret name | What to paste |
+|---|---|
+| `MAC_CSC_LINK` | `base64 -i DeveloperID.p12` output |
+| `MAC_CSC_KEY_PASSWORD` | p12 password |
+| `APPLE_ID` | Apple ID email |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password (not your Apple login) |
 | `APPLE_TEAM_ID` | 10-character Team ID |
 
-Encode the p12:
+3. Re-run **Actions → Release**. The rolling `test` tag is overwritten. Signed Setup.exe no longer shows SmartScreen.
 
-```bash
-base64 -i DeveloperID.p12 | pbcopy
-```
-
-3. Re-run **Actions → Release**. The rolling `test` tag is overwritten. Signed builds no longer show the SmartScreen / Gatekeeper “unknown publisher” prompt.
-
-A standard code-signing certificate from a CA (exported as PFX) is enough for Windows. Apple requires a Developer ID Application certificate from a paid Apple Developer account for macOS.
+Auto-update from a private repo needs the repo public or a GitHub token.
 
 ### Auto-update (installed copies)
 

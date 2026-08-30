@@ -73,3 +73,12 @@ export function mergeLogConfig(existing: string): { next: string; changed: boole
   }
   return { next: serializeIni(sections), changed }
 }
+
+export function trackerBanner(status: {
+  hearthstoneFound: boolean
+  needsHearthstoneRestart: boolean
+}): string | null {
+  if (!status.hearthstoneFound) return 'Waiting for Hearthstone…'
+  if (status.needsHearthstoneRestart) return 'Restart Hearthstone to start live tracking.'
+  return null
+}

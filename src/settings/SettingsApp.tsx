@@ -78,6 +78,7 @@ export function SettingsApp() {
         <p className="hint">Logs: {state.status.logsDirectory || '—'}</p>
         <p className="hint">
           Live tracking: {state.status.logsLive ? 'yes' : 'no'}
+          {state.status.needsHearthstoneRestart ? ' — restart Hearthstone' : ''}
         </p>
         <p className="hint">
           Cards: {state.status.cardCount} · Leaderboard: {state.status.leaderboardCount} players cached
@@ -134,7 +135,7 @@ export function SettingsApp() {
           />
         </label>
         <label className="toggle">
-          <span>Keep overlay on exclusive fullscreen</span>
+          <span>Keep overlay visible in fullscreen</span>
           <input
             type="checkbox"
             checked={state.settings.keepFullscreenOverlay}
@@ -167,7 +168,7 @@ export function SettingsApp() {
         </label>
         <p className="hint">
           {state.status.displayMode === 'exclusive'
-            ? 'Converting exclusive fullscreen so the overlay can sit on the game.'
+            ? 'Hearthstone is in fullscreen — switching it so the overlay can sit on the game.'
             : state.status.displayMode === 'borderless'
               ? 'Borderless fullscreen — overlay follows the game window.'
               : 'Windowed — overlay follows the Hearthstone window in any size.'}
