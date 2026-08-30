@@ -22,20 +22,22 @@ Stable links once the first test release exists:
 
 Windows SmartScreen may still warn until a code-signing cert is set as GitHub secret `CSC_LINK`. Choose **More info → Run anyway**.
 
-Start BattleBuddy, then Hearthstone (windowed or borderless is easiest). If a banner asks you to enable file logs, **restart Hearthstone once**. You can open BattleBuddy whether or not the game is already running; the overlay attaches when the window appears.
+Start BattleBuddy, then Hearthstone (**windowed or borderless**). Exclusive fullscreen is detected and a banner asks you to switch — BattleBuddy will not send Alt+Enter or change the display mode. If a banner asks you to enable file logs, **restart Hearthstone once**. You can open BattleBuddy whether or not the game is already running; the overlay attaches when the window appears.
+
+Private-repo testers cannot auto-update until the repo is public (or a GitHub token is configured). Grab a new artifact from Actions / Releases instead.
 
 If the test release is missing, a pull request’s **Actions → Release** artifacts (`windows` / `macos`) are the same files.
 
 ## What it shows
 
-- Combat odds at the top once a fight starts. Boards, tavern-tier damage, keywords, deathrattles, Avenge, Rally, and Start of Combat come from card text. **Hands** and **trinkets** in Power.log are included. Unique scripts the text parser cannot read show as **Partial** on the combat bar.
-- Live remaining shop copies on each minion row (bought minions leave the shared pool; sells return them; combat clones are ignored)
-- Composition suggestions for this lobby’s tribes, generated from the live HearthstoneJSON pool (curated comps override candidates)
+- Combat odds at the top once a fight starts. Left is **Lethal** (you kill them); right is **Death** (you die). Boards, tavern-tier damage, keywords, deathrattles, Avenge, Rally, and Start of Combat come from card text. **Hands** and **trinkets** in Power.log are included. Unique scripts the text parser cannot read show as **Partial** on the combat bar (hover it).
+- Live remaining shop copies on each minion row (bought minions leave the shared pool; sells return them; deaths and combat clones do not)
+- Composition suggestions for this lobby’s tribes, generated from the live HearthstoneJSON pool (curated comps override candidates). The list waits until lobby types are known.
 - Hero name and this lobby’s tribes once you pick
-- Session: start/current public MMR, games today, average finish, latest places
-- Update banner on launch when a newer test or numbered GitHub Release exists
+- Session: start/current public MMR, games today, average finish, latest places. Hover a game for the final board.
+- Update banner on launch when a newer build on the **same channel** exists (`0.1.0-test.N` testers follow the rolling `test` release; a numbered `0.1.0` install is not offered a test build)
 - Lobby public MMR: names from `Power.log`, ratings from Blizzard’s published Battlegrounds leaderboard (region in settings). Unlisted players show `8000↓`. Names the log never prints stay `Unknown`
-- Minion pool by tavern tier (HearthstoneJSON), with tile art
+- Minion pool by tavern tier (HearthstoneJSON), with tile art. **All** shows every tier; 1–7 peeks one tavern.
 
 Region is auto-detected from Battle.net (change it in settings if lobby MMR is wrong). Your BattleTag is read from `Power.log` when you enter a match.
 
@@ -45,14 +47,15 @@ Region is auto-detected from Battle.net (change it in settings if lobby MMR is w
 |---|---|
 | Ctrl/Cmd+Shift+B | Toggle overlay |
 | Ctrl/Cmd+Shift+1–7 | Peek tavern tier |
-| Ctrl/Cmd+Shift+0 | Auto tier (your current tech level) |
+| Ctrl/Cmd+Shift+0 | All tavern tiers |
 | Ctrl/Cmd+Shift+C | Allow clicks on the minion pool for 5 seconds |
+| Ctrl/Cmd+Shift+L | Unlock overlay layout (drag panels) |
 
 ## How it gets data
 
 - **Cards:** `https://api.hearthstonejson.com/v1/latest/enUS/cards.json` (cached in app data)
-- **Live match:** Hearthstone `Logs/Power.log` and `LoadingScreen.log`
-- **MMR:** `https://hearthstone.blizzard.com/en-us/api/community/leaderboardsData` (cached; not live post-game rating from the client)
+- **Live match:** Hearthstone `Logs/Power.log`, `LoadingScreen.log`, and `GameNetLogger.log`
+- **MMR:** `https://hearthstone.blizzard.com/en-us/api/community/leaderboardsData` (cached). On **Windows**, post-game rating is also OCR’d from the Play/results screen. macOS uses the public leaderboard only.
 
 BattleBuddy does not read Hearthstone process memory.
 

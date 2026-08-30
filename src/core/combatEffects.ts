@@ -303,17 +303,26 @@ export function parseCardCombat(text: string): CombatKit {
   }
 }
 
-export function combatParseGaps(text: string): string[] {
+export function combatParseGaps(text: string, mechanics: string[] = []): string[] {
   const raw = plainCardText(text)
-  if (!raw) return []
+  if (!raw && !mechanics.length) return []
   const kit = parseCardCombat(raw)
   const gaps: string[] = []
   const has = (when: CombatTrigger) => kit.triggers.some((row) => row.when === when)
-  if (/\bdeathrattle\s*:/i.test(raw) && !has('deathrattle')) gaps.push('Deathrattle')
-  if (/\brally\s*:/i.test(raw) && !has('rally')) gaps.push('Rally')
-  if (/start of combat\s*:/i.test(raw) && !has('startOfCombat')) gaps.push('Start of Combat')
-  if (/\bavenge\s*\(/i.test(raw) && !has('avenge')) gaps.push('Avenge')
-  return gaps
+  const mech = (name: string) => mechanics.some((tag) => tag.toLowerCase() === name.toLowerCase())
+  if ((/\bdeathrattle\s*:/i.test(raw) || mech('Deathrattle')) && !has('deathrattle')) gaps.push('Deathrattle')
+  if ((/\brally\s*:/i.test(raw) || mech('Rally')) && !has('rally')) gaps.push('Rally')
+  if ((/start of combat\s*:/i.test(raw) || mech('Start of Combat')) && !has('startOfCombat')) {
+    gaps.push('Start of Combat')
+  }
+  if ((/\bavenge\s*\(/i.test(raw) || mech('Avenge')) && !has('avenge')) gaps.push('Avenge')
+  const blob = `${raw} ${mechanics.join(' ')}`
+  if (/\bfrenzy\b/i.test(blob)) gaps.push('Frenzy')
+  if (/\bmagnetic\b/i.test(blob)) gaps.push('Magnetic')
+  if (/\bspellcraft\b/i.test(blob)) gaps.push('Spellcraft')
+  if (/\bactivate\b/i.test(blob)) gaps.push('Activate')
+  if (/end of (?:your )?turn/i.test(blob)) gaps.push('End of Turn')
+  return [...new Set(gaps)]
 }
 
 export function parseDeathrattleSummon(text: string): { count: number; attack: number; health: number } | null {

@@ -1,5 +1,6 @@
 import { poolBaseId } from './cards'
-import { canonTag, powerPayload, zoneName } from './tags'
+import { parseCreating, parseEntityRef, parseNestedTag, parseTagChangeLine, parseUpdating, payloadOf } from './powerLog'
+import { zoneName } from './tags'
 import { poolCopies } from './pool'
 import type { BgMinion } from './types'
 
@@ -10,16 +11,19 @@ interface Tracked {
   tavern: boolean
   clone: boolean
   held: boolean
+  spell: boolean
 }
 
 /**
  * Shared tavern remaining-copy counts from Power.log.
- * Shop minions sitting in PLAY are not taken until they enter HAND (a buy)
- * or show up on a warband during combat (another player's buy we only see then).
- * Combat clones and in-fight deaths do not return copies.
+ * Shop minions sitting in PLAY (Bob's tavern) are not taken until they enter HAND
+ * (a buy) or a non-Bob PLAY/GRAVEYARD (a warband, including after combat).
+ * Combat clones do not consume copies. Deaths stay consumed; only a shop sell
+ * (SETASIDE / REMOVEDFROMGAME) returns a minion copy. Cast tavern spells stay taken.
  */
 export class PoolTracker {
   private poolIds = new Set<string>()
+  private spellIds = new Set<string>()
   private starting = new Map<string, number>()
   private taken = new Map<string, number>()
   private entities = new Map<number, Tracked>()
@@ -29,12 +33,14 @@ export class PoolTracker {
 
   setCatalog(cards: BgMinion[]): void {
     this.poolIds = new Set()
+    this.spellIds = new Set()
     this.starting = new Map()
     for (const card of cards) {
       if (card.kind !== 'minion' && card.kind !== 'spell') continue
       const id = poolBaseId(card.id)
       this.poolIds.add(id)
       this.starting.set(id, poolCopies(card))
+      if (card.kind === 'spell') this.spellIds.add(id)
     }
   }
 
@@ -66,57 +72,46 @@ export class PoolTracker {
   feed(line: string, inCombat: boolean, bobPlayers?: Iterable<number>): void {
     if (bobPlayers) this.setBobPlayers(bobPlayers)
     this.inCombat = inCombat
-    const payload = powerPayload(line)
+    const payload = payloadOf(line)
 
-    if (/CREATE_GAME/i.test(payload) && !this.inCombat && this.entities.size === 0) {
+    if (/CREATE_GAME/i.test(payload) && !this.inCombat) {
       this.reset()
     }
 
-    const created = payload.match(/FULL_ENTITY - Creating ID=(\d+)(?:\s+CardID=([A-Za-z0-9_]+))?/i)
+    const created = parseCreating(payload)
     if (created) {
-      this.lastId = Number(created[1])
+      this.lastId = created.id
       const e = this.ensure(this.lastId)
-      if (created[2]) e.cardId = created[2]
+      if (created.cardId) e.cardId = created.cardId
       if (this.inCombat) e.clone = true
     }
 
-    const updating = payload.match(
-      /(?:FULL_ENTITY|SHOW_ENTITY|CHANGE_ENTITY) - Updating (?:Entity=)?(?:\[([^\]]+)\]|(\d+))(?:\s+CardID=([A-Za-z0-9_]+))?/i
-    )
+    const updating = parseUpdating(payload)
     if (updating) {
-      if (updating[2]) this.lastId = Number(updating[2])
-      if (updating[1]) this.applyRef(updating[1], updating[3])
-      else if (updating[3]) this.ensure(this.lastId).cardId = updating[3]
+      if (updating.id) this.lastId = updating.id
+      if (updating.ref) this.applyRef(updating.ref, updating.cardId)
+      else if (updating.cardId) this.ensure(this.lastId).cardId = updating.cardId
     }
 
-    const tagChange = payload.match(/TAG_CHANGE Entity=(?:\[([^\]]+)\]|(.+?))\s+tag=([A-Z0-9_]+)\s+value=(\S+)/i)
+    const tagChange = parseTagChangeLine(line)
     if (tagChange) {
-      const tag = canonTag(tagChange[3])
-      const value = tagChange[4].replace(/,$/, '')
-      if (tagChange[1]) this.applyRef(tagChange[1])
-      const targetId = tagChange[1]
-        ? this.lastId
-        : /^\d+$/.test(tagChange[2])
-          ? Number(tagChange[2])
-          : 0
-      if (targetId) this.applyTag(this.ensure(targetId), tag, value)
+      if (tagChange.ref) this.applyRef(tagChange.ref)
+      const targetId = tagChange.entityId ?? this.lastId
+      if (targetId) this.applyTag(this.ensure(targetId), tagChange.tag, tagChange.value)
     } else {
-      const tagLine = payload.match(/^(?:\s+)?tag=([A-Z0-9_]+)\s+value=(\S+)/i)
-      if (tagLine && this.lastId) this.applyTag(this.ensure(this.lastId), canonTag(tagLine[1]), tagLine[2].replace(/,$/, ''))
+      const nested = parseNestedTag(payload)
+      if (nested && this.lastId) this.applyTag(this.ensure(this.lastId), nested.tag, nested.value)
     }
   }
 
   private applyRef(ref: string, cardId?: string): void {
-    const idMatch = ref.match(/\bid=(\d+)/i)
-    if (!idMatch) return
-    this.lastId = Number(idMatch[1])
+    const parsed = parseEntityRef(ref, cardId)
+    if (!parsed) return
+    this.lastId = parsed.id
     const e = this.ensure(this.lastId)
-    const cid = cardId || ref.match(/\bcardId=([A-Za-z0-9_]+)/i)?.[1]
-    if (cid) e.cardId = cid
-    const zone = ref.match(/\bzone=([A-Z]+)/i)?.[1]
-    if (zone) e.zone = zoneName(zone)
-    const player = ref.match(/\bplayer=(\d+)/i)?.[1]
-    if (player) e.player = Number(player)
+    if (parsed.cardId) e.cardId = parsed.cardId
+    if (parsed.zone) e.zone = parsed.zone
+    if (parsed.player) e.player = parsed.player
     this.syncHeld(e)
   }
 
@@ -141,6 +136,7 @@ export class PoolTracker {
 
   private syncHeld(e: Tracked): void {
     const id = poolBaseId(e.cardId)
+    if (id && this.spellIds.has(id)) e.spell = true
     if (!id || !this.poolIds.has(id) || e.clone) {
       if (e.held) this.release(e)
       return
@@ -159,6 +155,9 @@ export class PoolTracker {
     if (e.player > 0 && this.bobPlayers.has(e.player)) return false
     if (e.zone === 'HAND') return true
     if (e.zone === 'PLAY' && this.inCombat) return true
+    if (e.held && (e.zone === 'PLAY' || e.zone === 'GRAVEYARD')) return true
+    // Tavern spells are consumed on cast, not sold back into the pool.
+    if (e.held && e.spell && (e.zone === 'SETASIDE' || e.zone === 'REMOVEDFROMGAME')) return true
     return false
   }
 
@@ -175,7 +174,15 @@ export class PoolTracker {
   private ensure(id: number): Tracked {
     let e = this.entities.get(id)
     if (!e) {
-      e = { cardId: '', zone: '', player: 0, tavern: false, clone: false, held: false }
+      e = {
+        cardId: '',
+        zone: '',
+        player: 0,
+        tavern: false,
+        clone: false,
+        held: false,
+        spell: false
+      }
       this.entities.set(id, e)
     }
     return e

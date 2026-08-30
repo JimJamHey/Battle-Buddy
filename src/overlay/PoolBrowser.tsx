@@ -68,11 +68,14 @@ export function PoolBrowser({
               <strong>{baconPhaseLabel(rawTurn, inCombat, turn)}</strong>
               <span>Tavern {tavernTier || '—'}</span>
             </p>
+            <p className="pool-legend">Right number is remaining shared-pool copies</p>
           </div>
         ) : null}
         <div className="tier-track" role="tablist" aria-label="Tavern tier">
           <button
             type="button"
+            role="tab"
+            aria-selected={selectedTier === 0}
             className={`tier-tab ${selectedTier === 0 ? 'active' : ''}`}
             onClick={() => onTier(0)}
           >
@@ -81,10 +84,12 @@ export function PoolBrowser({
           {[1, 2, 3, 4, 5, 6, 7].map((tier) => (
             <button
               type="button"
+              role="tab"
+              aria-selected={selectedTier === tier}
               key={tier}
               className={`tier-tab ${selectedTier === tier ? 'active' : ''} ${live && tavernTier === tier ? 'shop-tier' : ''}`}
               title={live && tavernTier === tier ? 'Your current tavern' : undefined}
-              onClick={() => onTier(selectedTier === tier ? 0 : tier)}
+              onClick={() => onTier(tier)}
             >
               {tier}
             </button>
@@ -93,6 +98,8 @@ export function PoolBrowser({
         <div className="tribe-track" role="tablist" aria-label="Minion type">
           <button
             type="button"
+            role="tab"
+            aria-selected={tribe == null}
             className={`tribe-tab ${tribe == null ? 'active' : ''}`}
             onClick={() => setTribe(null)}
           >
@@ -101,6 +108,8 @@ export function PoolBrowser({
           {titles.map((title) => (
             <button
               type="button"
+              role="tab"
+              aria-selected={tribe === title}
               key={title}
             className={`tribe-tab tribe-${tribeSlug(title)} ${tribe === title ? 'active' : ''} ${
               tribeAvailableInLobby(title, availableTribes, buddyAvailable, tribesComplete) ? '' : 'unavailable'
@@ -115,6 +124,8 @@ export function PoolBrowser({
           <div className="mechanic-track" role="tablist" aria-label="Mechanic">
             <button
               type="button"
+              role="tab"
+              aria-selected={mechanic == null}
               className={`mechanic-tab ${mechanic == null ? 'active' : ''}`}
               onClick={() => setMechanic(null)}
             >
@@ -123,6 +134,8 @@ export function PoolBrowser({
             {mechanicNames.map((name) => (
               <button
                 type="button"
+                role="tab"
+                aria-selected={mechanic === name}
                 key={name}
                 className={`mechanic-tab ${mechanic === name ? 'active' : ''}`}
                 onClick={() => setMechanic((current) => (current === name ? null : name))}
@@ -137,6 +150,7 @@ export function PoolBrowser({
         groups={visible}
         showTierBubble={showPoolTierBubbles(Boolean(tribe), selectedTier)}
         remaining={remaining}
+        remainingLive={Boolean(live && remaining)}
         cardUnavailable={(card) => !cardAvailableInLobby(card, availableTribes, buddyAvailable, tribesComplete)}
       />
     </section>

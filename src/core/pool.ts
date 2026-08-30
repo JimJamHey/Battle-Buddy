@@ -38,8 +38,10 @@ function primaryTribe(card: BgMinion, available: string[]): string | null {
   return races.find((tribe) => wanted.has(tribe)) ?? null
 }
 
-function pushUnique(list: BgMinion[], card: BgMinion): void {
-  if (!list.some((row) => row.id === card.id)) list.push(card)
+function pushUnique(list: BgMinion[], card: BgMinion, seen: Set<string>): void {
+  if (seen.has(card.id)) return
+  seen.add(card.id)
+  list.push(card)
 }
 
 /** Neutrals whose text cares about a tribe (Nomi → Elemental, Kangor → Mech). */
@@ -67,8 +69,18 @@ export function groupPoolCards(cards: BgMinion[], availableTribes: string[]): Po
   const spells: BgMinion[] = []
   const buddies: BgMinion[] = []
   const none: BgMinion[] = []
+  const noneSeen = new Set<string>()
   const byTribe = new Map<string, BgMinion[]>()
+  const seenByTribe = new Map<string, Set<string>>()
   const wanted = new Set(availableTribes.map((tribe) => canonicalTribe(tribe) ?? tribe))
+
+  const addToTribe = (tribe: string, card: BgMinion) => {
+    const seen = seenByTribe.get(tribe) ?? new Set<string>()
+    seenByTribe.set(tribe, seen)
+    const list = byTribe.get(tribe) ?? []
+    pushUnique(list, card, seen)
+    byTribe.set(tribe, list)
+  }
 
   for (const card of cards) {
     if (card.kind === 'trinket') continue
@@ -80,24 +92,24 @@ export function groupPoolCards(cards: BgMinion[], availableTribes: string[]): Po
       buddies.push(card)
       continue
     }
-    const tribe = primaryTribe(card, availableTribes)
+    const races = sortTribes(
+      card.tribes.map((tribe) => canonicalTribe(tribe) ?? '').filter(Boolean)
+    )
+    const tribe = primaryTribe(card, availableTribes) ?? races[0] ?? null
     if (tribe == null) {
-      const typed = card.tribes.map((name) => canonicalTribe(name)).filter(Boolean)
-      if (!typed.length) none.push(card)
+      pushUnique(none, card, noneSeen)
     } else {
-      const list = byTribe.get(tribe) ?? []
-      pushUnique(list, card)
-      byTribe.set(tribe, list)
+      addToTribe(tribe, card)
     }
     for (const extra of relatedTribes(card)) {
       if (wanted.size && !wanted.has(extra)) continue
-      const list = byTribe.get(extra) ?? []
-      pushUnique(list, card)
-      byTribe.set(extra, list)
+      addToTribe(extra, card)
     }
   }
 
-  const titles = availableTribes.length ? availableTribes : TRIBE_ORDER.filter((tribe) => byTribe.has(tribe))
+  const lobbyTitles = availableTribes.filter((title) => byTribe.has(title))
+  const extraTitles = TRIBE_ORDER.filter((tribe) => byTribe.has(tribe) && !lobbyTitles.includes(tribe))
+  const titles = availableTribes.length ? [...lobbyTitles, ...extraTitles] : extraTitles
   const groups: PoolGroup[] = []
   for (const title of titles) {
     const list = byTribe.get(title)

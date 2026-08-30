@@ -6,7 +6,7 @@ export const SESSION_LOG_DIR = /^Hearthstone_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}
 export function selectSessionLogDir(
   entries: Array<{ name: string; mtimeMs: number; hasPowerLog: boolean }>
 ): string | null {
-  const sessions = entries.filter((entry) => SESSION_LOG_DIR.test(entry.name) && entry.hasPowerLog)
+  const sessions = entries.filter((entry) => SESSION_LOG_DIR.test(entry.name))
   if (!sessions.length) return null
   sessions.sort((a, b) => b.mtimeMs - a.mtimeMs)
   return sessions[0].name

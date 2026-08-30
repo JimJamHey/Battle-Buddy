@@ -2,7 +2,17 @@ import { classifyPlayerBuff, mergeBuffs, playerTagBuff, PLAYER_STAT_TAGS, PLAYER
 import { BoardTracker, type CombatEvent } from './entities'
 import { PoolTracker } from './poolTrack'
 import { canonicalTribe, isBgHeroCardId, isPickedBgHero, looksLikeHeroName, sortTribes, TRIBE_ORDER, TRIBE_SUBSET_TAGS } from './heroes'
-import { canonTag, powerPayload } from './tags'
+import {
+  parseCreating,
+  parseEntityName,
+  parseEntityRef,
+  parseGameEntity,
+  parseNestedTag,
+  parsePlayerEntity,
+  parseTagChangeLine,
+  parseUpdating,
+  payloadOf
+} from './powerLog'
 import { EMPTY_MATCH, type BgMinion, type MatchBuff, type MatchFinish, type MatchState, type SeenMinion } from './types'
 import type { CombatInput } from './combatSim'
 
@@ -352,9 +362,9 @@ export class BattlegroundsParser {
       this.upsertPlayer(Number(playerLine[1]), playerLine[2].trim())
     }
 
-    const playerEntity = line.match(/Player EntityID=(\d+) PlayerID=(\d+)/)
+    const playerEntity = parsePlayerEntity(payloadOf(line))
     if (playerEntity && !this.ignoreLobbyWrites) {
-      this.entityToPlayer.set(Number(playerEntity[1]), Number(playerEntity[2]))
+      this.entityToPlayer.set(playerEntity.entityId, playerEntity.playerId)
     }
 
     this.noteNestedEntity(line)
@@ -375,7 +385,7 @@ export class BattlegroundsParser {
     this.pool.setBobPlayers(this.bobPlayerIds)
     this.pool.feed(line, this.match.inCombat, this.bobPlayerIds)
 
-    const tag = parseTagChange(line)
+    const tag = parseTagChangeLine(line)
     if (tag) {
       const applied = this.applyMatchTag(tag, fromTaskList)
       if (applied.completed) completed = applied.completed
@@ -537,31 +547,30 @@ export class BattlegroundsParser {
   }
 
   private noteNestedEntity(line: string): void {
-    const payload = powerPayload(line).trimStart()
-    const gameEntity = payload.match(/^GameEntity EntityID=(\d+)/i)
-    if (gameEntity) {
-      this.lastEntityId = Number(gameEntity[1])
+    const payload = payloadOf(line)
+    const gameEntity = parseGameEntity(payload)
+    if (gameEntity != null) {
+      this.lastEntityId = gameEntity
       this.lastEntityIsGame = true
       return
     }
-    const playerEnt = payload.match(/^Player EntityID=(\d+) PlayerID=(\d+)/i)
+    const playerEnt = parsePlayerEntity(payload)
     if (playerEnt) {
-      this.lastEntityId = Number(playerEnt[1])
+      this.lastEntityId = playerEnt.entityId
       this.lastEntityIsGame = false
-      this.entityToPlayer.set(this.lastEntityId, Number(playerEnt[2]))
+      this.entityToPlayer.set(this.lastEntityId, playerEnt.playerId)
       return
     }
-    const created = payload.match(/FULL_ENTITY - Creating ID=(\d+)(?:\s+CardID=([A-Za-z0-9_]+))?/i)
+    const created = parseCreating(payload)
     if (created) {
-      this.lastEntityId = Number(created[1])
+      this.lastEntityId = created.id
       this.lastEntityIsGame = false
-      if (created[2]) this.entityCardId.set(this.lastEntityId, created[2])
+      if (created.cardId) this.entityCardId.set(this.lastEntityId, created.cardId)
       return
     }
-    const nested = payload.match(/^tag=([A-Z0-9_]+)\s+value=(\S+)/i)
+    const nested = parseNestedTag(payload)
     if (!nested || !this.lastEntityId) return
-    const tag = canonTag(nested[1])
-    const value = nested[2].replace(/,$/, '')
+    const { tag, value } = nested
     if (tag === 'PLAYER_ID') {
       const pid = Number(value)
       if (Number.isFinite(pid)) {
@@ -777,11 +786,14 @@ export class BattlegroundsParser {
       }
     }
     const known = this.match.lobby.some((p) => p.playerId === this.match.friendlyPlayerId)
-    if (this.match.friendlyPlayerId == null || !known) {
-      const real = this.match.lobby.find(
+    if (this.match.friendlyPlayerId != null && !known) this.match.friendlyPlayerId = null
+    if (this.match.friendlyPlayerId == null) {
+      const real = this.match.lobby.filter(
         (p) => !isPlaceholderName(p.rawName) && !this.bobPlayerIds.has(p.playerId)
       )
-      this.match.friendlyPlayerId = real?.playerId ?? this.match.lobby[0]?.playerId ?? null
+      if (real.length === 1 && /#\d+$/.test(real[0]?.rawName ?? '')) {
+        this.match.friendlyPlayerId = real[0]?.playerId ?? null
+      }
     }
     this.refreshFriendlyStats()
     this.refreshFriendlyHero()
@@ -789,24 +801,62 @@ export class BattlegroundsParser {
   }
 
   private ingestEntityLine(line: string): void {
-    const idMatch = line.match(/\bid=(\d+)/i)
-    if (!idMatch) return
-    const entityId = Number(idMatch[1])
+    const payload = payloadOf(line)
+    let entityId = 0
+    let cardId: string | undefined
+    let name: string | undefined
+    let zone: string | undefined
+    let zonePos: string | undefined
+    let player: number | undefined
+
+    const created = parseCreating(payload)
+    const updating = parseUpdating(payload)
+    const tagChange = parseTagChangeLine(line)
+    if (created) {
+      entityId = created.id
+      cardId = created.cardId
+    } else if (updating?.ref) {
+      const ref = parseEntityRef(updating.ref, updating.cardId)
+      if (!ref) return
+      entityId = ref.id
+      cardId = ref.cardId
+      name = ref.name
+      zone = ref.zone
+      zonePos = ref.zonePos != null ? String(ref.zonePos) : undefined
+      player = ref.player
+    } else if (updating?.id) {
+      entityId = updating.id
+      cardId = updating.cardId
+    } else if (tagChange?.ref) {
+      const ref = parseEntityRef(tagChange.ref)
+      if (!ref) return
+      entityId = ref.id
+      cardId = ref.cardId
+      name = ref.name
+      zone = ref.zone
+      zonePos = ref.zonePos != null ? String(ref.zonePos) : undefined
+      player = ref.player
+    } else {
+      const idMatch = line.match(/\bid=(\d+)/i)
+      if (!idMatch) return
+      entityId = Number(idMatch[1])
+      cardId = line.match(/\bCardID=([A-Za-z0-9_]+)/)?.[1] || line.match(/\bcardId=([A-Za-z0-9_]+)/)?.[1]
+      name = parseEntityName(line)
+      zone = line.match(/\bzone=([A-Z]+)/i)?.[1]?.toUpperCase()
+      zonePos = line.match(/\bzonePos=(\d+)/i)?.[1]
+      const playerMatch = line.match(/\bplayer=(\d+)/i)
+      player = playerMatch ? Number(playerMatch[1]) : undefined
+    }
+
     this.lastEntityId = entityId
-    const cardId =
-      line.match(/\bCardID=([A-Za-z0-9_]+)/)?.[1] || line.match(/\bcardId=([A-Za-z0-9_]+)/)?.[1]
     if (cardId) this.entityCardId.set(entityId, cardId)
     if (cardId && /_Buddy$/i.test(cardId) && !this.ignoreLobbyWrites) {
       this.tribes.add('Buddy')
       this.match.availableTribes = sortTribes([...this.tribes])
     }
-    const name = parseEntityName(line)
     if (name && !/CHANGE_ENTITY/i.test(line)) this.entityName.set(entityId, name)
-    const playerMatch = line.match(/\bplayer=(\d+)/i)
-    const zone = line.match(/\bzone=([A-Z]+)/i)?.[1]?.toUpperCase()
-    const zonePos = line.match(/\bzonePos=(\d+)/i)?.[1]
     const mapped = this.entityToPlayer.get(entityId)
-    const pid = mapped ?? (playerMatch ? Number(playerMatch[1]) : NaN)
+    const pid = mapped ?? (player != null ? player : NaN)
     if (cardId && isPickedBgHero(cardId) && Number.isFinite(pid) && !this.bobPlayerIds.has(pid)) {
       if (zone === 'PLAY' && zonePos === '0' && !(this.heroLocked && pid === this.match.friendlyPlayerId) && !this.match.inCombat) {
         this.playerHeroEntity.set(pid, entityId)
@@ -898,37 +948,6 @@ export class BattlegroundsParser {
     const place = this.placeByPlayer.get(pid)
     if (place) this.match.placement = place
   }
-}
-
-function parseTagChange(line: string): {
-  entityId?: number
-  entityName?: string
-  playerId?: number
-  tag: string
-  value: string
-} | null {
-  if (!line.includes('TAG_CHANGE') || !line.includes('tag=')) return null
-  const tagMatch = line.match(/\btag=([A-Z0-9_]+)\s+value=(\S+)/i)
-  if (!tagMatch) return null
-  const bracketInner = line.match(/Entity=\[(.+)\]\s+tag=/i)?.[1]
-  const namedMatch = bracketInner ? null : line.match(/Entity=(.+?)\s+tag=/i)
-  const playerMatch = line.match(/\bplayer=(\d+)/i)
-  const idMatch = (bracketInner ?? line).match(/\bid=(\d+)/i)
-  const entityId = idMatch ? Number(idMatch[1]) : undefined
-  const entityName = namedMatch?.[1]?.trim() || parseEntityName(bracketInner ?? line)
-  const playerId = playerMatch ? Number(playerMatch[1]) : undefined
-  return {
-    entityId: Number.isFinite(entityId as number) ? entityId : undefined,
-    entityName,
-    playerId: Number.isFinite(playerId as number) ? playerId : undefined,
-    tag: canonTag(tagMatch[1]),
-    value: tagMatch[2].replace(/,$/, '')
-  }
-}
-
-function parseEntityName(text: string): string | undefined {
-  const m = text.match(/entityName=(.+?)\s+id=\d+/i)
-  return m?.[1]?.trim()
 }
 
 export function parseLoadingScreenScene(line: string): string | null {

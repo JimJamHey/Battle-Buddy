@@ -25,6 +25,7 @@ export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strate
 export { mergeLogConfig } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
 export { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
-export { isNewerVersion } from './version'
+export { isNewerVersion, isPrerelease } from './version'
 export { curatedStrategies } from './curated'
+export { sanitizeSettings, sanitizeTier } from './settings'
 export * from './types'

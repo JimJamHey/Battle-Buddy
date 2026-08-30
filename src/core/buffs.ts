@@ -92,12 +92,12 @@ export function playerTagBuff(
   return { ...kind, attack, health }
 }
 
+/** Same-key rows are two readings of one buff (enchant + player tag). Last write wins so tags beat enchants when both exist. */
 export function mergeBuffs(buffs: MatchBuff[]): MatchBuff[] {
   const byKey = new Map<string, MatchBuff>()
   for (const buff of buffs) {
     if (buff.attack <= 0 && buff.health <= 0) continue
-    const prev = byKey.get(buff.key)
-    if (!prev || buff.attack + buff.health >= prev.attack + prev.health) byKey.set(buff.key, buff)
+    byKey.set(buff.key, buff)
   }
   return [...byKey.values()].sort((a, b) => ORDER.indexOf(a.key as BuffKey) - ORDER.indexOf(b.key as BuffKey))
 }

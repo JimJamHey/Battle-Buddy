@@ -15,6 +15,7 @@ export class LogTailer {
   private loadingPath = ''
   private netPath = ''
   private lastPowerWrite = 0
+  private polling = false
   stopped = true
 
   constructor(
@@ -24,7 +25,7 @@ export class LogTailer {
   ) {}
 
   async start(logsDirectory: string): Promise<{ catchupLines: number; powerExists: boolean }> {
-    this.stop()
+    await this.stop()
     this.powerPath = join(logsDirectory, 'Power.log')
     this.loadingPath = join(logsDirectory, 'LoadingScreen.log')
     this.netPath = join(logsDirectory, 'GameNetLogger.log')
@@ -44,7 +45,6 @@ export class LogTailer {
     if (existsSync(this.loadingPath)) {
       const st = await stat(this.loadingPath)
       this.loadingOffset = st.size
-      this.lastPowerWrite = Math.max(this.lastPowerWrite, st.mtimeMs)
       await this.readLastLoadingLines()
     }
     if (existsSync(this.netPath)) {
@@ -58,11 +58,33 @@ export class LogTailer {
     return { catchupLines, powerExists: existsSync(this.powerPath) }
   }
 
-  stop(): void {
+  async startFromEnd(logsDirectory: string): Promise<void> {
+    await this.stop()
+    this.powerPath = join(logsDirectory, 'Power.log')
+    this.loadingPath = join(logsDirectory, 'LoadingScreen.log')
+    this.netPath = join(logsDirectory, 'GameNetLogger.log')
+    this.stopped = false
+    this.powerCarry = ''
+    this.loadingCarry = ''
+    this.netCarry = ''
+    this.powerOffset = existsSync(this.powerPath) ? (await stat(this.powerPath)).size : 0
+    this.loadingOffset = existsSync(this.loadingPath) ? (await stat(this.loadingPath)).size : 0
+    this.netOffset = existsSync(this.netPath) ? (await stat(this.netPath)).size : 0
+    if (existsSync(this.powerPath)) this.lastPowerWrite = (await stat(this.powerPath)).mtimeMs
+    this.timer = setInterval(() => {
+      void this.poll()
+    }, 250)
+  }
+
+  async stop(): Promise<void> {
     this.stopped = true
     if (this.timer) {
       clearInterval(this.timer)
       this.timer = null
+    }
+    const deadline = Date.now() + 2000
+    while (this.polling && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 10))
     }
   }
 
@@ -175,10 +197,15 @@ export class LogTailer {
   }
 
   private async poll(): Promise<void> {
-    if (this.stopped) return
-    await this.pollFile(this.powerPath, 'power')
-    await this.pollFile(this.loadingPath, 'loading')
-    await this.pollFile(this.netPath, 'net')
+    if (this.stopped || this.polling) return
+    this.polling = true
+    try {
+      await this.pollFile(this.powerPath, 'power')
+      await this.pollFile(this.loadingPath, 'loading')
+      await this.pollFile(this.netPath, 'net')
+    } finally {
+      this.polling = false
+    }
   }
 
   private async pollFile(path: string, kind: 'power' | 'loading' | 'net'): Promise<void> {
@@ -193,7 +220,7 @@ export class LogTailer {
         else this.netCarry = ''
       }
       if (st.size === offset) return
-      this.lastPowerWrite = st.mtimeMs
+      if (kind === 'power') this.lastPowerWrite = st.mtimeMs
       const fh = await open(path, 'r')
       try {
         const length = st.size - offset

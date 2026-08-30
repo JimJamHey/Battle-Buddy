@@ -160,7 +160,11 @@ export function isSameMatch(a: SessionGame, b: SessionGame): boolean {
   if (a.placement !== b.placement || a.turn !== b.turn) return false
   const heroA = (a.heroName || '').trim()
   const heroB = (b.heroName || '').trim()
-  if (!heroA || !heroB || heroA !== heroB) return false
+  if (a.matchKey || b.matchKey) {
+    if (heroA && heroB && heroA !== heroB) return false
+  } else if (!heroA || !heroB || heroA !== heroB) {
+    return false
+  }
   const ta = Date.parse(a.endedAt)
   const tb = Date.parse(b.endedAt)
   if (!Number.isFinite(ta) || !Number.isFinite(tb)) return false
@@ -178,14 +182,17 @@ export function dedupeGames(games: SessionGame[]): SessionGame[] {
 }
 
 function mergeGames(a: SessionGame, b: SessionGame): SessionGame {
-  const earlier = Date.parse(a.endedAt) <= Date.parse(b.endedAt) ? a : b
+  const aTime = Date.parse(a.endedAt)
+  const bTime = Date.parse(b.endedAt)
+  const later = aTime >= bTime ? a : b
+  const earlier = later === a ? b : a
   const before = a.mmrBefore ?? b.mmrBefore ?? null
   const after = a.mmrAfter ?? b.mmrAfter ?? null
   return {
-    ...earlier,
+    ...later,
     matchKey: a.matchKey || b.matchKey,
-    heroName: a.heroName || b.heroName,
-    heroCardId: a.heroCardId || b.heroCardId,
+    heroName: later.heroName || earlier.heroName,
+    heroCardId: later.heroCardId || earlier.heroCardId,
     board: (a.board?.length ?? 0) >= (b.board?.length ?? 0) ? a.board : b.board,
     mmrBefore: before,
     mmrAfter: after,

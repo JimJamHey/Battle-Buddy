@@ -37,10 +37,6 @@ const SWP_FRAMECHANGED = 0x0020
 const SWP_SHOWWINDOW = 0x0040
 const SWP_NOCOPYBITS = 0x0100
 const MONITOR_DEFAULTTONEAREST = 2
-const SW_RESTORE = 9
-const VK_MENU = 0x12
-const VK_RETURN = 0x0d
-const KEYEVENTF_KEYUP = 0x0002
 
 type Koffi = typeof import('koffi')
 
@@ -77,8 +73,6 @@ interface Native {
     }
   ) => number
   ShowWindow: (hwnd: unknown, cmd: number) => number
-  ChangeDisplaySettingsW: (mode: unknown, flags: number) => number
-  keybd_event: (vk: number, scan: number, flags: number, extra: number) => void
   SHQueryUserNotificationState: (state: { value: number }) => number
   monitorInfoSize: number
 }
@@ -86,7 +80,6 @@ interface Native {
 let native: Native | null = null
 let cachedHwnd: unknown = null
 let lastBorderlessKey = ''
-let lastExclusiveToggle = 0
 let lastDisplayMode: OverlayDisplayMode = 'unknown'
 
 function hwndOk(value: unknown): boolean {
@@ -168,8 +161,6 @@ function loadNative(): Native {
     MonitorFromWindow: user32.func('void* __stdcall MonitorFromWindow(void *hWnd, uint32 dwFlags)'),
     GetMonitorInfoW: user32.func('bool __stdcall GetMonitorInfoW(void *hMonitor, _Inout_ MONITORINFO *lpmi)'),
     ShowWindow: user32.func('bool __stdcall ShowWindow(void *hWnd, int nCmdShow)'),
-    ChangeDisplaySettingsW: user32.func('int32 __stdcall ChangeDisplaySettingsW(void *lpDevMode, uint32 dwFlags)'),
-    keybd_event: user32.func('void __stdcall keybd_event(uint8 bVk, uint8 bScan, uint32 dwFlags, uintptr dwExtraInfo)'),
     SHQueryUserNotificationState: shell32.func('int32 __stdcall SHQueryUserNotificationState(_Out_ QUNS *pquns)'),
     monitorInfoSize: koffi.sizeof(MONITORINFO) as number
   }
@@ -228,21 +219,6 @@ function notificationState(): number {
   const hr = loadNative().SHQueryUserNotificationState(state)
   if (hr !== 0) return 0
   return state.value
-}
-
-function gameIsForeground(hwnd: unknown): boolean {
-  const api = loadNative()
-  const foreground = api.GetForegroundWindow()
-  if (!hwndOk(foreground)) return false
-  return hwndBits(foreground) === hwndBits(hwnd)
-}
-
-function sendAltEnter(): void {
-  const api = loadNative()
-  api.keybd_event(VK_MENU, 0, 0, 0)
-  api.keybd_event(VK_RETURN, 0, 0, 0)
-  api.keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, 0)
-  api.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, 0)
 }
 
 function applyBorderless(hwnd: unknown, monitor: Rect): void {
@@ -431,7 +407,7 @@ export function ensureGameOverlayFriendly(enabled: boolean): OverlayDisplayMode 
     if (
       !shouldApplyBorderless({
         enabled,
-        exclusive,
+        exclusive: false,
         covers,
         chrome,
         window: win,
@@ -442,18 +418,6 @@ export function ensureGameOverlayFriendly(enabled: boolean): OverlayDisplayMode 
     }
 
     const key = `${hwndBits(hwnd)}:${monitor.x},${monitor.y},${monitor.width}x${monitor.height}:${borderlessStyle(style)}`
-    const now = Date.now()
-    if (exclusive && gameIsForeground(hwnd) && now - lastExclusiveToggle > 8000) {
-      lastExclusiveToggle = now
-      lastBorderlessKey = ''
-      try {
-        api.ChangeDisplaySettingsW(null, 0)
-      } catch {
-        /* still try Unity's Alt+Enter toggle */
-      }
-      api.ShowWindow(hwnd, SW_RESTORE)
-      sendAltEnter()
-    }
     if (key !== lastBorderlessKey) {
       lastBorderlessKey = key
       applyBorderless(hwnd, monitor)

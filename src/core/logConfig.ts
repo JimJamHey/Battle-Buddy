@@ -12,6 +12,13 @@ const REQUIRED_SECTIONS: Record<string, Record<string, string>> = {
     ConsolePrinting: 'false',
     ScreenPrinting: 'false',
     Verbose: 'false'
+  },
+  GameNet: {
+    LogLevel: '1',
+    FilePrinting: 'true',
+    ConsolePrinting: 'false',
+    ScreenPrinting: 'false',
+    Verbose: 'false'
   }
 }
 

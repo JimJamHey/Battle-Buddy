@@ -50,4 +50,13 @@ describe('mergeBuffs / formatBuffValue', () => {
     )
     expect(formatBuffValue({ key: 'undead', label: 'Undead', attack: 8, health: 0, iconCardId: 'x' })).toBe('+8 / +0')
   })
+
+  it('lets a later same-key reading replace an earlier one instead of summing', () => {
+    expect(
+      mergeBuffs([
+        { key: 'gems', label: 'Blood gems', attack: 3, health: 3, iconCardId: 'BG20_GEM' },
+        { key: 'gems', label: 'Blood gems', attack: 5, health: 4, iconCardId: 'BG20_GEM' }
+      ])
+    ).toEqual([{ key: 'gems', label: 'Blood gems', attack: 5, health: 4, iconCardId: 'BG20_GEM' }])
+  })
 })

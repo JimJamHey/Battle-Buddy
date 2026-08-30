@@ -278,9 +278,9 @@ export function overlayStrategies(
   limit = 6
 ): StrategyComp[] {
   const wanted = new Set(lobbyTribes.map((tribe) => tribe.toLowerCase()).filter((t) => t && t !== 'buddy'))
+  if (!wanted.size) return []
   const fits = (comp: StrategyComp) => {
     if (comp.status === 'stale') return false
-    if (!wanted.size) return true
     return comp.tribes.every((tribe) => wanted.has(tribe.toLowerCase()))
   }
   const curatedRows = reviewCurated(curated, pool).filter(fits)

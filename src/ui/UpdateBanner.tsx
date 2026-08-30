@@ -29,7 +29,7 @@ export function UpdateBanner({ update, compact, onPointer }: Props) {
         ? `${update.progress}%`
         : update.phase === 'error'
           ? update.canInstall
-            ? 'Try again, or grab the installer from GitHub.'
+            ? update.errorMessage || 'Try again, or grab the installer from GitHub.'
             : 'Installed copies update automatically. Open GitHub to get the latest.'
           : update.canInstall
             ? 'Download now, or later from this window.'
@@ -55,7 +55,13 @@ export function UpdateBanner({ update, compact, onPointer }: Props) {
         <span>{detail}</span>
       </div>
       {update.phase === 'downloading' ? (
-        <div className="update-progress" aria-hidden>
+        <div
+          className="update-progress"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={update.progress}
+        >
           <i style={{ width: `${Math.max(update.progress, 6)}%` }} />
         </div>
       ) : null}
@@ -65,11 +71,9 @@ export function UpdateBanner({ update, compact, onPointer }: Props) {
             {primary.label}
           </button>
         ) : null}
-        {update.phase !== 'downloading' ? (
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.dismissUpdate()}>
-            Later
-          </button>
-        ) : null}
+        <button className="ghost" type="button" onClick={() => void window.battleBuddy.dismissUpdate()}>
+          Later
+        </button>
       </div>
     </div>
   )

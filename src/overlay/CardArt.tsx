@@ -16,7 +16,6 @@ export function CardArt({
   variant?: 'portrait' | 'tile' | 'render' | 'golden' | 'face'
   hideIfMissing?: boolean
   name?: string
-  baseId?: string
   dbfId?: number
 }) {
   const wait = variant === 'render' || variant === 'golden' || variant === 'face'
@@ -72,7 +71,7 @@ export function CardArt({
     <img
       className={className}
       src={src}
-      alt=""
+      alt={name || ''}
       draggable={false}
       decoding="async"
       fetchPriority={wait ? 'high' : 'low'}

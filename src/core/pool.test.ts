@@ -31,8 +31,9 @@ describe('pool grouping', () => {
       ],
       ['Mech']
     )
-    expect(groups.map((g) => g.title)).toEqual(['Mech', 'No Type', 'Spells'])
+    expect(groups.map((g) => g.title)).toEqual(['Mech', 'Dragon', 'No Type', 'Spells'])
     expect(groups[0].cards.map((c) => c.name)).toEqual(['Mechbot'])
+    expect(groups.find((g) => g.title === 'Dragon')?.cards.map((c) => c.name)).toEqual(['Dragonling'])
   })
 
   it('keeps tavern spells and buddies as their own types', () => {

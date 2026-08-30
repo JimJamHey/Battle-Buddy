@@ -11,7 +11,12 @@ export function versionParts(raw: string): number[] {
   return [...nums, ...preNums]
 }
 
-export function isNewerVersion(latest: string, current: string): boolean {
+export function isPrerelease(raw: string): boolean {
+  return /-/.test(raw.trim().replace(/^v/i, ''))
+}
+
+export function isNewerVersion(latest: string, current: string, opts?: { allowPrerelease?: boolean }): boolean {
+  if (opts?.allowPrerelease === false && isPrerelease(latest) && !isPrerelease(current)) return false
   const a = versionParts(latest)
   const b = versionParts(current)
   const len = Math.max(a.length, b.length)

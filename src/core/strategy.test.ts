@@ -99,4 +99,8 @@ describe('strategy candidates', () => {
     expect(rows.every((row) => row.tribes.includes('Mech'))).toBe(true)
     expect(rows.some((row) => row.id === 'mech-magnetic')).toBe(true)
   })
+
+  it('waits for lobby tribes before listing live-pool comps', () => {
+    expect(overlayStrategies(mechs, [], { skillBand: 'mid', comps: [] })).toEqual([])
+  })
 })

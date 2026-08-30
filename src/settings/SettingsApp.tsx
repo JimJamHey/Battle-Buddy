@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_OVERLAY_LAYOUT, type AppSettings, type OverlaySnapshot } from '../core/types'
 import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
 import { gamesToday } from '../core/session'
@@ -6,11 +6,17 @@ import { UpdateBanner } from '../ui/UpdateBanner'
 
 export function SettingsApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
+  const [tagDraft, setTagDraft] = useState('')
+  const tagTimer = useRef<number | null>(null)
 
   useEffect(() => {
     void window.battleBuddy.getState().then(setState)
     return window.battleBuddy.onState(setState)
   }, [])
+
+  useEffect(() => {
+    if (state) setTagDraft(state.settings.battleTag)
+  }, [state?.settings.battleTag])
 
   if (!state) {
     return (
@@ -27,6 +33,11 @@ export function SettingsApp() {
     void window.battleBuddy.setSettings(next)
   }
 
+  const commitTag = (value: string) => {
+    if (value === state.settings.battleTag) return
+    patch({ battleTag: value })
+  }
+
   const statusClass = state.status.hearthstoneFound
     ? state.status.logsLive
       ? 'status-ok'
@@ -37,7 +48,6 @@ export function SettingsApp() {
     ? Math.round((today.reduce((a, g) => a + g.placement, 0) / today.length) * 10) / 10
     : null
   const checking = state.update.phase === 'checking'
-  const latest = state.update.phase === 'unavailable'
 
   return (
     <div className="settings-root">
@@ -47,7 +57,7 @@ export function SettingsApp() {
         <div>
           <p className="eyebrow">Battlegrounds overlay</p>
           <h1>BattleBuddy</h1>
-          <p className="lede">Launch anytime. The overlay follows the Hearthstone window — windowed, borderless, or fullscreen. Minion list on the right, combat odds on top.</p>
+          <p className="lede">Launch anytime. The overlay follows the Hearthstone window in windowed or borderless. Exclusive fullscreen needs a switch in Hearthstone options.</p>
         </div>
         <span className="version-pill">v{state.update.currentVersion}</span>
       </header>
@@ -67,6 +77,7 @@ export function SettingsApp() {
         <p className="hint">
           Cards: {state.status.cardCount} · Leaderboard: {state.status.leaderboardCount} players cached
         </p>
+        {state.status.cardsError ? <p className="status-bad">{state.status.cardsError}</p> : null}
         {state.status.banner ? <p className="status-bad">{state.status.banner}</p> : null}
         {state.status.lastError ? <p className="status-bad">{state.status.lastError}</p> : null}
         <div className="row" style={{ marginTop: 10 }}>
@@ -88,7 +99,7 @@ export function SettingsApp() {
         <p className="hint">
           {checking
             ? 'Checking GitHub…'
-            : latest
+            : state.update.phase === 'unavailable'
               ? `You're on v${state.update.currentVersion}.`
               : `Installed version v${state.update.currentVersion}.`}
           {state.update.canInstall
@@ -122,7 +133,7 @@ export function SettingsApp() {
           />
         </label>
         <label className="toggle">
-          <span>Fix exclusive fullscreen only (leave windowed / borderless alone)</span>
+          <span>Prefer windowed graphics in Hearthstone options (does not send Alt+Enter)</span>
           <input
             type="checkbox"
             checked={state.settings.keepFullscreenOverlay}
@@ -155,7 +166,7 @@ export function SettingsApp() {
         </label>
         <p className="hint">
           {state.status.displayMode === 'exclusive'
-            ? 'Hearthstone is in exclusive fullscreen. BattleBuddy is switching that mode so the HUD can draw on top — windowed and borderless are left as-is.'
+            ? 'Hearthstone is exclusive fullscreen. Switch it to windowed or borderless — BattleBuddy will not send Alt+Enter or change your display mode.'
             : state.status.displayMode === 'borderless'
               ? 'Borderless fullscreen — overlay follows the game window.'
               : 'Windowed — overlay follows the Hearthstone window in any size.'}
@@ -172,7 +183,11 @@ export function SettingsApp() {
           min={40}
           max={100}
           value={state.settings.overlayOpacity}
-          onChange={(e) => patch({ overlayOpacity: Number(e.target.value) || 96 })}
+          onChange={(e) => {
+            const n = Number(e.target.value)
+            if (!Number.isFinite(n)) return
+            patch({ overlayOpacity: Math.min(100, Math.max(40, n)) })
+          }}
         />
         <label htmlFor="region">Leaderboard region</label>
         <select
@@ -188,9 +203,15 @@ export function SettingsApp() {
         <input
           id="battletag"
           type="text"
-          value={state.settings.battleTag}
+          value={tagDraft}
           placeholder="JimJamHey"
-          onChange={(e) => patch({ battleTag: e.target.value })}
+          onChange={(e) => {
+            const value = e.target.value
+            setTagDraft(value)
+            if (tagTimer.current) window.clearTimeout(tagTimer.current)
+            tagTimer.current = window.setTimeout(() => commitTag(value), 400)
+          }}
+          onBlur={() => commitTag(tagDraft)}
         />
         <p className="hint">
           Rating is read from the Battlegrounds Play screen after a game. Other players’ ratings are
@@ -211,9 +232,9 @@ export function SettingsApp() {
           </button>
         </div>
         <p className="hint">
-          Combat odds on top. Unique card scripts that the text parser cannot read show as **Partial** on the combat bar.
-          Hands and trinkets are included in the sim when Power.log prints them.
-          Click tavern 1–7 to peek a tier; remaining shop copies update as minions are bought.
+          {state.status.cardsError
+            ? `Minion catalog failed to load: ${state.status.cardsError}`
+            : 'Combat odds on top. Unique card scripts the text parser cannot read show as Partial on the combat bar. Hands and trinkets are included in the sim when Power.log prints them. Click tavern 1–7 to peek a tier; the right-hand number is remaining shared-pool copies while a match is live.'}
         </p>
       </section>
 
@@ -224,21 +245,23 @@ export function SettingsApp() {
           {avg != null ? ` · avg ${avg}` : ''}
           {state.session.startMmr != null ? ` · start ${formatMmr(state.session.startMmr)}` : ''}
         </p>
-        <ol className="games">
-          {today
-            .slice()
-            .reverse()
-            .map((game, i) => (
-              <li key={`${game.endedAt}-${i}`}>
-                <span className={placeClass(game.placement)}>{ordinal(game.placement)}</span>
-                {game.heroName ? <span> · {game.heroName}</span> : null}
-                <span> · turn {game.turn}</span>
-                {game.mmrDelta != null ? (
-                  <span> · {formatDelta(game.mmrDelta)}</span>
-                ) : null}
-              </li>
-            ))}
-        </ol>
+        {today.length ? (
+          <ol className="games">
+            {today
+              .slice()
+              .reverse()
+              .map((game, i) => (
+                <li key={`${game.endedAt}-${i}`}>
+                  <span className={placeClass(game.placement)}>{ordinal(game.placement)}</span>
+                  {game.heroName ? <span> · {game.heroName}</span> : null}
+                  <span> · turn {game.turn}</span>
+                  {game.mmrDelta != null ? <span> · {formatDelta(game.mmrDelta)}</span> : null}
+                </li>
+              ))}
+          </ol>
+        ) : (
+          <p className="hint">No games recorded today yet.</p>
+        )}
       </section>
     </div>
   )

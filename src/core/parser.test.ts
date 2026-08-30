@@ -14,6 +14,7 @@ describe('logConfig', () => {
     expect(next).toContain('[Power]')
     expect(next).toContain('FilePrinting=true')
     expect(next).toContain('[LoadingScreen]')
+    expect(next).toContain('[GameNet]')
   })
 
   it('is idempotent when already configured', () => {
@@ -24,11 +25,11 @@ describe('logConfig', () => {
 })
 
 describe('log paths', () => {
-  it('picks the newest Hearthstone session folder that has Power.log', () => {
+  it('picks the newest Hearthstone session folder even before Power.log exists', () => {
     expect(
       selectSessionLogDir([
         { name: 'Hearthstone_2026_08_24_10_00_00', mtimeMs: 10, hasPowerLog: true },
-        { name: 'Hearthstone_2026_08_25_11_40_57', mtimeMs: 25, hasPowerLog: true },
+        { name: 'Hearthstone_2026_08_25_11_40_57', mtimeMs: 25, hasPowerLog: false },
         { name: 'other', mtimeMs: 99, hasPowerLog: true }
       ])
     ).toBe('Hearthstone_2026_08_25_11_40_57')
@@ -649,6 +650,28 @@ describe('parser', () => {
     expect(p.getMatch().friendlyPlayerId).toBe(2)
   })
 
+  it('does not guess the friendly seat from lobby order when BattleTag is missing', () => {
+    const p = new BattlegroundsParser('')
+    p.feed('D 12:00 GameState.DebugPrintPower() - CREATE_GAME')
+    p.feed('D 12:00 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS')
+    p.feed('D 12:00 GameState.DebugPrintGame() - PlayerID=8, PlayerName=Sliva')
+    p.feed('D 12:00 GameState.DebugPrintGame() - PlayerID=2, PlayerName=HiddenPants')
+    expect(p.getMatch().friendlyPlayerId).toBeNull()
+  })
+
+  it('clears in-combat from PowerTaskList phase-off (GameState 0 is a false end)', () => {
+    const p = new BattlegroundsParser('Jaren')
+    p.feed('D 12:00 GameState.DebugPrintPower() - CREATE_GAME')
+    p.feed('D 12:00 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS')
+    p.feed('D 12:00 GameState.DebugPrintGame() - PlayerID=1, PlayerName=Jaren#1')
+    p.feed('D 12:01 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1')
+    expect(p.getMatch().inCombat).toBe(true)
+    p.feed('D 12:02 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=0')
+    expect(p.getMatch().inCombat).toBe(true)
+    p.feed('D 12:03 PowerTaskList.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=0')
+    expect(p.getMatch().inCombat).toBe(false)
+  })
+
   it('fills the lobby from SETASIDE heroes at hero select', () => {
     const p = new BattlegroundsParser('JimJamHey')
     for (const line of [
@@ -1155,5 +1178,17 @@ describe('session', () => {
         { endedAt: '2026-08-26T17:20:54.627Z', placement: 2, turn: 16, heroName: "Y'Shaarj", mmrDelta: 71, mmrEstimated: true }
       ])
     ).toHaveLength(1)
+    expect(
+      dedupeGames([
+        { endedAt: '2026-08-26T17:09:32.172Z', placement: 4, turn: 10, matchKey: '12:00' },
+        { endedAt: '2026-08-26T17:10:01.000Z', placement: 4, turn: 10 }
+      ])
+    ).toHaveLength(1)
+    expect(
+      dedupeGames([
+        { endedAt: '2026-08-26T18:00:00.000Z', placement: 8, turn: 12, matchKey: '13:00', heroName: 'George' },
+        { endedAt: '2026-08-26T18:00:20.000Z', placement: 2, turn: 12, matchKey: '13:00', heroName: 'George' }
+      ])[0]?.placement
+    ).toBe(2)
   })
 })

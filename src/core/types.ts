@@ -202,6 +202,7 @@ export interface TrackerStatus {
   leaderboardCount: number
   cardsReady: boolean
   cardCount: number
+  cardsError: string | null
   displayMode: OverlayDisplayMode
 }
 
@@ -221,6 +222,7 @@ export interface UpdateState {
   progress: number
   dismissed: boolean
   canInstall: boolean
+  errorMessage: string | null
 }
 
 export const DEFAULT_UPDATE: UpdateState = {
@@ -229,7 +231,8 @@ export const DEFAULT_UPDATE: UpdateState = {
   availableVersion: null,
   progress: 0,
   dismissed: false,
-  canInstall: false
+  canInstall: false,
+  errorMessage: null
 }
 
 export interface CombatOdds {

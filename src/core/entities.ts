@@ -1,6 +1,7 @@
 import { isTrinketCardId } from './cards'
 import { isBgHeroCardId } from './heroes'
-import { canonTag, cardTypeName, isTruthyTag, powerPayload, zoneName } from './tags'
+import { parseCreating, parseEntityRef, parseNestedTag, parseTagChangeLine, parseUpdating, payloadOf } from './powerLog'
+import { cardTypeName, isTruthyTag, zoneName } from './tags'
 import type { CombatInput, CombatMinion, CombatSide } from './combatSim'
 
 export type CombatEvent = 'start' | 'end' | null
@@ -119,7 +120,7 @@ export class BoardTracker {
   }
 
   feed(line: string, friendlyPlayerId: number | null, playerName: (id: number) => string): CombatEvent {
-    const payload = powerPayload(line)
+    const payload = payloadOf(line)
     const fromTaskList = line.includes('PowerTaskList.')
     let event: CombatEvent = null
 
@@ -129,52 +130,36 @@ export class BoardTracker {
       return null
     }
 
-    const created = payload.match(/FULL_ENTITY - Creating ID=(\d+)(?:\s+CardID=([A-Za-z0-9_]+))?/i)
+    const created = parseCreating(payload)
     if (created) {
-      this.lastId = Number(created[1])
+      this.lastId = created.id
       const e = this.ensure(this.lastId)
-      if (created[2]) e.cardId = created[2]
+      if (created.cardId) e.cardId = created.cardId
     }
 
-    const updating = payload.match(/FULL_ENTITY - Updating \[([^\]]+)\](?:\s+CardID=([A-Za-z0-9_]+))?/i)
+    const updating = parseUpdating(payload)
     if (updating) {
-      this.applyRef(updating[1], updating[2])
+      if (updating.id) this.lastId = updating.id
+      if (updating.ref) this.applyRef(updating.ref, updating.cardId)
+      else if (updating.cardId) this.ensure(this.lastId).cardId = updating.cardId
     }
 
-    const show = payload.match(/SHOW_ENTITY - Updating Entity=(?:\[([^\]]+)\]|(\d+))(?:\s+CardID=([A-Za-z0-9_]+))?/i)
-    if (show) {
-      if (show[2]) this.lastId = Number(show[2])
-      if (show[1]) this.applyRef(show[1], show[3])
-      else if (show[3]) this.ensure(this.lastId).cardId = show[3]
-    }
-
-    const change = payload.match(/CHANGE_ENTITY - Updating Entity=(?:\[([^\]]+)\]|(\d+))(?:\s+CardID=([A-Za-z0-9_]+))?/i)
-    if (change) {
-      if (change[2]) this.lastId = Number(change[2])
-      if (change[1]) this.applyRef(change[1], change[3])
-      else if (change[3]) this.ensure(this.lastId).cardId = change[3]
-    }
-
-    const tagLine = payload.match(/^(?:\s+)?tag=([A-Z0-9_]+)\s+value=(\S+)/i)
-    const tagChange = payload.match(/TAG_CHANGE Entity=(?:\[([^\]]+)\]|(.+?))\s+tag=([A-Z0-9_]+)\s+value=(\S+)/i)
+    const nested = parseNestedTag(payload)
+    const tagChange = parseTagChangeLine(line)
 
     if (tagChange) {
-      const tag = canonTag(tagChange[3])
-      const value = tagChange[4].replace(/,$/, '')
-      if (tagChange[1]) this.applyRef(tagChange[1])
-      const targetId = tagChange[1]
-        ? this.lastId
-        : /^\d+$/.test(tagChange[2])
-          ? Number(tagChange[2])
-          : 0
-      if (tagChange[2] === 'GameEntity' || tagChange[2] === 'Game') {
+      const tag = tagChange.tag
+      const value = tagChange.value
+      if (tagChange.ref) this.applyRef(tagChange.ref)
+      const targetId = tagChange.entityId ?? this.lastId
+      if (tagChange.entityName === 'GameEntity' || tagChange.entityName === 'Game') {
         event = this.applyGameTag(tag, value, friendlyPlayerId, playerName, fromTaskList) ?? event
       } else if (targetId) {
         this.applyTag(this.ensure(targetId), tag, value)
         this.noteHand(this.ensure(targetId))
       }
-    } else if (tagLine && this.lastId) {
-      this.applyTag(this.ensure(this.lastId), canonTag(tagLine[1]), tagLine[2].replace(/,$/, ''))
+    } else if (nested && this.lastId) {
+      this.applyTag(this.ensure(this.lastId), nested.tag, nested.value)
       this.noteHand(this.ensure(this.lastId))
     }
 
@@ -246,11 +231,13 @@ export class BoardTracker {
   }
 
   private freeze(friendlyPlayerId: number | null, playerName: (id: number) => string): void {
-    const self = friendlyPlayerId ?? this.detectedHandPlayer ?? 1
+    const self = friendlyPlayerId ?? this.detectedHandPlayer
+    if (self == null) return
     let minionPlayer = this.opponentPlayerId && this.opponentPlayerId !== self ? this.opponentPlayerId : null
     if (minionPlayer == null || this.minionsFor(minionPlayer).length === 0) {
-      minionPlayer = this.otherPlayersWithMinions(self)[0] ?? minionPlayer ?? self
+      minionPlayer = this.otherPlayersWithMinions(self)[0] ?? minionPlayer
     }
+    if (minionPlayer == null || minionPlayer === self) return
     const displayId = this.opponentLobbyId ?? this.opponentPlayerId ?? minionPlayer
     const named = this.opponentName && !/^(lady deathwhisper|kel'?thuzad|bob)$/i.test(this.opponentName)
       ? this.opponentName
@@ -346,20 +333,15 @@ export class BoardTracker {
   }
 
   private applyRef(ref: string, cardId?: string): void {
-    const idMatch = ref.match(/\bid=(\d+)/i)
-    if (!idMatch) return
-    this.lastId = Number(idMatch[1])
+    const parsed = parseEntityRef(ref, cardId)
+    if (!parsed) return
+    this.lastId = parsed.id
     const e = this.ensure(this.lastId)
-    const cid = cardId || ref.match(/\bcardId=([A-Za-z0-9_]+)/i)?.[1]
-    if (cid) e.cardId = cid
-    const name = ref.match(/entityName=([^\]\n]+?)\s+id=/i)?.[1]
-    if (name && !/^unknown/i.test(name)) e.name = name.trim()
-    const zone = ref.match(/\bzone=([A-Z]+)/i)?.[1]
-    if (zone) e.zone = zoneName(zone)
-    const zonePos = ref.match(/\bzonePos=(\d+)/i)?.[1]
-    if (zonePos) e.zonePos = Number(zonePos)
-    const player = ref.match(/\bplayer=(\d+)/i)?.[1]
-    if (player) e.player = Number(player)
+    if (parsed.cardId) e.cardId = parsed.cardId
+    if (parsed.name) e.name = parsed.name
+    if (parsed.zone) e.zone = parsed.zone
+    if (parsed.zonePos != null) e.zonePos = parsed.zonePos
+    if (parsed.player) e.player = parsed.player
   }
 
   private applyTag(e: TrackedEntity, tag: string, value: string): void {

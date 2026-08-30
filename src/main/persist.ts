@@ -1,7 +1,7 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { DEFAULT_SETTINGS, type AppSettings, type SessionState } from '../core/types'
-import { mergeOverlayLayout, migrateOverlayLayout } from '../core/layout'
+import { sanitizeSettings } from '../core/settings'
 import { emptySession, ensureToday, hydrateGameMmr } from '../core/session'
 
 export async function readJson<T>(path: string, fallback: T): Promise<T> {
@@ -14,7 +14,9 @@ export async function readJson<T>(path: string, fallback: T): Promise<T> {
 
 export async function writeJson(path: string, data: unknown): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, JSON.stringify(data, null, 2), 'utf8')
+  const tmp = `${path}.${process.pid}.tmp`
+  await writeFile(tmp, JSON.stringify(data, null, 2), 'utf8')
+  await rename(tmp, path)
 }
 
 export function paths(userData: string) {
@@ -26,23 +28,11 @@ export function paths(userData: string) {
 
 export async function loadSettings(userData: string): Promise<AppSettings> {
   const saved = await readJson<Partial<AppSettings>>(paths(userData).settings, {})
-  return {
-    ...DEFAULT_SETTINGS,
-    ...saved,
-    overlayLayout: migrateOverlayLayout(
-      mergeOverlayLayout(DEFAULT_SETTINGS.overlayLayout, saved.overlayLayout)
-    ),
-    layoutUnlocked: Boolean(saved.layoutUnlocked),
-    keepFullscreenOverlay: saved.keepFullscreenOverlay ?? true,
-    showLobbyOnOverlay: false,
-    showSessionOnOverlay: saved.showSessionOnOverlay ?? true,
-    currentMmr: typeof saved.currentMmr === 'number' ? saved.currentMmr : saved.currentMmr ?? null
-  }
+  return sanitizeSettings(DEFAULT_SETTINGS, saved)
 }
 
 export async function saveSettings(userData: string, settings: AppSettings): Promise<void> {
-  await mkdir(userData, { recursive: true })
-  await writeFile(paths(userData).settings, JSON.stringify(settings, null, 2), 'utf8')
+  await writeJson(paths(userData).settings, sanitizeSettings(DEFAULT_SETTINGS, settings))
 }
 
 export async function loadSession(userData: string): Promise<SessionState> {
@@ -51,6 +41,5 @@ export async function loadSession(userData: string): Promise<SessionState> {
 }
 
 export async function saveSession(userData: string, session: SessionState): Promise<void> {
-  await mkdir(userData, { recursive: true })
-  await writeFile(paths(userData).session, JSON.stringify(session, null, 2), 'utf8')
+  await writeJson(paths(userData).session, session)
 }

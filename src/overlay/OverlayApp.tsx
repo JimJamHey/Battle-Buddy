@@ -1,18 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { DEFAULT_OVERLAY_LAYOUT, type BgMinion, type OverlayLayout, type OverlayPos, type OverlaySnapshot, type SeenMinion } from '../core/types'
+import { DEFAULT_OVERLAY_LAYOUT, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
 import { groupPoolCards, minionsForTier } from '../core/pool'
 import { formatBuffValue } from '../core/buffs'
 import { gamesToday, MAX_RECENT_GAMES } from '../core/session'
 import { normalizeName } from '../core/parser'
 import { heroHasBuddy } from '../core/cards'
-import { combatOpponentLabel, formatDelta, formatPct, ordinal, placeClass, ratingLabel, selfRating } from '../ui/format'
+import { combatOpponentLabel } from '../ui/format'
 import { UpdateBanner } from '../ui/UpdateBanner'
 import { CardArt } from './CardArt'
+import { CombatBar } from './CombatBar'
 import { DraggablePanel } from './DraggablePanel'
 import { PoolBrowser } from './PoolBrowser'
 import { CompsPanel } from './CompsPanel'
-import { WarbandRow } from './Warband'
+import { SessionRail } from './SessionRail'
+import { SeenBoardCard } from './SeenBoard'
+import { useClickThrough } from './useClickThrough'
 
 export function OverlayApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
@@ -31,55 +34,22 @@ export function OverlayApp() {
   }, [state?.settings.overlayLayout])
 
   const unlocked = Boolean(state?.settings.layoutUnlocked)
+  useClickThrough()
 
-  useEffect(() => {
-    let last = true
-    const send = (pass: boolean) => {
-      if (pass === last) return
-      last = pass
-      window.battleBuddy.setClickThrough(pass)
-    }
-    const onMove = (event: MouseEvent) => {
-      const hit = document.elementFromPoint(event.clientX, event.clientY)
-      const over = Boolean(hit instanceof Element && hit.closest('.capture-mouse'))
-      send(!over)
-    }
-    const passThrough = () => send(true)
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('pointermove', onMove)
-    document.addEventListener('mouseleave', passThrough)
-    window.addEventListener('blur', passThrough)
-    send(true)
-    return () => {
-      send(true)
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('pointermove', onMove)
-      document.removeEventListener('mouseleave', passThrough)
-      window.removeEventListener('blur', passThrough)
-    }
-  }, [])
-
+  const live = Boolean(state?.match.gameActive)
   const lobbyTribes = useMemo(() => {
     if (!state?.match.gameActive) return []
-    const known = state.match.availableTribes
-    return known.length ? known : []
-  }, [state])
+    return state.match.availableTribes
+  }, [state?.match.gameActive, state?.match.availableTribes])
   const poolGroups = useMemo(() => {
     if (!state) return []
     return groupPoolCards(minionsForTier(state.minions, state.selectedTier, 0), lobbyTribes)
-  }, [state, lobbyTribes])
+  }, [state?.minions, state?.selectedTier, lobbyTribes])
 
   if (!state || !state.overlayVisible) return null
 
   const today = gamesToday(state.session)
   const recent = [...today].slice(-MAX_RECENT_GAMES).reverse()
-  const avg = today.length
-    ? Math.round((today.reduce((a, g) => a + g.placement, 0) / today.length) * 10) / 10
-    : '—'
-  const start = state.session.startMmr
-  const current = selfRating(state)
-  const todayDelta = current != null && start != null ? current - start : null
-  const live = state.match.gameActive
   const buddyAvailable =
     !live || lobbyTribes.includes('Buddy') || heroHasBuddy(state.match.heroCardId, state.minions)
   const tribesComplete = Boolean(state.match.tribesComplete)
@@ -93,7 +63,6 @@ export function OverlayApp() {
   )
   const showCombat = (live && Boolean(state.match.heroName || state.match.heroCardId || state.match.inCombat)) || unlocked
   const showSession = state.settings.showSessionOnOverlay || live
-  const showHud = showSession
   const interact = (inside: boolean) => {
     if (unlocked) {
       window.battleBuddy.setClickThrough(false)
@@ -122,28 +91,16 @@ export function OverlayApp() {
       style={{ opacity: state.settings.overlayOpacity / 100 }}
     >
       <div className="toast-stack">
-        <UpdateBanner update={state.update} compact onPointer={interact} />
-        {state.status.banner ? (
-          <div
-            className="notice interactive capture-mouse"
-            onMouseEnter={() => interact(true)}
-            onMouseLeave={() => interact(false)}
-          >
-            {state.status.banner}
-          </div>
-        ) : null}
+        <UpdateBanner update={state.update} compact />
+        {state.status.banner ? <div className="notice interactive capture-mouse">{state.status.banner}</div> : null}
         {state.status.displayMode === 'exclusive' ? (
-          <div
-            className="notice interactive capture-mouse"
-            onMouseEnter={() => interact(true)}
-            onMouseLeave={() => interact(false)}
-          >
-            Switching Hearthstone to borderless fullscreen so the overlay can stay on top.
+          <div className="notice interactive capture-mouse">
+            Hearthstone is exclusive fullscreen. Switch to windowed or borderless so the overlay can sit on the game.
           </div>
         ) : null}
       </div>
       {unlocked ? (
-        <div className="layout-hint interactive capture-mouse">
+        <div className="layout-hint interactive capture-mouse" role="status">
           Drag a panel to place it · Ctrl+Shift+L to lock
         </div>
       ) : null}
@@ -157,38 +114,12 @@ export function OverlayApp() {
           onMoveEnd={(pos) => savePanel('combat', pos)}
           onInteract={interact}
         >
-          {live && state.match.inCombat && (state.combat.active || state.combat.simulating) ? (
-            <div className="combat-bar">
-              <div className="combat-side">
-                <span className="combat-stat lethal">
-                  LETHAL <strong>{formatPct(state.combat.lethal)}%</strong>
-                </span>
-              </div>
-              <div className="combat-center">
-                <span className="combat-stat win">
-                  WIN <strong>{formatPct(state.combat.win)}%</strong>
-                </span>
-                <span className="combat-stat tie">
-                  TIE <strong>{formatPct(state.combat.tie)}%</strong>
-                </span>
-                <span className="combat-stat loss">
-                  LOSS <strong>{formatPct(state.combat.loss)}%</strong>
-                </span>
-                <span className="combat-phase">
-                  {state.combat.simulating
-                    ? 'Simulating'
-                    : vsName
-                      ? `vs ${vsName}`
-                      : 'Combat'}
-                  {state.combat.partial ? ' · Partial' : ''}
-                </span>
-              </div>
-              <div className="combat-side right">
-                <span className="combat-stat died">
-                  LETHAL <strong>{formatPct(state.combat.died)}%</strong>
-                </span>
-              </div>
-            </div>
+          {live && state.match.inCombat ? (
+            state.combat.active || state.combat.simulating ? (
+              <CombatBar combat={state.combat} vsName={vsName} />
+            ) : (
+              <div className="combat-bar waiting">Calculating combat…</div>
+            )
           ) : live && (state.match.heroName || state.match.heroCardId) ? (
             <div className="combat-bar waiting">Waiting for combat</div>
           ) : (
@@ -197,7 +128,7 @@ export function OverlayApp() {
         </DraggablePanel>
       ) : null}
 
-      {showHud || unlocked ? (
+      {showSession || unlocked ? (
         <DraggablePanel
           className="rail"
           pos={layout.rail}
@@ -208,93 +139,12 @@ export function OverlayApp() {
           onInteract={interact}
         >
           {showSession ? (
-            <section className="panel session-panel capture-mouse">
-              <header className="panel-head">
-                <div className="session-head-copy">
-                  <h2>
-                    {live && watching
-                      ? state.match.spectatedName || 'Spectating'
-                      : live && state.match.heroName
-                        ? state.match.heroName
-                        : 'Session'}
-                  </h2>
-                  {live && watching && state.match.heroName ? (
-                    <p className="session-hero-sub">{state.match.heroName}</p>
-                  ) : null}
-                </div>
-                <span className={`chip ${live ? (watching ? 'watch' : 'live') : ''}`}>
-                  {live ? (watching ? 'Watching' : 'Live') : 'Idle'}
-                </span>
-              </header>
-              <div className="mmr-block">
-                <p className="session-section-label">MMR</p>
-                <div className="mmr-grid">
-                  <div>
-                    <span>Start</span>
-                    <strong>{start == null ? '—' : start.toLocaleString('en-US')}</strong>
-                  </div>
-                  <div>
-                    <span>Current</span>
-                    <strong>{ratingLabel(state)}</strong>
-                  </div>
-                </div>
-              </div>
-              <div className="stat-pills">
-                <span>{today.length} games</span>
-                <span>{avg === '—' ? 'Avg —' : `Avg ${avg}`}</span>
-                {todayDelta != null ? (
-                  <span className={todayDelta > 0 ? 'delta-up' : todayDelta < 0 ? 'delta-down' : ''}>
-                    {formatDelta(todayDelta)}
-                  </span>
-                ) : null}
-              </div>
-              {selfRating(state) == null && !state.match.spectating ? (
-                <p className="hint">Stay on the Battlegrounds Play screen so we can read Rating from the client.</p>
-              ) : null}
-              <div className="session-games capture-mouse">
-                <p className="session-section-label">Latest Games</p>
-                <div className="session-games-cols" aria-hidden="true">
-                  <span>Hero</span>
-                  <span>Place</span>
-                  <span>MMR</span>
-                </div>
-                {recent.length ? (
-                  recent.map((game, i) => (
-                    <div
-                      className="session-game"
-                      key={game.matchKey || `${game.endedAt}-${i}`}
-                      onPointerEnter={() => setHoverGame(i)}
-                      onPointerLeave={() => setHoverGame((current) => (current === i ? null : current))}
-                    >
-                      <span className="session-game-hero">
-                        {game.heroCardId ? (
-                          <CardArt
-                            className="session-game-face"
-                            cardId={game.heroCardId}
-                            variant="portrait"
-                            hideIfMissing
-                          />
-                        ) : null}
-                        <span className="session-game-hero-name">{game.heroName || 'Battlegrounds'}</span>
-                      </span>
-                      <span className={`session-game-place ${placeClass(game.placement)}`}>
-                        {ordinal(game.placement)}
-                      </span>
-                      <span className={deltaClass(game.mmrDelta)}>
-                        {formatDelta(game.mmrDelta)}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="session-games-empty">No games yet today</p>
-                )}
-              </div>
-            </section>
-          ) : unlocked && !showHud ? (
+            <SessionRail state={state} live={live} watching={watching} onHoverGame={setHoverGame} />
+          ) : (
             <section className="panel session-panel">
               <p className="hint">Session — drag Move to place</p>
             </section>
-          ) : null}
+          )}
           {state.match.buffs?.length ? (
             <div className="buff-dock capture-mouse">
               {state.match.buffs.map((buff) => (
@@ -305,7 +155,11 @@ export function OverlayApp() {
               ))}
             </div>
           ) : null}
-          <CompsPanel comps={state.strategies ?? []} live={live} />
+          <CompsPanel
+            comps={state.strategies ?? []}
+            live={live}
+            waitingForTribes={live && !tribesComplete}
+          />
         </DraggablePanel>
       ) : null}
 
@@ -330,12 +184,16 @@ export function OverlayApp() {
             inCombat={state.match.inCombat}
             tavernTier={live ? state.match.tavernTier : 0}
             selectedTier={state.selectedTier}
-            remaining={state.poolRemaining}
+            remaining={live ? state.poolRemaining : undefined}
             onTier={(tier) => window.battleBuddy.setTier(tier)}
           />
         ) : (
           <section className="panel pool-panel">
-            <p className="hint">Loading minion pool…</p>
+            <p className="hint">
+              {state.status.cardsError
+                ? `Could not load the minion pool: ${state.status.cardsError}`
+                : 'Loading minion pool…'}
+            </p>
           </section>
         )}
       </DraggablePanel>
@@ -350,35 +208,6 @@ export function OverlayApp() {
             document.body
           )
         : null}
-    </div>
-  )
-}
-
-function deltaClass(delta: number | null | undefined): string {
-  if (delta == null) return 'session-game-delta'
-  if (delta > 0) return 'session-game-delta delta-up'
-  if (delta < 0) return 'session-game-delta delta-down'
-  return 'session-game-delta'
-}
-
-function SeenBoardCard({
-  name,
-  kicker,
-  minions,
-  catalog
-}: {
-  name: string
-  kicker: string
-  minions: SeenMinion[]
-  catalog: BgMinion[]
-}) {
-  return (
-    <div className="seen-board">
-      <header>
-        <h2>{name}</h2>
-        <p>{kicker}</p>
-      </header>
-      <WarbandRow minions={minions} catalog={catalog} />
     </div>
   )
 }

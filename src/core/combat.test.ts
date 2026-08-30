@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fightOnce, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat, simulateCombat, type CombatInput } from './combatSim'
+import { fightOnce, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat, simulateCombat, combatInputHasGaps, type CombatInput } from './combatSim'
 import { BoardTracker } from './entities'
 import { mapBattleNetRegion } from '../platform/battleNet'
 
@@ -258,6 +258,43 @@ describe('board tracker', () => {
     expect(event).toBe('start')
     expect(t.getFrozen()?.friendly.minions[0]?.attack).toBe(5)
     expect(t.getFrozen()?.opponent.minions[0]?.attack).toBe(2)
+  })
+
+  it('does not freeze a combat board against yourself', () => {
+    const t = new BoardTracker()
+    const name = (id: number) => `P${id}`
+    for (const line of [
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BG_SELF',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]) {
+      t.feed(line, 1, name)
+    }
+    expect(t.getFrozen()).toBeNull()
+  })
+})
+
+describe('combat gaps', () => {
+  it('flags unmodeled combat scripts as partial', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(1, 1, { cardId: 'FR', name: 'Frenzy Bot' })]),
+      opponent: side(2, [minion(1, 1)])
+    }
+    expect(combatInputHasGaps(input, [{ id: 'FR', name: 'Frenzy Bot', text: '', mechanics: ['Frenzy'] }])).toBe(true)
+    expect(combatInputHasGaps(input, [{ id: 'FR', name: 'Frenzy Bot', text: '<b>Taunt</b>', mechanics: ['Taunt'] }])).toBe(
+      false
+    )
+    expect(
+      combatInputHasGaps(
+        { friendly: side(1, [minion(1, 1, { cardId: 'DR', name: 'DR Bot', deathrattle: true })]), opponent: side(2, [minion(1, 1)]) },
+        [{ id: 'DR', name: 'DR Bot', text: '', mechanics: ['Deathrattle'] }]
+      )
+    ).toBe(true)
   })
 })
 

@@ -21,7 +21,6 @@ import {
   leaderboardAccountId,
   matchLobby,
   mergeLogConfig,
-  mergeOverlayLayout,
   normalizeName,
   resolveLogsDirectory,
   parseLoadingScreenScene,
@@ -41,6 +40,8 @@ import {
   combatInputHasGaps,
   overlayStrategies,
   curatedStrategies,
+  sanitizeSettings,
+  sanitizeTier,
   type AppSettings,
   type BgMinion,
   type CombatInput,
@@ -67,7 +68,7 @@ import { loadCardCatalog } from './cards'
 import { appIcon } from './icon'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
 import { LogTailer } from './logTailer'
-import { readRatingObservation } from './playRatingOcr'
+import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
 import { loadSession, loadSettings, saveSession, saveSettings } from './persist'
 import { AppUpdater } from './updater'
 
@@ -162,14 +163,17 @@ function status(): TrackerStatus {
     needsHearthstoneRestart,
     banner: needsHearthstoneRestart
       ? 'Restart Hearthstone once to enable live match tracking.'
-      : !hsFound
-        ? 'Waiting for Hearthstone…'
-        : null,
+      : displayMode === 'exclusive'
+        ? 'Hearthstone is exclusive fullscreen. Switch to windowed or borderless for the overlay.'
+        : !hsFound
+          ? 'Waiting for Hearthstone…'
+          : null,
     lastError,
     leaderboardReady: boardRows.length > 0,
     leaderboardCount: boardRows.length,
     cardsReady: minions.length > 0,
     cardCount: minions.length,
+    cardsError: minions.length ? null : lastError,
     displayMode
   }
 }
@@ -343,11 +347,15 @@ function snapshot(): OverlaySnapshot {
       availableVersion: null,
       progress: 0,
       dismissed: false,
-      canInstall: app.isPackaged
+      canInstall: app.isPackaged,
+      errorMessage: null
     },
     combat: match.gameActive ? combat : { ...EMPTY_COMBAT },
     poolRemaining: parser.getPoolRemaining(),
-    strategies: overlayStrategies(minions, match.availableTribes, curatedStrategies).map((row) => ({
+    strategies:
+      match.gameActive && !match.tribesComplete
+        ? []
+        : overlayStrategies(minions, match.availableTribes, curatedStrategies).map((row) => ({
       id: row.id,
       name: row.name,
       tribes: row.tribes,
@@ -435,21 +443,8 @@ async function resolveInstall(): Promise<string | null> {
   return cachedInstallPath
 }
 
-async function attachLogs(install: string): Promise<void> {
-  const logsDir = resolveLogsDirectory(install) ?? join(install, 'Logs')
-  if (currentLogsDir === logsDir && tailer && !tailer.stopped) return
-  if (!existsSync(logsDir)) {
-    currentLogsDir = logsDir
-    tailer?.stop()
-    scheduleBroadcast()
-    return
-  }
-  tailer?.stop()
-  currentLogsDir = logsDir
-  parser = new BattlegroundsParser(settings.battleTag)
-  parser.setPoolCatalog(minions)
-  match = parser.getMatch()
-  tailer = new LogTailer(
+function bindTailer(): LogTailer {
+  return new LogTailer(
     (line) => {
       const wasActive = match.gameActive
       const result = parser.feed(line)
@@ -494,6 +489,7 @@ async function attachLogs(install: string): Promise<void> {
       scheduleBroadcast()
     },
     (line) => {
+      if (logCatchup) return
       const mode = parseLoadingScreenScene(line)
       if (!mode) return
       const scene = sceneFromMode(mode)
@@ -508,17 +504,44 @@ async function attachLogs(install: string): Promise<void> {
       beginPostGameMmr()
     }
   )
-  logCatchup = true
-  try {
-    await tailer.start(logsDir)
-    lastError = null
-  } catch (err) {
-    lastError = err instanceof Error ? err.message : String(err)
-  } finally {
-    logCatchup = false
+}
+
+let attachLogsChain = Promise.resolve()
+
+async function attachLogs(install: string): Promise<void> {
+  const run = async (): Promise<void> => {
+    const logsDir = resolveLogsDirectory(install) ?? join(install, 'Logs')
+    if (currentLogsDir === logsDir && tailer && !tailer.stopped) return
+    if (!existsSync(logsDir)) {
+      currentLogsDir = logsDir
+      await tailer?.stop()
+      scheduleBroadcast()
+      return
+    }
+    const keepParser = Boolean(match.gameActive && currentLogsDir && currentLogsDir !== logsDir)
+    await tailer?.stop()
+    currentLogsDir = logsDir
+    if (!keepParser) {
+      parser = new BattlegroundsParser(settings.battleTag)
+      parser.setPoolCatalog(minions)
+      match = parser.getMatch()
+    }
+    tailer = bindTailer()
+    logCatchup = !keepParser
+    try {
+      if (keepParser) await tailer.startFromEnd(logsDir)
+      else await tailer.start(logsDir)
+      lastError = null
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err)
+    } finally {
+      logCatchup = false
+    }
+    scheduleBroadcast()
+    void pollPlayRating(true)
   }
-  scheduleBroadcast()
-  void pollPlayRating(true)
+  attachLogsChain = attachLogsChain.then(run, run)
+  return attachLogsChain
 }
 
 function toSeenMinions(
@@ -754,12 +777,14 @@ async function tickOverlayBody(): Promise<void> {
   const now = Date.now()
   if (now - lastLogAttach > 800) {
     lastLogAttach = now
-    const install = await resolveInstall()
-    if (install && install !== settings.hearthstonePath && existsSync(install)) {
-      settings = { ...settings, hearthstonePath: install }
-      void saveSettings(userData(), settings)
-    }
-    if (install) await attachLogs(install)
+    void (async () => {
+      const install = await resolveInstall()
+      if (install && install !== settings.hearthstonePath && existsSync(install)) {
+        settings = { ...settings, hearthstonePath: install }
+        void saveSettings(userData(), settings)
+      }
+      if (install) await attachLogs(install)
+    })()
   }
 
   const win = overlayWindow
@@ -839,7 +864,7 @@ function createOverlayWindow(): BrowserWindow {
     ...(process.platform === 'win32' ? { type: 'toolbar' } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,
       backgroundThrottling: false
@@ -870,7 +895,7 @@ function createSettingsWindow(): BrowserWindow {
     backgroundColor: '#0c1016',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false,
+      sandbox: true,
       contextIsolation: true,
       nodeIntegration: false
     }
@@ -908,28 +933,34 @@ function createTray(): void {
   tray.on('click', () => settingsWindow?.show())
 }
 
+function registerShortcut(accelerator: string, fn: () => void): void {
+  if (!globalShortcut.register(accelerator, fn)) {
+    lastError = `Hotkey ${accelerator} is already in use.`
+  }
+}
+
 function registerShortcuts(): void {
-  globalShortcut.register('CommandOrControl+Shift+B', () => {
+  registerShortcut('CommandOrControl+Shift+B', () => {
     settings = { ...settings, overlayEnabled: !settings.overlayEnabled }
     void saveSettings(userData(), settings)
     scheduleBroadcast()
   })
   for (let tier = 1; tier <= 7; tier++) {
-    globalShortcut.register(`CommandOrControl+Shift+${tier}`, () => {
+    registerShortcut(`CommandOrControl+Shift+${tier}`, () => {
       selectedTier = tier
       scheduleBroadcast()
     })
   }
-  globalShortcut.register('CommandOrControl+Shift+0', () => {
+  registerShortcut('CommandOrControl+Shift+0', () => {
     selectedTier = 0
     scheduleBroadcast()
   })
-  globalShortcut.register('CommandOrControl+Shift+C', () => {
+  registerShortcut('CommandOrControl+Shift+C', () => {
     applyClickThrough(false)
     if (clickThroughTimer) clearTimeout(clickThroughTimer)
     clickThroughTimer = setTimeout(() => applyClickThrough(true), 5000)
   })
-  globalShortcut.register('CommandOrControl+Shift+L', () => {
+  registerShortcut('CommandOrControl+Shift+L', () => {
     settings = { ...settings, layoutUnlocked: !settings.layoutUnlocked }
     void saveSettings(userData(), settings)
     applyClickThrough(true)
@@ -937,25 +968,25 @@ function registerShortcuts(): void {
   })
 }
 
+function fromAppWindow(sender: Electron.WebContents): boolean {
+  return sender === overlayWindow?.webContents || sender === settingsWindow?.webContents
+}
+
 function registerIpc(): void {
   ipcMain.handle('get-state', () => snapshot())
-  ipcMain.handle('set-settings', async (_e, patch: Partial<AppSettings>) => {
-    const regionChanged = patch.region && patch.region !== settings.region
-    const layoutUnlocked = patch.layoutUnlocked ?? settings.layoutUnlocked
-    settings = {
-      ...settings,
-      ...patch,
-      overlayLayout: mergeOverlayLayout(settings.overlayLayout, patch.overlayLayout),
-      regionManual: patch.region != null ? true : settings.regionManual,
-      layoutUnlocked
-    }
+  ipcMain.handle('set-settings', async (e, patch: Partial<AppSettings>) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
+    const next = sanitizeSettings(settings, patch && typeof patch === 'object' ? patch : {})
+    const regionChanged = next.region !== settings.region
+    const layoutUnlocked = next.layoutUnlocked
+    settings = next
     parser.setSelfBattleTag(settings.battleTag)
-    if (patch.currentMmr !== undefined) {
+    if (patch?.currentMmr !== undefined) {
       session = bindCurrentMmr(session, settings.currentMmr)
       void saveSession(userData(), session)
     }
     await saveSettings(userData(), settings)
-    if (patch.layoutUnlocked != null) applyClickThrough(true)
+    if (patch?.layoutUnlocked != null) applyClickThrough(true)
     if (regionChanged) {
       boardRows = await loadLeaderboardCache(userData(), settings.region)
       void maybeRefreshLeaderboard(true)
@@ -963,7 +994,8 @@ function registerIpc(): void {
     scheduleBroadcast()
     return snapshot()
   })
-  ipcMain.handle('pick-folder', async () => {
+  ipcMain.handle('pick-folder', async (e) => {
+    if (!fromAppWindow(e.sender)) return null
     const result = await dialog.showOpenDialog({
       title: 'Select Hearthstone folder',
       properties: ['openDirectory']
@@ -971,40 +1003,50 @@ function registerIpc(): void {
     if (result.canceled || !result.filePaths[0]) return null
     return result.filePaths[0]
   })
-  ipcMain.handle('refresh-leaderboard', async () => {
+  ipcMain.handle('refresh-leaderboard', async (e) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
     await maybeRefreshLeaderboard(true)
     return snapshot()
   })
-  ipcMain.handle('open-logs', async () => {
+  ipcMain.handle('open-logs', async (e) => {
+    if (!fromAppWindow(e.sender)) return
     if (currentLogsDir) await shell.openPath(currentLogsDir)
   })
-  ipcMain.on('click-through', (_e, enabled: boolean) => {
-    applyClickThrough(enabled)
+  ipcMain.on('click-through', (e, enabled: boolean) => {
+    if (e.sender !== overlayWindow?.webContents) return
+    applyClickThrough(Boolean(enabled))
   })
-  ipcMain.on('set-tier', (_e, tier: number) => {
-    selectedTier = tier
+  ipcMain.on('set-tier', (e, tier: number) => {
+    if (e.sender !== overlayWindow?.webContents) return
+    selectedTier = sanitizeTier(tier)
     scheduleBroadcast()
   })
-  ipcMain.on('quit-app', () => {
+  ipcMain.on('quit-app', (e) => {
+    if (!fromAppWindow(e.sender)) return
     app.quit()
   })
-  ipcMain.handle('update-check', async () => {
+  ipcMain.handle('update-check', async (e) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
     await updater.check()
     return snapshot()
   })
-  ipcMain.handle('update-download', async () => {
+  ipcMain.handle('update-download', async (e) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
     await updater.download()
     return snapshot()
   })
-  ipcMain.handle('update-install', () => {
+  ipcMain.handle('update-install', (e) => {
+    if (!fromAppWindow(e.sender)) return
     updater.install()
   })
-  ipcMain.handle('update-dismiss', () => {
+  ipcMain.handle('update-dismiss', async (e) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
     updater.dismiss()
     scheduleBroadcast()
     return snapshot()
   })
-  ipcMain.handle('open-release', async () => {
+  ipcMain.handle('open-release', async (e) => {
+    if (!fromAppWindow(e.sender)) return
     const version = updater.state.availableVersion
     const url = version
       ? `https://github.com/JimJamHey/Battle-Buddy/releases/tag/v${version}`
@@ -1062,7 +1104,7 @@ app.whenReady().then(async () => {
   void maybeRefreshLeaderboard(boardRows.length === 0 || !haveSelf)
   void updater.check()
 
-  const interval = process.platform === 'darwin' ? 250 : 16
+  const interval = process.platform === 'darwin' ? 250 : 100
   setInterval(() => {
     void tickOverlay()
   }, interval)
@@ -1075,7 +1117,8 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
-  tailer?.stop()
+  void tailer?.stop()
+  void cleanupOcrTemps()
 })
 
 app.on('activate', () => {

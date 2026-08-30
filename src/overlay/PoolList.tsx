@@ -109,18 +109,46 @@ function PoolCardPreview({ hover }: { hover: Hover | null }) {
   )
 }
 
+function LazyTile({ cardId, name }: { cardId: string; name: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShow(true)
+          io.disconnect()
+        }
+      },
+      { rootMargin: '160px' }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
+  return (
+    <span className="pool-slice" ref={ref}>
+      {show ? <CardArt className="pool-tile" cardId={cardId} name={name} variant="tile" /> : null}
+    </span>
+  )
+}
+
 export function PoolList({
   groups,
   cardUnavailable,
   showTierBubble = true,
-  remaining
+  remaining,
+  remainingLive = false
 }: {
   groups: { title: string; cards: BgMinion[] }[]
   cardUnavailable?: (card: BgMinion) => boolean
   showTierBubble?: boolean
   remaining?: Record<string, number>
+  remainingLive?: boolean
 }) {
   const [hover, setHover] = useState<Hover | null>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const byId = useMemo(() => {
     const map = new Map<string, BgMinion>()
     for (const group of groups) {
@@ -131,7 +159,7 @@ export function PoolList({
   const ordered = useMemo(() => groups.flatMap((group) => group.cards), [groups])
 
   useEffect(() => {
-    const cards = ordered.slice(0, 48)
+    const cards = ordered.slice(0, 12)
     const idle = window.setTimeout(() => {
       for (const card of cards) warmHover(card)
     }, 80)
@@ -139,10 +167,12 @@ export function PoolList({
   }, [ordered])
 
   useEffect(() => {
+    const root = listRef.current
+    if (!root) return
     const onMove = (event: PointerEvent) => {
       const hit = document.elementFromPoint(event.clientX, event.clientY)
       const row = hit instanceof Element ? hit.closest('.pool-row') : null
-      if (!(row instanceof HTMLElement)) {
+      if (!(row instanceof HTMLElement) || !root.contains(row)) {
         setHover((prev) => (prev ? null : prev))
         return
       }
@@ -152,11 +182,6 @@ export function PoolList({
         return
       }
       warmHover(card)
-      const idx = ordered.findIndex((rowCard) => rowCard.id === card.id)
-      if (idx >= 0) {
-        if (ordered[idx - 1]) warmHover(ordered[idx - 1])
-        if (ordered[idx + 1]) warmHover(ordered[idx + 1])
-      }
       const rect = row.getBoundingClientRect()
       const previewH = Math.min(window.innerHeight * 0.82, 560)
       const previewW = Math.min(560, window.innerWidth * 0.5)
@@ -179,9 +204,14 @@ export function PoolList({
         return { card, left, top, placeRight }
       })
     }
-    window.addEventListener('pointermove', onMove)
-    return () => window.removeEventListener('pointermove', onMove)
-  }, [byId, ordered])
+    const onLeave = () => setHover(null)
+    root.addEventListener('pointermove', onMove)
+    root.addEventListener('pointerleave', onLeave)
+    return () => {
+      root.removeEventListener('pointermove', onMove)
+      root.removeEventListener('pointerleave', onLeave)
+    }
+  }, [byId])
 
   const preview = <PoolCardPreview hover={hover} />
 
@@ -196,7 +226,7 @@ export function PoolList({
 
   return (
     <>
-      <div className={`pool-list no-drag ${showTierBubble ? 'with-tier-bubbles' : 'by-tier'}`}>
+      <div ref={listRef} className={`pool-list no-drag ${showTierBubble ? 'with-tier-bubbles' : 'by-tier'}`}>
         {groups.map((group) => (
           <section className="pool-group" key={group.title}>
             <header
@@ -206,24 +236,28 @@ export function PoolList({
             >
               <span>{groupLabel(group.title)}</span>
             </header>
-            {group.cards.map((card) => (
-              <div
-                className={`pool-row ${cardUnavailable?.(card) ? 'unavailable' : ''}`}
-                data-card-id={card.id}
-                key={card.id}
-                onPointerEnter={() => warmHover(card)}
-              >
-                {showTierBubble ? <span className="pool-tier">{card.techLevel}</span> : null}
-                <span className="pool-name">{card.name}</span>
-                {card.kind === 'spell' ? <span className="pool-cost">{card.cost}</span> : null}
-                <span className="pool-copies">
-                  {remaining?.[poolBaseId(card.id)] ?? poolCopies(card)}
-                </span>
-                <span className="pool-slice">
-                  <CardArt className="pool-tile" cardId={card.id} variant="tile" />
-                </span>
-              </div>
-            ))}
+            {group.cards.map((card) => {
+              const copies = remaining?.[poolBaseId(card.id)] ?? poolCopies(card)
+              const title = remainingLive
+                ? `${copies} remaining in the shared shop pool`
+                : `${poolCopies(card)} starting copies`
+              return (
+                <div
+                  className={`pool-row ${cardUnavailable?.(card) ? 'unavailable' : ''}`}
+                  data-card-id={card.id}
+                  key={card.id}
+                  onPointerEnter={() => warmHover(card)}
+                >
+                  {showTierBubble ? <span className="pool-tier">{card.techLevel}</span> : null}
+                  <span className="pool-name">{card.name}</span>
+                  {card.kind === 'spell' ? <span className="pool-cost">{card.cost}</span> : null}
+                  <span className="pool-copies" title={title}>
+                    {copies}
+                  </span>
+                  <LazyTile cardId={card.id} name={card.name} />
+                </div>
+              )
+            })}
           </section>
         ))}
       </div>

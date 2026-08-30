@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { writeFile } from 'node:fs/promises'
+import { unlink, writeFile } from 'node:fs/promises'
 import { encodeBmp32, parseRatingObservation, ratingCaptureRects, resultCaptureRects, mergeRatingObservations, type CaptureRect, type RatingObservation } from '../core/playRating'
 import { captureGameClientBgra } from './winCapture'
 
@@ -33,9 +33,18 @@ $result = Await ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult]
 Write-Output $result.Text
 `
 
-async function ocrImage(path: string): Promise<string> {
-  const script = join(tmpdir(), 'battle-buddy-ocr.ps1')
+let ocrScriptPath: string | null = null
+
+async function ocrScript(): Promise<string> {
+  if (ocrScriptPath) return ocrScriptPath
+  const script = join(tmpdir(), `battle-buddy-ocr-${process.pid}.ps1`)
   await writeFile(script, OCR_PS, 'utf8')
+  ocrScriptPath = script
+  return script
+}
+
+async function ocrImage(path: string): Promise<string> {
+  const script = await ocrScript()
   const { stdout } = await execFileAsync(
     'powershell.exe',
     ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-File', script, '-ImagePath', path],
@@ -51,9 +60,13 @@ async function ocrRegion(region: CaptureRect, allowLoneDelta = false): Promise<R
   const pixels = captureGameClientBgra(region.x, region.y, width, height)
   if (!pixels) return { rating: null, delta: null }
   const bmp = encodeBmp32(width, height, pixels)
-  const imagePath = join(tmpdir(), 'battle-buddy-rating.bmp')
+  const imagePath = join(tmpdir(), `battle-buddy-rating-${process.pid}-${Date.now()}.bmp`)
   await writeFile(imagePath, bmp)
-  return parseRatingObservation(await ocrImage(imagePath), { allowLoneDelta })
+  try {
+    return parseRatingObservation(await ocrImage(imagePath), { allowLoneDelta })
+  } finally {
+    await unlink(imagePath).catch(() => undefined)
+  }
 }
 
 export async function readRatingObservation(
@@ -74,4 +87,11 @@ export async function readRatingObservation(
 
 export async function readPlayRating(client: CaptureRect): Promise<number | null> {
   return (await readRatingObservation(client)).rating
+}
+
+export async function cleanupOcrTemps(): Promise<void> {
+  if (!ocrScriptPath) return
+  const path = ocrScriptPath
+  ocrScriptPath = null
+  await unlink(path).catch(() => undefined)
 }

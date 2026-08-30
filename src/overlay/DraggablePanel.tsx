@@ -99,10 +99,10 @@ export function DraggablePanel({
         <div
           className="drag-grip interactive capture-mouse"
           data-drag-handle
-          onMouseEnter={() => onInteract(true)}
-          onMouseLeave={() => {
-            if (!drag.current) onInteract(false)
-          }}
+          role="button"
+          aria-label="Move panel"
+          aria-grabbed={false}
+          tabIndex={0}
         >
           Move
         </div>

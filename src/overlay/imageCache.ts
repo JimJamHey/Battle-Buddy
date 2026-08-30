@@ -33,9 +33,7 @@ export function warmUrls(urls: string[]): void {
 export function firstCached(urls: string[]): string | null {
   for (const url of urls) {
     if (!url) continue
-    const hit = ok.get(url)
-    if (hit === true) return url
-    if (hit !== false) return null
+    if (ok.get(url) === true) return url
   }
   return null
 }

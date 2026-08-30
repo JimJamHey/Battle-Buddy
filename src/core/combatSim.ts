@@ -734,6 +734,18 @@ function namedFromInput(input: CombatInput): FightCtx['named'] {
   return named
 }
 
+const kitCache = new Map<string, ReturnType<typeof parseCardCombat>>()
+
+function kitFor(cardId: string, text: string): ReturnType<typeof parseCardCombat> {
+  const key = `${cardId}\n${text}`
+  const hit = kitCache.get(key)
+  if (hit) return hit
+  const kit = parseCardCombat(text)
+  if (kitCache.size > 2000) kitCache.clear()
+  kitCache.set(key, kit)
+  return kit
+}
+
 export function enrichCombatInput(
   input: CombatInput,
   catalog: { id: string; name: string; text?: string; mechanics?: string[]; tribes?: string[]; attack?: number; health?: number }[]
@@ -743,7 +755,7 @@ export function enrichCombatInput(
   const enrich = (m: CombatMinion): CombatMinion => {
     const card = byId.get(m.cardId) ?? byName.get(m.name.toLowerCase())
     const text = card?.text ?? ''
-    const kit = parseCardCombat(text)
+    const kit = m.kit ?? kitFor(m.cardId || m.name, text)
     return {
       ...m,
       cleave: m.cleave || cardHasCleave(card?.mechanics, text),
@@ -771,7 +783,7 @@ export function enrichCombatInput(
 
 export function combatInputHasGaps(
   input: CombatInput,
-  catalog: { id: string; name: string; text?: string }[]
+  catalog: { id: string; name: string; text?: string; mechanics?: string[] }[]
 ): boolean {
   const byId = new Map(catalog.map((card) => [card.id, card]))
   const byName = new Map(catalog.map((card) => [card.name.toLowerCase(), card]))
@@ -785,6 +797,8 @@ export function combatInputHasGaps(
   ]
   return rows.some((m) => {
     const card = byId.get(m.cardId) ?? byName.get(m.name.toLowerCase())
-    return combatParseGaps(card?.text ?? '').length > 0
+    if (combatParseGaps(card?.text ?? '', card?.mechanics ?? []).length > 0) return true
+    if (m.deathrattle && !m.kit?.triggers.some((row) => row.when === 'deathrattle')) return true
+    return false
   })
 }

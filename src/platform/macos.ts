@@ -46,9 +46,17 @@ export const macHost: GameHost = {
         tell application "System Events"
           if not (exists process "Hearthstone") then return ""
           tell process "Hearthstone"
-            set p to position of window 1
-            set s to size of window 1
-            return (item 1 of p as text) & "," & (item 2 of p as text) & "," & (item 1 of s as text) & "," & (item 2 of s as text)
+            tell window 1
+              set p to position
+              set s to size
+              set fs to false
+              try
+                set fs to value of attribute "AXFullScreen"
+              end try
+              set titleH to 0
+              if fs is not true then set titleH to 28
+              return (item 1 of p as text) & "," & ((item 2 of p) + titleH as text) & "," & (item 1 of s as text) & "," & ((item 2 of s) - titleH as text)
+            end tell
           end tell
         end tell
       `)
