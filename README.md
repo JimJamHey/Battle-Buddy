@@ -8,11 +8,13 @@ Testers should **not** install Node or run from source. Grab a build from GitHub
 
 **[Latest test build](https://github.com/JimJamHey/Battle-Buddy/releases/tag/test)**
 
+You need access to this private repo (collaborator invite from the owner).
+
 | File | What to do |
 |---|---|
-| `BattleBuddy-Setup.exe` | Double-click to install. Later launches check for updates. |
-| `BattleBuddy-windows.zip` | Unzip and run `BattleBuddy.exe`. |
-| `BattleBuddy.dmg` | Drag to Applications and open. |
+| `BattleBuddy-Setup.exe` | Double-click to install. If Windows SmartScreen warns about an unknown publisher, click **More info**, then **Run anyway** (one time). Later launches check for updates. |
+| `BattleBuddy-windows.zip` | Unzip and run `BattleBuddy.exe`. Same SmartScreen step if prompted. |
+| `BattleBuddy.dmg` | Drag to Applications. If macOS blocks the first open, right-click **BattleBuddy** → **Open**, then confirm. |
 
 Direct links:
 
