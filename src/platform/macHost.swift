@@ -105,7 +105,7 @@ func ocrHearthstone(x: Int, y: Int, w: Int, h: Int) async {
     config.sourceRect = crop
     config.showsCursor = false
     config.capturesAudio = false
-    let scale = max(1, Int(filter.pointPixelScale.rounded()))
+    let scale = 2
     config.width = max(40, Int(crop.width.rounded()) * scale)
     config.height = max(40, Int(crop.height.rounded()) * scale)
 
