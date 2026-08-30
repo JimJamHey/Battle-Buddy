@@ -38,6 +38,9 @@ import {
   isEndGameDisconnect,
   simulateCombat,
   enrichCombatInput,
+  combatInputHasGaps,
+  overlayStrategies,
+  curatedStrategies,
   type AppSettings,
   type BgMinion,
   type CombatInput,
@@ -342,7 +345,18 @@ function snapshot(): OverlaySnapshot {
       dismissed: false,
       canInstall: app.isPackaged
     },
-    combat: match.gameActive ? combat : { ...EMPTY_COMBAT }
+    combat: match.gameActive ? combat : { ...EMPTY_COMBAT },
+    poolRemaining: parser.getPoolRemaining(),
+    strategies: overlayStrategies(minions, match.availableTribes, curatedStrategies).map((row) => ({
+      id: row.id,
+      name: row.name,
+      tribes: row.tribes,
+      mechanic: row.mechanic,
+      status: row.status,
+      core: row.core.slice(0, 5),
+      commitWhen: row.commitWhen,
+      notes: row.notes
+    }))
   }
 }
 
@@ -433,6 +447,7 @@ async function attachLogs(install: string): Promise<void> {
   tailer?.stop()
   currentLogsDir = logsDir
   parser = new BattlegroundsParser(settings.battleTag)
+  parser.setPoolCatalog(minions)
   match = parser.getMatch()
   tailer = new LogTailer(
     (line) => {
@@ -634,6 +649,7 @@ function rememberBoard(side: CombatInput['opponent'], turn: number): void {
 
 function runCombatSim(input: CombatInput): void {
   const enriched = enrichCombatInput(input, minions)
+  const partial = combatInputHasGaps(enriched, minions)
   const key = JSON.stringify(enriched)
   if (key === lastCombatKey) return
   lastCombatKey = key
@@ -642,6 +658,7 @@ function runCombatSim(input: CombatInput): void {
     ...EMPTY_COMBAT,
     active: true,
     simulating: true,
+    partial,
     opponentName: enriched.opponent.name,
     opponentPlayerId: enriched.opponent.playerId
   }
@@ -653,6 +670,7 @@ function runCombatSim(input: CombatInput): void {
     ...quick,
     active: true,
     simulating: true,
+    partial,
     opponentName: enriched.opponent.name,
     opponentPlayerId: enriched.opponent.playerId
   }
@@ -665,6 +683,7 @@ function runCombatSim(input: CombatInput): void {
       ...full,
       active: true,
       simulating: false,
+      partial,
       opponentName: enriched.opponent.name,
       opponentPlayerId: enriched.opponent.playerId
     }
@@ -1033,6 +1052,7 @@ app.whenReady().then(async () => {
       minions = catalog.minions
       heroNames = catalog.heroes
       summons = catalog.summons
+      parser.setPoolCatalog(minions)
       scheduleBroadcast()
     })
     .catch((err: unknown) => {

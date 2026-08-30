@@ -71,4 +71,4 @@ Candidates are **not** overlay UI. They are the inbox for curation.
 
 ## Later (overlay)
 
-When we do put comps in the HUD, filter `curated.json` by this lobby’s tribes (`MatchState.availableTribes`) and hide anything `stale`. Until then the overlay keeps showing the live pool, combat odds, and session stats.
+The overlay already shows live-pool comps for this lobby’s tribes (`overlayStrategies`). Curated entries in `curated.json` win over generated candidates; stale cores are hidden. Keep running `npm run curate` after patches so the snapshot and candidates stay honest.

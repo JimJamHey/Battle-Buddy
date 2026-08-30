@@ -21,6 +21,7 @@
     "src/preload/**/*.ts",
     "src/core/**/*.ts",
     "src/platform/**/*.ts",
+    "data/strategies/*.json",
     "electron.vite.config.ts"
   ],
   "exclude": ["src/**/*.test.ts"]

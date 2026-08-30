@@ -11,6 +11,7 @@ import { UpdateBanner } from '../ui/UpdateBanner'
 import { CardArt } from './CardArt'
 import { DraggablePanel } from './DraggablePanel'
 import { PoolBrowser } from './PoolBrowser'
+import { CompsPanel } from './CompsPanel'
 import { WarbandRow } from './Warband'
 
 export function OverlayApp() {
@@ -58,15 +59,15 @@ export function OverlayApp() {
     }
   }, [])
 
-  const poolGroups = useMemo(() => {
-    if (!state) return []
-    return groupPoolCards(minionsForTier(state.minions, state.selectedTier, 0), [])
-  }, [state])
   const lobbyTribes = useMemo(() => {
     if (!state?.match.gameActive) return []
     const known = state.match.availableTribes
     return known.length ? known : []
   }, [state])
+  const poolGroups = useMemo(() => {
+    if (!state) return []
+    return groupPoolCards(minionsForTier(state.minions, state.selectedTier, 0), lobbyTribes)
+  }, [state, lobbyTribes])
 
   if (!state || !state.overlayVisible) return null
 
@@ -179,6 +180,7 @@ export function OverlayApp() {
                     : vsName
                       ? `vs ${vsName}`
                       : 'Combat'}
+                  {state.combat.partial ? ' · Partial' : ''}
                 </span>
               </div>
               <div className="combat-side right">
@@ -303,6 +305,7 @@ export function OverlayApp() {
               ))}
             </div>
           ) : null}
+          <CompsPanel comps={state.strategies ?? []} live={live} />
         </DraggablePanel>
       ) : null}
 
@@ -327,6 +330,7 @@ export function OverlayApp() {
             inCombat={state.match.inCombat}
             tavernTier={live ? state.match.tavernTier : 0}
             selectedTier={state.selectedTier}
+            remaining={state.poolRemaining}
             onTier={(tier) => window.battleBuddy.setTier(tier)}
           />
         ) : (

@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import type { UpdateState } from '../core/types'
+import { isNewerVersion } from '../core/version'
 
 const REPO = { owner: 'JimJamHey', repo: 'Battle-Buddy' }
 
@@ -8,7 +9,7 @@ export type UpdateListener = () => void
 
 autoUpdater.autoDownload = false
 autoUpdater.autoInstallOnAppQuit = true
-autoUpdater.allowPrerelease = false
+autoUpdater.allowPrerelease = true
 
 export class AppUpdater {
   state: UpdateState = {
@@ -104,17 +105,14 @@ export class AppUpdater {
   private async checkGithubLatest(): Promise<void> {
     this.patch({ phase: 'checking' })
     try {
-      const res = await fetch(`https://api.github.com/repos/${REPO.owner}/${REPO.repo}/releases/latest`, {
-        headers: { accept: 'application/vnd.github+json', 'user-agent': 'BattleBuddy' }
-      })
-      if (res.status === 404) {
-        this.patch({ phase: 'unavailable', availableVersion: null })
-        return
-      }
-      if (!res.ok) throw new Error(String(res.status))
-      const json = (await res.json()) as { tag_name?: string }
-      const latest = (json.tag_name ?? '').replace(/^v/i, '')
-      if (latest && this.isNewer(latest, app.getVersion())) {
+      const fromYml = await this.readPublishedVersion(
+        `https://github.com/${REPO.owner}/${REPO.repo}/releases/download/test/latest.yml`
+      )
+      const fromLatest = await this.readPublishedVersion(
+        `https://github.com/${REPO.owner}/${REPO.repo}/releases/latest/download/latest.yml`
+      )
+      const latest = [fromYml, fromLatest].filter(Boolean).sort((a, b) => (isNewerVersion(a!, b!) ? -1 : 1))[0]
+      if (latest && isNewerVersion(latest, app.getVersion())) {
         this.patch({
           phase: 'available',
           availableVersion: latest,
@@ -128,14 +126,15 @@ export class AppUpdater {
     }
   }
 
-  private isNewer(latest: string, current: string): boolean {
-    const a = latest.split('.').map((n) => Number(n) || 0)
-    const b = current.split('.').map((n) => Number(n) || 0)
-    const len = Math.max(a.length, b.length)
-    for (let i = 0; i < len; i++) {
-      if ((a[i] ?? 0) > (b[i] ?? 0)) return true
-      if ((a[i] ?? 0) < (b[i] ?? 0)) return false
+  private async readPublishedVersion(url: string): Promise<string | null> {
+    try {
+      const res = await fetch(url, { headers: { 'user-agent': 'BattleBuddy' }, redirect: 'follow' })
+      if (!res.ok) return null
+      const text = await res.text()
+      const match = text.match(/^version:\s*['"]?([^\s'"]+)/m)
+      return match?.[1] ?? null
+    } catch {
+      return null
     }
-    return false
   }
 }

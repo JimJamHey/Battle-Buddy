@@ -1,5 +1,6 @@
 import {
   cardHasCleave,
+  combatParseGaps,
   parseCardCombat,
   parseDeathrattleSummon,
   parseStartOfCombat,
@@ -10,7 +11,7 @@ import {
 } from './combatEffects'
 
 export type { CombatKit, SocEffect } from './combatEffects'
-export { cardHasCleave, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat }
+export { cardHasCleave, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat, combatParseGaps } from './combatEffects'
 
 export interface CombatMinion {
   cardId: string
@@ -40,6 +41,8 @@ export interface CombatSide {
   heroArmor: number
   tavernTier?: number
   minions: CombatMinion[]
+  hand?: CombatMinion[]
+  trinkets?: CombatMinion[]
 }
 
 export interface CombatInput {
@@ -99,6 +102,7 @@ interface FightCtx {
   named: Map<string, { attack: number; health: number; kit: CombatKit; tribes: string[] }>
   nextUid: number
   killer: SimMinion | null
+  hands: [SimMinion[], SimMinion[]]
 }
 
 function living(board: SimMinion[]): SimMinion[] {
@@ -346,6 +350,17 @@ function runEffects(
       insertSummons(own, insertAt ?? own.length, summonFromEffect(fx, ctx), ctx, side)
       continue
     }
+    if (fx.op === 'summonFromHand') {
+      const hand = ctx.hands[side]
+      const n = Math.max(1, fx.count ?? 1)
+      const tokens: SimMinion[] = []
+      for (let i = 0; i < n && hand.length; i++) {
+        const pick = hand.splice(Math.floor(rng() * hand.length), 1)[0]
+        if (pick) tokens.push(pick)
+      }
+      insertSummons(own, insertAt ?? own.length, tokens, ctx, side)
+      continue
+    }
     if (fx.op === 'destroyKiller' && ctx.killer && ctx.killer.health > 0) {
       ctx.killer.health = 0
       continue
@@ -582,16 +597,29 @@ export function fightOnce(
     auraTribe: [undefined, undefined],
     named,
     nextUid: 1,
-    killer: null
+    killer: null,
+    hands: [[], []]
   }
   const fBoard = input.friendly.minions.map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
   const oBoard = input.opponent.minions.map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
+  ctx.hands[0] = (input.friendly.hand ?? []).map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
+  ctx.hands[1] = (input.opponent.hand ?? []).map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
+  const fTrinkets = (input.friendly.trinkets ?? []).map((m) => toSim(m, ctx.nextUid++, null))
+  const oTrinkets = (input.opponent.trinkets ?? []).map((m) => toSim(m, ctx.nextUid++, null))
   const fCount = living(fBoard).length
   const oCount = living(oBoard).length
   let fTurn = friendlyFirst ?? (fCount === oCount ? rng() < 0.5 : fCount > oCount)
 
-  applyStartOfCombat(fTurn ? fBoard : oBoard, fTurn ? oBoard : fBoard, ctx, rng, fTurn ? 0 : 1)
-  applyStartOfCombat(fTurn ? oBoard : fBoard, fTurn ? fBoard : oBoard, ctx, rng, fTurn ? 1 : 0)
+  const firstOwn = fTurn ? fBoard : oBoard
+  const firstEnemy = fTurn ? oBoard : fBoard
+  const firstTrinkets = fTurn ? fTrinkets : oTrinkets
+  const secondOwn = fTurn ? oBoard : fBoard
+  const secondEnemy = fTurn ? fBoard : oBoard
+  const secondTrinkets = fTurn ? oTrinkets : fTrinkets
+  applyStartOfCombat(firstOwn, firstEnemy, ctx, rng, fTurn ? 0 : 1)
+  for (const t of firstTrinkets) trigger('startOfCombat', t, firstOwn, firstEnemy, ctx, rng, fTurn ? 0 : 1)
+  applyStartOfCombat(secondOwn, secondEnemy, ctx, rng, fTurn ? 1 : 0)
+  for (const t of secondTrinkets) trigger('startOfCombat', t, secondOwn, secondEnemy, ctx, rng, fTurn ? 1 : 0)
   resolveDeaths(fBoard, oBoard, ctx, rng, 0)
   resolveDeaths(oBoard, fBoard, ctx, rng, 1)
 
@@ -726,7 +754,37 @@ export function enrichCombatInput(
   }
   return {
     ...input,
-    friendly: { ...input.friendly, minions: input.friendly.minions.map(enrich) },
-    opponent: { ...input.opponent, minions: input.opponent.minions.map(enrich) }
+    friendly: {
+      ...input.friendly,
+      minions: input.friendly.minions.map(enrich),
+      hand: input.friendly.hand?.map(enrich),
+      trinkets: input.friendly.trinkets?.map(enrich)
+    },
+    opponent: {
+      ...input.opponent,
+      minions: input.opponent.minions.map(enrich),
+      hand: input.opponent.hand?.map(enrich),
+      trinkets: input.opponent.trinkets?.map(enrich)
+    }
   }
+}
+
+export function combatInputHasGaps(
+  input: CombatInput,
+  catalog: { id: string; name: string; text?: string }[]
+): boolean {
+  const byId = new Map(catalog.map((card) => [card.id, card]))
+  const byName = new Map(catalog.map((card) => [card.name.toLowerCase(), card]))
+  const rows = [
+    ...input.friendly.minions,
+    ...input.opponent.minions,
+    ...(input.friendly.hand ?? []),
+    ...(input.opponent.hand ?? []),
+    ...(input.friendly.trinkets ?? []),
+    ...(input.opponent.trinkets ?? [])
+  ]
+  return rows.some((m) => {
+    const card = byId.get(m.cardId) ?? byName.get(m.name.toLowerCase())
+    return combatParseGaps(card?.text ?? '').length > 0
+  })
 }

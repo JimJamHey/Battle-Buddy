@@ -8,6 +8,7 @@
     "jsx": "react-jsx",
     "strict": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
@@ -22,7 +23,8 @@
     "src/settings/**/*",
     "src/ui/**/*",
     "src/core/**/*",
-    "src/preload/index.d.ts"
+    "src/preload/index.d.ts",
+    "data/strategies/*.json"
   ],
   "exclude": ["src/**/*.test.ts"]
 }

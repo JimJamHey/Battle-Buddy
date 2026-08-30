@@ -271,6 +271,24 @@ export function reviewCurated(file: CuratedFile, pool: BgMinion[]): StrategyComp
   return markStale(comps, new Set(pool.map((card) => card.id)))
 }
 
+export function overlayStrategies(
+  pool: BgMinion[],
+  lobbyTribes: string[],
+  curated: CuratedFile,
+  limit = 6
+): StrategyComp[] {
+  const wanted = new Set(lobbyTribes.map((tribe) => tribe.toLowerCase()).filter((t) => t && t !== 'buddy'))
+  const fits = (comp: StrategyComp) => {
+    if (comp.status === 'stale') return false
+    if (!wanted.size) return true
+    return comp.tribes.every((tribe) => wanted.has(tribe.toLowerCase()))
+  }
+  const curatedRows = reviewCurated(curated, pool).filter(fits)
+  const seen = new Set(curatedRows.map((row) => row.id))
+  const candidates = strategyCandidates(pool).filter((row) => fits(row) && !seen.has(row.id))
+  return [...curatedRows, ...candidates].slice(0, limit)
+}
+
 export function summarizeDiff(diff: PoolDiff, listLimit = 40): string {
   const lines = [
     `HSJSON ${diff.buildFrom ?? '(none)'} → ${diff.buildTo ?? 'unknown'}`,

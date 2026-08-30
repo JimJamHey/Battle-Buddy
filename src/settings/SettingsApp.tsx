@@ -91,6 +91,13 @@ export function SettingsApp() {
             : latest
               ? `You're on v${state.update.currentVersion}.`
               : `Installed version v${state.update.currentVersion}.`}
+          {state.update.canInstall
+            ? ' Installed copies check the rolling test release as well as numbered tags.'
+            : ''}
+        </p>
+        <p className="hint">
+          Windows may warn once (SmartScreen) until a code-signing certificate is added to CI as
+          CSC_LINK. Choose More info → Run anyway.
         </p>
         <div className="row" style={{ marginTop: 10 }}>
           <button
@@ -204,10 +211,9 @@ export function SettingsApp() {
           </button>
         </div>
         <p className="hint">
-          Minion list on the right (full pool in the menu, lobby tribes in a match). Combat odds on top.
-          Click tavern 1–7 to peek a tier; click it again for Shop/All. Type chips filter Beasts, Mechs, and the rest.
-          Hover a minion for normal + golden. The overlay follows Hearthstone in windowed, borderless, or fullscreen.
-          Ctrl+Shift+B toggles the overlay, L unlocks layout.
+          Combat odds on top. Unique card scripts that the text parser cannot read show as **Partial** on the combat bar.
+          Hands and trinkets are included in the sim when Power.log prints them.
+          Click tavern 1–7 to peek a tier; remaining shop copies update as minions are bought.
         </p>
       </section>
 

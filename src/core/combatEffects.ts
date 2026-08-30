@@ -33,6 +33,7 @@ export type CombatOp =
   | 'extraDeathrattle'
   | 'tribeAuraAttack'
   | 'shinyRing'
+  | 'summonFromHand'
 
 export type CombatTarget =
   | 'self'
@@ -230,6 +231,7 @@ function parseClause(clause: string): CombatEffect[] {
   if (/give a different friendly \w+ reborn/i.test(text)) {
     return [{ op: 'giveKeyword', target: 'otherFriendly', keywords: ['reborn'], tribe: tribeIn(text) }]
   }
+  if (/summon(?:s)? .* from your hand/i.test(text)) return [{ op: 'summonFromHand', count: 1 }]
   const summon = parseSummon(text)
   const damage = parseDamage(text)
   const buff = parseBuff(text)
@@ -278,6 +280,11 @@ export function parseCardCombat(text: string): CombatKit {
     const set = parseTriggered('rally', rally[1])
     if (set) triggers.push(set)
   }
+  const wheneverAttacks = raw.match(/whenever this attacks[,:]?\s*(.+?)(?=(?:deathrattle|rally|start of combat|avenge|$))/i)
+  if (wheneverAttacks && !rally) {
+    const set = parseTriggered('rally', wheneverAttacks[1])
+    if (set) triggers.push(set)
+  }
   const dr = raw.match(/deathrattle\s*:\s*(.+?)(?=(?:rally|start of combat|avenge|$))/i)
   if (dr) {
     const set = parseTriggered('deathrattle', dr[1])
@@ -294,6 +301,19 @@ export function parseCardCombat(text: string): CombatKit {
     extraDeathrattles,
     cleave: /\bcleave\b/i.test(raw) || /adjacent minions/i.test(raw)
   }
+}
+
+export function combatParseGaps(text: string): string[] {
+  const raw = plainCardText(text)
+  if (!raw) return []
+  const kit = parseCardCombat(raw)
+  const gaps: string[] = []
+  const has = (when: CombatTrigger) => kit.triggers.some((row) => row.when === when)
+  if (/\bdeathrattle\s*:/i.test(raw) && !has('deathrattle')) gaps.push('Deathrattle')
+  if (/\brally\s*:/i.test(raw) && !has('rally')) gaps.push('Rally')
+  if (/start of combat\s*:/i.test(raw) && !has('startOfCombat')) gaps.push('Start of Combat')
+  if (/\bavenge\s*\(/i.test(raw) && !has('avenge')) gaps.push('Avenge')
+  return gaps
 }
 
 export function parseDeathrattleSummon(text: string): { count: number; attack: number; health: number } | null {

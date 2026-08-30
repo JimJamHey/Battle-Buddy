@@ -4,6 +4,7 @@ import {
   diffSnapshots,
   latestHsjsonBuild,
   markStale,
+  overlayStrategies,
   parseHsjsonBuild,
   reviewCurated,
   snapshotFromCatalog,
@@ -91,5 +92,11 @@ describe('strategy candidates', () => {
     expect(reviewed[0].status).toBe('stale')
     expect(reviewed[0].core[0].name).toBe('Fortress')
     expect(reviewed[0].support[0].name).toBe('Gearling')
+  })
+
+  it('filters overlay comps to this lobby’s tribes', () => {
+    const rows = overlayStrategies(mechs, ['Mech'], { skillBand: 'mid', comps: [] })
+    expect(rows.every((row) => row.tribes.includes('Mech'))).toBe(true)
+    expect(rows.some((row) => row.id === 'mech-magnetic')).toBe(true)
   })
 })

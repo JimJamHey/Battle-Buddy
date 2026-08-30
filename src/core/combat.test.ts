@@ -153,6 +153,44 @@ describe('combat sim', () => {
     const r = fightOnce(input, {}, () => 0, true)
     expect(r.win).toBe('opponent')
   })
+
+  it('summons a minion from hand when the deathrattle says so', () => {
+    const input: CombatInput = {
+      friendly: {
+        ...side(1, [
+          minion(1, 1, {
+            deathrattle: true,
+            kit: { triggers: [{ when: 'deathrattle', effects: [{ op: 'summonFromHand' }] }], extraDeathrattles: 0, cleave: false }
+          })
+        ]),
+        hand: [minion(8, 8, { name: 'Backup' })]
+      },
+      opponent: side(2, [minion(1, 1)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('runs trinket start-of-combat damage', () => {
+    const input: CombatInput = {
+      friendly: {
+        ...side(1, [minion(1, 5)]),
+        trinkets: [
+          minion(0, 0, {
+            name: 'Zap',
+            kit: {
+              triggers: [{ when: 'startOfCombat', effects: [{ op: 'damage', attack: 10, target: 'allEnemy' }] }],
+              extraDeathrattles: 0,
+              cleave: false
+            }
+          })
+        ]
+      },
+      opponent: side(2, [minion(1, 4)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
 })
 
 describe('board tracker', () => {

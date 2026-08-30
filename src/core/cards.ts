@@ -36,7 +36,10 @@ export interface RawCard {
     duosOnly?: boolean
     solosOnly?: boolean
     upgradeId?: number
+    trinket?: boolean
   }
+  isBattlegroundsTrinket?: boolean
+  isBaconTrinket?: boolean
 }
 
 function tribesOf(card: RawCard): string[] {
@@ -98,6 +101,15 @@ export function goldenCardId(cardId: string, mapped?: string | null): string {
   return `${cardId}_G`
 }
 
+export function isBattlegroundsTrinket(card: RawCard): boolean {
+  if (!card.id || !card.name) return false
+  if (card.battlegrounds?.duosOnly || card.isBattlegroundsDuosExclusive) return false
+  const type = (card.type ?? '').toUpperCase()
+  if (type === 'BATTLEGROUND_TRINKET' || type === 'BACON_TRINKET' || type.includes('TRINKET')) return true
+  if (card.isBattlegroundsTrinket || card.isBaconTrinket || card.battlegrounds?.trinket) return true
+  return /(?:^|_)(?:Trinket|MagicItem)(?:_|$)/i.test(card.id)
+}
+
 export function cardSlug(name: string): string {
   return name
     .toLowerCase()
@@ -109,7 +121,8 @@ export function cardSlug(name: string): string {
 export function toBgMinion(card: RawCard, goldenId?: string | null): BgMinion | null {
   const spell = isBattlegroundsPoolSpell(card)
   const buddy = isBattlegroundsBuddy(card)
-  if (!spell && !buddy && !isBattlegroundsPoolMinion(card)) return null
+  const trinket = isBattlegroundsTrinket(card)
+  if (!spell && !buddy && !trinket && !isBattlegroundsPoolMinion(card)) return null
   if (!card.id || !card.name) return null
   const tier = techLevelOf(card)
   return {
@@ -119,11 +132,11 @@ export function toBgMinion(card: RawCard, goldenId?: string | null): BgMinion | 
     text: (card.text ?? '').replace(/<[^>]+>/g, ''),
     attack: card.attack ?? 0,
     health: card.health ?? 0,
-    techLevel: tier || (buddy ? 1 : 0),
-    tribes: spell || buddy ? [] : tribesOf(card),
+    techLevel: tier || (buddy || trinket ? 1 : 0),
+    tribes: spell || buddy || trinket ? [] : tribesOf(card),
     tileUrl: cardTileUrls(card.id)[0],
-    goldenId: spell ? null : goldenCardId(card.id, goldenId),
-    kind: spell ? 'spell' : buddy ? 'buddy' : 'minion',
+    goldenId: spell || trinket ? null : goldenCardId(card.id, goldenId),
+    kind: spell ? 'spell' : buddy ? 'buddy' : trinket ? 'trinket' : 'minion',
     cost: card.cost ?? 0,
     mechanics: mechanicsFromCard(card.mechanics, card.text)
   }
@@ -131,6 +144,14 @@ export function toBgMinion(card: RawCard, goldenId?: string | null): BgMinion | 
 
 export function baseCardId(cardId: string): string {
   return cardId.replace(/_SKIN_[A-Z0-9]+$/i, '')
+}
+
+export function poolBaseId(cardId: string): string {
+  return baseCardId(cardId).replace(/_G$/i, '')
+}
+
+export function isTrinketCardId(cardId: string): boolean {
+  return /(?:Trinket|MagicItem)/i.test(cardId)
 }
 
 export function heroBuddyCardId(heroCardId: string): string {

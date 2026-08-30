@@ -26,8 +26,22 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.set.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: set
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.1.0-test.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
   windows:
-    needs: test
+    needs: [test, version]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,10 +50,13 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
+      - run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version
       - run: npm run dist:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK && 'true' || 'false' }}
       - uses: actions/upload-artifact@v4
         with:
           name: windows
@@ -48,27 +65,62 @@ jobs:
             release/BattleBuddy-windows.zip
             release/latest.yml
           if-no-files-found: error
-      - name: Publish GitHub Release
-        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
-        uses: softprops/action-gh-release@v2
+
+  macos:
+    needs: [test, version]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: npm version ${{ needs.version.outputs.version }} --no-git-tag-version
+      - run: npm run dist:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+          if-no-files-found: error
+
+  publish:
+    needs: [windows, macos, version]
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'test' }}
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Test build' }}
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           make_latest: ${{ startsWith(github.ref, 'refs/tags/v') }}
           files: |
-            release/BattleBuddy-Setup.exe
-            release/BattleBuddy-windows.zip
-            release/latest.yml
+            dist/windows/BattleBuddy-Setup.exe
+            dist/windows/BattleBuddy-windows.zip
+            dist/windows/latest.yml
+            dist/macos/*.dmg
+            dist/macos/*.zip
+            dist/macos/*.yml
           body: |
-            Build `${{ github.sha }}`.
+            Build `${{ github.sha }}` (`${{ needs.version.outputs.version }}`).
 
-            **Windows (pick one file on this release)**
-            - `BattleBuddy-Setup.exe` — one-click install (recommended; auto-update later)
+            **Windows**
+            - `BattleBuddy-Setup.exe` — one-click install (auto-update on this test channel)
             - `BattleBuddy-windows.zip` — unzip and run `BattleBuddy.exe`
 
-            Both run from disk (fast). There is no single-file portable exe; those unpack to a temp folder on every launch.
+            **macOS**
+            - `BattleBuddy.dmg` — drag to Applications (unsigned until an Apple cert is added)
 
-            Windows SmartScreen may say the app is unrecognized (unsigned). **More info → Run anyway**.
+            Windows SmartScreen: if this build is signed (`CSC_LINK` secret), the warning should be milder; otherwise **More info → Run anyway**.
 
-            Start BattleBuddy, then Hearthstone (windowed or borderless). If a banner asks you to enable logs, restart Hearthstone once.
+            Start BattleBuddy, then Hearthstone (windowed or borderless). Restart the game once if the log banner appears.

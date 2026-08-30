@@ -1,8 +1,9 @@
 import { classifyPlayerBuff, mergeBuffs, playerTagBuff, PLAYER_STAT_TAGS, PLAYER_TAG_KEYS, emptyTagBuffs } from './buffs'
 import { BoardTracker, type CombatEvent } from './entities'
+import { PoolTracker } from './poolTrack'
 import { canonicalTribe, isBgHeroCardId, isPickedBgHero, looksLikeHeroName, sortTribes, TRIBE_ORDER, TRIBE_SUBSET_TAGS } from './heroes'
 import { canonTag, powerPayload } from './tags'
-import { EMPTY_MATCH, type MatchBuff, type MatchFinish, type MatchState, type SeenMinion } from './types'
+import { EMPTY_MATCH, type BgMinion, type MatchBuff, type MatchFinish, type MatchState, type SeenMinion } from './types'
 import type { CombatInput } from './combatSim'
 
 const PLACEHOLDER_NAMES = new Set([
@@ -141,6 +142,7 @@ export class BattlegroundsParser {
   private ignoreLobbyWrites = false
   private matchKey: string | null = null
   private boards = new BoardTracker()
+  private pool = new PoolTracker()
   private heroLocked = false
   private bobPlayerIds = new Set<number>()
   private lastEntityId = 0
@@ -180,11 +182,20 @@ export class BattlegroundsParser {
     this.buffs.clear()
     this.tagBuffs = emptyTagBuffs()
     this.boards.reset()
+    this.pool.reset()
   }
 
   clearBetweenMatches(): void {
     this.reset()
     this.match.inBattlegrounds = true
+  }
+
+  setPoolCatalog(cards: BgMinion[]): void {
+    this.pool.setCatalog(cards)
+  }
+
+  getPoolRemaining(): Record<string, number> {
+    return this.pool.remaining()
   }
 
   getCombat(): CombatInput | null {
@@ -361,6 +372,8 @@ export class BattlegroundsParser {
 
     const boardEvent = this.boards.feed(line, this.match.friendlyPlayerId, (id) => this.playerLabel(id))
     if (boardEvent) combatEvent = boardEvent
+    this.pool.setBobPlayers(this.bobPlayerIds)
+    this.pool.feed(line, this.match.inCombat, this.bobPlayerIds)
 
     const tag = parseTagChange(line)
     if (tag) {

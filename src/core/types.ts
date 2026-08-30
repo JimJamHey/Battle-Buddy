@@ -181,7 +181,7 @@ export interface BgMinion {
   tribes: string[]
   tileUrl: string
   goldenId: string | null
-  kind: 'minion' | 'spell' | 'buddy'
+  kind: 'minion' | 'spell' | 'buddy' | 'trinket'
   cost: number
   mechanics?: string[]
 }
@@ -247,6 +247,7 @@ export interface CombatOdds {
   takenMax: number
   opponentName: string | null
   opponentPlayerId: number | null
+  partial: boolean
 }
 
 export const EMPTY_COMBAT: CombatOdds = {
@@ -263,7 +264,8 @@ export const EMPTY_COMBAT: CombatOdds = {
   takenMin: 0,
   takenMax: 0,
   opponentName: null,
-  opponentPlayerId: null
+  opponentPlayerId: null,
+  partial: false
 }
 
 export interface OverlaySnapshot {
@@ -279,4 +281,17 @@ export interface OverlaySnapshot {
   overlayVisible: boolean
   update: UpdateState
   combat: CombatOdds
+  poolRemaining: Record<string, number>
+  strategies: StrategyCompView[]
+}
+
+export interface StrategyCompView {
+  id: string
+  name: string
+  tribes: string[]
+  mechanic: string | null
+  status: 'candidate' | 'curated' | 'stale'
+  core: Array<{ id: string; name: string; techLevel: number }>
+  commitWhen?: string
+  notes?: string
 }

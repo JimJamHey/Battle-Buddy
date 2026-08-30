@@ -1,3 +1,4 @@
+import { isTrinketCardId } from './cards'
 import { isBgHeroCardId } from './heroes'
 import { canonTag, cardTypeName, isTruthyTag, powerPayload, zoneName } from './tags'
 import type { CombatInput, CombatMinion, CombatSide } from './combatSim'
@@ -281,7 +282,9 @@ export class BoardTracker {
       name,
       heroHealth: hero ? currentHp(hero) || 30 : 30,
       heroArmor: hero?.armor ?? 0,
-      minions
+      minions,
+      hand: this.handFor(playerId).map((e) => this.toMinion(e)),
+      trinkets: this.trinketsFor(playerId).map((e) => this.toMinion(e))
     }
   }
 
@@ -291,11 +294,31 @@ export class BoardTracker {
       .sort((a, b) => a.zonePos - b.zonePos)
   }
 
+  private handFor(playerId: number): TrackedEntity[] {
+    return [...this.entities.values()]
+      .filter((e) => {
+        if (e.player !== playerId || e.zone !== 'HAND') return false
+        if (e.cardType === 'ENCHANTMENT' || e.cardType === 'HERO' || e.cardType === 'HERO_POWER') return false
+        if (isBgHeroCardId(e.cardId) || isTrinketCardId(e.cardId)) return false
+        return e.cardType === 'MINION' || Boolean(e.cardId)
+      })
+      .sort((a, b) => a.zonePos - b.zonePos)
+  }
+
+  private trinketsFor(playerId: number): TrackedEntity[] {
+    return [...this.entities.values()].filter((e) => {
+      if (e.player !== playerId) return false
+      if (e.zone !== 'PLAY' && e.zone !== 'SECRET') return false
+      return isTrinketCardId(e.cardId) || e.cardType.includes('TRINKET')
+    })
+  }
+
   private boardMinions(): TrackedEntity[] {
     return [...this.entities.values()].filter((e) => {
       if (e.zone !== 'PLAY') return false
       if (e.cardType && e.cardType !== 'MINION') return false
       if (isBgHeroCardId(e.cardId)) return false
+      if (isTrinketCardId(e.cardId) || e.cardType.includes('TRINKET')) return false
       if (!e.cardId && e.cardType !== 'MINION') return false
       if (e.cardType === 'ENCHANTMENT' || e.cardType === 'HERO_POWER' || e.cardType === 'HERO') return false
       if (e.zonePos <= 0 && e.cardType !== 'MINION') return false

@@ -71,6 +71,7 @@ export function groupPoolCards(cards: BgMinion[], availableTribes: string[]): Po
   const wanted = new Set(availableTribes.map((tribe) => canonicalTribe(tribe) ?? tribe))
 
   for (const card of cards) {
+    if (card.kind === 'trinket') continue
     if (card.kind === 'spell') {
       spells.push(card)
       continue

@@ -25,6 +25,7 @@ export function PoolBrowser({
   inCombat,
   tavernTier,
   selectedTier,
+  remaining,
   onTier
 }: {
   groups: PoolGroup[]
@@ -37,6 +38,7 @@ export function PoolBrowser({
   inCombat: boolean
   tavernTier: number
   selectedTier: number
+  remaining?: Record<string, number>
   onTier: (tier: number) => void
 }) {
   const [tribe, setTribe] = useState<string | null>(null)
@@ -134,6 +136,7 @@ export function PoolBrowser({
       <PoolList
         groups={visible}
         showTierBubble={showPoolTierBubbles(Boolean(tribe), selectedTier)}
+        remaining={remaining}
         cardUnavailable={(card) => !cardAvailableInLobby(card, availableTribes, buddyAvailable, tribesComplete)}
       />
     </section>
