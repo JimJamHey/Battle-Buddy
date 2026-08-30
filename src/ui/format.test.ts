@@ -90,6 +90,35 @@ describe('format helpers', () => {
         settings: { ...DEFAULT_SETTINGS, currentMmr: 5248 }
       })
     ).toBe(5163)
+    expect(
+      selfRating({
+        selfPublicMmr: 8210,
+        lobbyMmr: [],
+        session: { date: '2026-08-30', games: [], startMmr: 8210 },
+        settings: { ...DEFAULT_SETTINGS, currentMmr: 5412 }
+      })
+    ).toBe(5412)
+    expect(
+      selfRating({
+        selfPublicMmr: 8210,
+        lobbyMmr: [],
+        session: {
+          date: '2026-08-30',
+          games: [
+            {
+              endedAt: '2026-08-30T12:00:00.000Z',
+              placement: 4,
+              turn: 10,
+              mmrBefore: 8210,
+              mmrAfter: 8210,
+              mmrDelta: 0
+            }
+          ],
+          startMmr: 8210
+        },
+        settings: { ...DEFAULT_SETTINGS, currentMmr: 5412 }
+      })
+    ).toBe(5412)
   })
 
   it('prefers the lobby BattleTag over a hero combat label', () => {

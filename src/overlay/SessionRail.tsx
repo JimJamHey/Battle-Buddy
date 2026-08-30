@@ -64,7 +64,7 @@ export function SessionRail({
       </div>
       <div className="stat-pills">
         <span>{today.length} games</span>
-        <span>{avg === '—' ? 'Avg —' : `Avg ${avg}`}</span>
+        <span>{avg === '—' ? 'Avg place —' : `Avg place ${avg}`}</span>
         {todayDelta != null ? (
           <span className={todayDelta > 0 ? 'delta-up' : todayDelta < 0 ? 'delta-down' : ''}>
             {formatDelta(todayDelta)}

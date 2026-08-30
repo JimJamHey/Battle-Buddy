@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_OVERLAY_LAYOUT, type AppSettings, type OverlaySnapshot } from '../core/types'
+import { THEMES } from '../core/theme'
 import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
 import { gamesToday } from '../core/session'
 import { UpdateBanner } from '../ui/UpdateBanner'
@@ -17,6 +18,11 @@ export function SettingsApp() {
   useEffect(() => {
     if (state) setTagDraft(state.settings.battleTag)
   }, [state?.settings.battleTag])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = state?.settings.theme ?? 'ember'
+    document.body.style.background = ''
+  }, [state?.settings.theme])
 
   if (!state) {
     return (
@@ -184,6 +190,23 @@ export function SettingsApp() {
             patch({ overlayOpacity: Math.min(100, Math.max(40, n)) })
           }}
         />
+        <p className="hint" style={{ marginTop: 10 }}>Launcher theme</p>
+        <div className="theme-picks" role="listbox" aria-label="Launcher theme">
+          {THEMES.map((theme) => (
+            <button
+              key={theme.id}
+              type="button"
+              role="option"
+              aria-selected={state.settings.theme === theme.id}
+              className={`theme-pick ${state.settings.theme === theme.id ? 'active' : ''}`}
+              onClick={() => patch({ theme: theme.id })}
+            >
+              <span className={`theme-swatch ${theme.id}`} />
+              <strong>{theme.name}</strong>
+              <span>{theme.hint}</span>
+            </button>
+          ))}
+        </div>
         <label htmlFor="region">Leaderboard region</label>
         <select
           id="region"
@@ -237,7 +260,7 @@ export function SettingsApp() {
         <h2>Today</h2>
         <p>
           {today.length} games
-          {avg != null ? ` · avg ${avg}` : ''}
+          {avg != null ? ` · avg place ${avg}` : ''}
           {state.session.startMmr != null ? ` · start ${formatMmr(state.session.startMmr)}` : ''}
         </p>
         {today.length ? (

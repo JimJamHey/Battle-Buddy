@@ -179,7 +179,7 @@ function selfPublicRating(): number | null {
 }
 
 function displayMmr(): number | null {
-  return selfPublicRating() ?? settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null
+  return settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null
 }
 
 function lobbyMmr(): LobbyMmrRow[] {
@@ -213,8 +213,9 @@ function noteObservedRating(
   if (
     rating != null &&
     !acceptObservedRating(rating, {
-      previous: settings.currentMmr ?? session.startMmr,
-      battleTag: settings.battleTag
+      previous: settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null,
+      battleTag: settings.battleTag,
+      resync: !match.gameActive && !awaitingPostGameMmr
     })
   ) {
     rating = null
@@ -257,11 +258,19 @@ function noteObservedRating(
     void saveSession(userData(), session)
     changed = true
   }
+  if (rating != null) {
+    const aligned = bindCurrentMmr(session, settings.currentMmr)
+    if (aligned !== session) {
+      session = aligned
+      void saveSession(userData(), session)
+      changed = true
+    }
+  }
   if (changed) scheduleBroadcast()
 }
 
 async function pollPlayRating(force = false): Promise<void> {
-  if (process.platform !== 'win32' || playRatingBusy || !hsFound) return
+  if ((process.platform !== 'win32' && process.platform !== 'darwin') || playRatingBusy || !hsFound) return
   const wantResults =
     awaitingPostGameMmr || Boolean(playedAsSelf && match.placement && match.placement > 0 && !match.inCombat)
   if (match.gameActive && !wantResults) return
@@ -909,7 +918,7 @@ function createOverlayWindow(): BrowserWindow {
 function createSettingsWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 560,
-    height: 780,
+    height: 880,
     show: false,
     title: 'BattleBuddy',
     autoHideMenuBar: true,
@@ -1129,6 +1138,7 @@ app.whenReady().then(async () => {
     void tickOverlay()
   }, interval)
   void tickOverlay()
+  void pollPlayRating(true)
 })
 
 app.on('window-all-closed', () => {

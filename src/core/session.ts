@@ -37,9 +37,14 @@ export function hydrateGameMmr(session: SessionState): SessionState {
 export function bindCurrentMmr(session: SessionState, current: number | null, now = new Date()): SessionState {
   let next = hydrateGameMmr(ensureToday(session, now))
   if (current != null) next = applyGameMmr(next, current)
-  if (next.startMmr != null) return next
   const today = gamesToday(next, now)
-  const firstBefore = today[0]?.mmrBefore
+  const firstBefore = today[0]?.mmrBefore ?? null
+  if (today.length === 0 && current != null && next.startMmr != null && Math.abs(next.startMmr - current) > 400) {
+    next = { ...next, startMmr: current }
+  } else if (firstBefore != null && next.startMmr != null && Math.abs(next.startMmr - firstBefore) > 400) {
+    next = { ...next, startMmr: firstBefore }
+  }
+  if (next.startMmr != null) return next
   if (firstBefore != null) return { ...next, startMmr: firstBefore }
   if (current != null) return { ...next, startMmr: current }
   return next

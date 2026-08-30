@@ -18,6 +18,12 @@ describe('sanitizeSettings', () => {
     expect(next.battleTag.length).toBeLessThanOrEqual(64)
     expect(next.showLobbyOnOverlay).toBe(false)
     expect(next.currentMmr).toBe(30000)
+    expect(next.theme).toBe('ember')
+  })
+
+  it('keeps a valid launcher theme', () => {
+    expect(sanitizeSettings(DEFAULT_SETTINGS, { theme: 'arcane' }).theme).toBe('arcane')
+    expect(sanitizeSettings(DEFAULT_SETTINGS, { theme: 'nope' as never }).theme).toBe('ember')
   })
 
   it('clamps tavern peek', () => {

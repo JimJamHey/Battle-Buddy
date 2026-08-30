@@ -1173,6 +1173,33 @@ describe('session', () => {
     expect(s.games[0]?.mmrDelta).toBeNull()
     expect(s.startMmr).toBe(5205)
     expect(
+      bindCurrentMmr(
+        { date: '2026-08-30', games: [], startMmr: 8210 },
+        5412,
+        new Date('2026-08-30T12:00:00')
+      ).startMmr
+    ).toBe(5412)
+    expect(
+      bindCurrentMmr(
+        {
+          date: '2026-08-30',
+          games: [
+            {
+              endedAt: '2026-08-30T12:00:00.000Z',
+              placement: 4,
+              turn: 10,
+              mmrBefore: 5412,
+              mmrAfter: 5380,
+              mmrDelta: -32
+            }
+          ],
+          startMmr: 8210
+        },
+        5380,
+        new Date('2026-08-30T18:00:00')
+      ).startMmr
+    ).toBe(5412)
+    expect(
       dedupeGames([
         { endedAt: '2026-08-26T17:09:32.172Z', placement: 2, turn: 16, heroName: "Y'Shaarj", mmrDelta: 71, mmrEstimated: true },
         { endedAt: '2026-08-26T17:20:54.627Z', placement: 2, turn: 16, heroName: "Y'Shaarj", mmrDelta: 71, mmrEstimated: true }

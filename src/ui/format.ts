@@ -1,4 +1,3 @@
-import { acceptObservedRating } from '../core/playRating'
 import { looksLikeHeroName } from '../core/heroes'
 import { isPlaceholderName } from '../core/parser'
 import type { CombatOdds, LobbyMmrRow, OverlaySnapshot, UpdateState } from '../core/types'
@@ -41,16 +40,18 @@ export function placeClass(place: number): string {
 export function selfRating(
   state: Pick<OverlaySnapshot, 'lobbyMmr' | 'session' | 'selfPublicMmr' | 'settings'>
 ): number | null {
-  const previous = state.session.startMmr
-  const tag = state.settings?.battleTag ?? ''
-  const usable = (value: number | null | undefined) =>
-    value != null && acceptObservedRating(value, { previous, battleTag: tag })
   const last = state.session.games[state.session.games.length - 1]
-  if (usable(last?.mmrAfter)) return last?.mmrAfter ?? null
-  if (usable(state.selfPublicMmr)) return state.selfPublicMmr ?? null
-  if (usable(state.settings?.currentMmr)) return state.settings?.currentMmr ?? null
+  const live = state.settings?.currentMmr ?? null
+  const after = last?.mmrAfter ?? null
+  if (live != null && after != null) {
+    // A 400+ gap means the stored game still has a stale public rating.
+    return Math.abs(after - live) > 400 ? live : after
+  }
+  if (after != null) return after
+  if (live != null) return live
+  if (state.selfPublicMmr != null) return state.selfPublicMmr
   const self = state.lobbyMmr.find((row) => row.isSelf)
-  if (usable(self?.rating)) return self?.rating ?? null
+  if (self?.rating != null) return self.rating
   return state.session.startMmr
 }
 

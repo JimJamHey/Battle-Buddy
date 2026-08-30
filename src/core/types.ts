@@ -1,4 +1,7 @@
+import type { ThemeId } from './theme'
+
 export type Region = 'US' | 'EU' | 'AP'
+export type { ThemeId } from './theme'
 
 export type Scene = 'unknown' | 'hub' | 'bacon' | 'gameplay' | 'other'
 
@@ -33,6 +36,7 @@ export interface AppSettings {
   showLobbyOnOverlay: boolean
   overlayLayout: OverlayLayout
   currentMmr: number | null
+  theme: ThemeId
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -48,7 +52,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showSessionOnOverlay: true,
   showLobbyOnOverlay: false,
   overlayLayout: DEFAULT_OVERLAY_LAYOUT,
-  currentMmr: null
+  currentMmr: null,
+  theme: 'ember'
 }
 
 export interface LobbyPlayer {

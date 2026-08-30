@@ -92,6 +92,48 @@ Windows artifacts land in `release/`:
 
 Owner setup (not a tester step): Windows signing uses GitHub secrets `CSC_LINK` + `CSC_KEY_PASSWORD`. macOS signing/notarization uses `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`. Auto-update from a private repo needs the repo public or a GitHub token.
 
+### Code signing (owner)
+
+This is **not a URL**. GitHub Actions reads a certificate file from repository secrets, then electron-builder signs `BattleBuddy-Setup.exe` / `BattleBuddy.dmg`.
+
+1. Open the repo on GitHub → **Settings → Secrets and variables → Actions → New repository secret**.
+2. Add these secrets:
+
+**Windows (Authenticode `.pfx`)**
+
+| Secret | Value |
+|---|---|
+| `CSC_LINK` | Base64 of the `.pfx` file |
+| `CSC_KEY_PASSWORD` | Password for that PFX |
+
+Encode the PFX in PowerShell:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\path\to\cert.pfx'))
+```
+
+Paste the one-line output as `CSC_LINK`. Do not wrap it in quotes.
+
+**macOS (Developer ID Application `.p12`)**
+
+| Secret | Value |
+|---|---|
+| `MAC_CSC_LINK` | Base64 of the `.p12` file |
+| `MAC_CSC_KEY_PASSWORD` | Password for that p12 |
+| `APPLE_ID` | Apple ID email used for notarization |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password (not the Apple ID login) |
+| `APPLE_TEAM_ID` | 10-character Team ID |
+
+Encode the p12:
+
+```bash
+base64 -i DeveloperID.p12 | pbcopy
+```
+
+3. Re-run **Actions → Release**. The rolling `test` tag is overwritten. Signed builds no longer show the SmartScreen / Gatekeeper “unknown publisher” prompt.
+
+A standard code-signing certificate from a CA (exported as PFX) is enough for Windows. Apple requires a Developer ID Application certificate from a paid Apple Developer account for macOS.
+
 ### Auto-update (installed copies)
 
 Friends install **once** from the test Setup.exe. Later test builds increment the prerelease version; BattleBuddy checks on launch (including prereleases) and shows **Download**, then **Restart**.

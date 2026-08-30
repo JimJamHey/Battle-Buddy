@@ -26,7 +26,7 @@ export function battleTagDiscriminator(battleTag: string): number | null {
 /** Drop OCR hits that are the BattleTag # or an implausible jump from the last rating. */
 export function acceptObservedRating(
   rating: number,
-  opts?: { previous?: number | null; battleTag?: string }
+  opts?: { previous?: number | null; battleTag?: string; resync?: boolean }
 ): boolean {
   if (!Number.isFinite(rating)) return false
   const disc = battleTagDiscriminator(opts?.battleTag ?? '')
@@ -36,7 +36,10 @@ export function acceptObservedRating(
     previous != null && (previous === disc || previous < 1000)
   if (previousJunk && rating >= 2000) return true
   if (previous != null && previous >= 2000 && rating < 1000) return false
-  if (previous != null && Math.abs(rating - previous) > 400) return false
+  if (previous != null && Math.abs(rating - previous) > 400) {
+    // Play-screen reads can replace a stale public-leaderboard number.
+    return Boolean(opts?.resync && rating >= 1000 && previous >= 1000)
+  }
   return true
 }
 

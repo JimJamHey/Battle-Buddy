@@ -55,6 +55,9 @@ describe('parsePlayRating', () => {
     expect(acceptObservedRating(427, { previous: 5216, battleTag: 'JimJamHey#1968' })).toBe(false)
     expect(acceptObservedRating(5216, { previous: 427, battleTag: 'JimJamHey#1968' })).toBe(true)
     expect(acceptObservedRating(5260, { previous: 5216, battleTag: 'JimJamHey#1968' })).toBe(true)
+    expect(acceptObservedRating(5412, { previous: 8210 })).toBe(false)
+    expect(acceptObservedRating(5412, { previous: 8210, resync: true })).toBe(true)
+    expect(acceptObservedRating(1968, { previous: 8210, resync: true, battleTag: 'JimJamHey#1968' })).toBe(false)
   })
 })
 

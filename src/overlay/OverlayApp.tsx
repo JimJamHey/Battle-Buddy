@@ -36,6 +36,11 @@ export function OverlayApp() {
   const unlocked = Boolean(state?.settings.layoutUnlocked)
   useClickThrough()
 
+  useEffect(() => {
+    if (!state) return
+    document.documentElement.dataset.theme = state.settings.theme
+  }, [state?.settings.theme])
+
   const live = Boolean(state?.match.gameActive)
   const lobbyTribes = useMemo(() => {
     if (!state?.match.gameActive) return []
