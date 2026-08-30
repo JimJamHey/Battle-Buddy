@@ -96,10 +96,26 @@ GitHub cannot store a certificate *file*. You buy a Windows code-signing certifi
 
 You need a paid certificate from a vendor (Sectigo, DigiCert, SSL.com, etc.). Export it from Windows as a `.pfx` and pick a password. If you do not have that file yet, skip this section — testers will still see SmartScreen “unknown publisher.”
 
-1. On your PC, convert the `.pfx` to text. In PowerShell, use the real path to your file:
+1. On your PC, convert the `.pfx` to text. **`C:\path\to\cert.pfx` below is a placeholder** — replace it with the real path to your exported file (e.g. `C:\Users\You\Downloads\BattleBuddy.pfx`).
+
+   Check the file exists first:
 
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\path\to\cert.pfx'))
+Test-Path 'C:\Users\You\Downloads\BattleBuddy.pfx'
+```
+
+   If that prints `True`, encode it:
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes('C:\Users\You\Downloads\BattleBuddy.pfx'))
+```
+
+   Or pick the file in a dialog (no typing paths):
+
+```powershell
+$f = (Get-Item (Read-Host 'Drag your .pfx here, or paste full path')).FullName
+[Convert]::ToBase64String([IO.File]::ReadAllBytes($f)) | Set-Clipboard
+Write-Host 'Copied to clipboard — paste into GitHub secret CSC_LINK'
 ```
 
 That prints one long line of letters and numbers. Copy the whole line.
