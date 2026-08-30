@@ -19,7 +19,7 @@
     "dist:mac": "npm run build:mac-host && electron-vite build && electron-builder --mac",
     "publish:win": "electron-vite build && electron-builder --win nsis --publish always",
     "publish:mac": "npm run build:mac-host && electron-vite build && electron-builder --mac --publish always",
-    "build:mac-host": "mkdir -p resources && swiftc -O -o resources/mac-host src/platform/macHost.swift -framework AppKit -framework Vision -framework CoreGraphics",
+    "build:mac-host": "mkdir -p resources && swiftc -O -target $(uname -m)-apple-macos14.0 -o resources/mac-host src/platform/macHost.swift -framework AppKit -framework Vision -framework CoreGraphics -framework ScreenCaptureKit",
     "curate": "tsx scripts/curate-strategies.ts",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -71,8 +71,13 @@
       "artifactName": "BattleBuddy.${ext}",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
+      "forceCodeSigning": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSScreenCaptureUsageDescription": "BattleBuddy reads your post-game rating from the Hearthstone results screen.",
+        "NSAppleEventsUsageDescription": "BattleBuddy finds the Hearthstone window if the bundled helper is unavailable."
+      },
       "extraResources": [
         {
           "from": "resources/mac-host",
@@ -89,6 +94,7 @@
       "artifactName": "BattleBuddy-Setup.exe",
       "oneClick": true,
       "perMachine": false,
+      "include": "build/installer.nsh",
       "shortcutName": "BattleBuddy",
       "uninstallDisplayName": "BattleBuddy"
     },

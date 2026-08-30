@@ -1102,13 +1102,12 @@ app.whenReady().then(async () => {
   const haveSelf = selfTag ? indexLeaderboard(boardRows).has(selfTag) : boardRows.length > 0
 
   registerIpc()
+  await ensureLogConfig()
   createTray()
   settingsWindow = createSettingsWindow()
   overlayWindow = createOverlayWindow()
   applyClickThrough(true)
   registerShortcuts()
-
-  void ensureLogConfig()
   void loadCardCatalog(userData())
     .then((catalog) => {
       minions = catalog.minions

@@ -80,9 +80,9 @@ jobs:
       - run: npm run dist:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK || secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD || secrets.CSC_KEY_PASSWORD }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ (secrets.MAC_CSC_LINK || secrets.CSC_LINK) && 'true' || 'false' }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MAC_CSC_LINK && 'true' || 'false' }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -97,7 +97,7 @@ jobs:
 
   publish:
     needs: [windows, macos, version]
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || (github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -109,6 +109,7 @@ jobs:
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Test build' }}
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           make_latest: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          overwrite_files: true
           files: |
             dist/windows/BattleBuddy-Setup.exe
             dist/windows/BattleBuddy-windows.zip

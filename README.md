@@ -20,9 +20,7 @@ Direct links:
 - https://github.com/JimJamHey/Battle-Buddy/releases/download/test/BattleBuddy-windows.zip
 - https://github.com/JimJamHey/Battle-Buddy/releases/download/test/BattleBuddy.dmg
 
-Start BattleBuddy, then Hearthstone (or the other way around). The overlay attaches to the game window, including exclusive fullscreen on Windows. If the test release is missing, a pull request’s **Actions → Release** artifacts (`windows` / `macos`) are the same files.
-
-Private-repo testers need collaborator access to download. Auto-update also needs the repo public (or a GitHub token).
+Start BattleBuddy, then Hearthstone. The overlay attaches to the game window.
 
 ## What it shows
 
@@ -76,7 +74,7 @@ If this machine has never enabled Hearthstone file logs, BattleBuddy writes `%Lo
 
 ## Packaged builds
 
-GitHub Actions builds **Windows and macOS** on every `master` push and publishes the [test](https://github.com/JimJamHey/Battle-Buddy/releases/tag/test) prerelease. Each test build bumps `0.1.0-test.<run>` so installed copies see a newer version. Tag `v0.1.1` (and bump `"version"` in `package.json`) for a numbered release.
+GitHub Actions builds **Windows and macOS** and publishes the [test](https://github.com/JimJamHey/Battle-Buddy/releases/tag/test) prerelease. Each test build bumps `0.1.0-test.<run>` so installed copies see a newer version. Tag `v0.1.1` (and bump `"version"` in `package.json`) for a numbered release.
 
 Locally (must match the OS — native `koffi` bindings):
 
@@ -92,18 +90,16 @@ Windows artifacts land in `release/`:
 - `BattleBuddy-windows.zip` — unzip and run `BattleBuddy.exe`
 - `win-unpacked/BattleBuddy.exe` — same app, unpacked
 
-To sign Windows builds, add GitHub secrets `CSC_LINK` (base64 PFX) and `CSC_KEY_PASSWORD`. Without those, the installer is unsigned and SmartScreen will warn.
+Owner setup (not a tester step): Windows signing uses GitHub secrets `CSC_LINK` + `CSC_KEY_PASSWORD`. macOS signing/notarization uses `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID`. Auto-update from a private repo needs the repo public or a GitHub token.
 
 ### Auto-update (installed copies)
 
-Friends install **once** from the test Setup.exe. Later `master` builds increment the prerelease version; BattleBuddy checks on launch (including prereleases) and shows **Download**, then **Restart**.
+Friends install **once** from the test Setup.exe. Later test builds increment the prerelease version; BattleBuddy checks on launch (including prereleases) and shows **Download**, then **Restart**.
 
 Numbered tags (`v0.1.1`) still work the same way. Zip/portable copies get a GitHub link instead of in-place install.
 
 1. Optional local publish: `GH_TOKEN` with `repo` scope, then `npm run publish:win` / `publish:mac`.
-2. CI already publishes the `test` prerelease on `master`.
-
-macOS auto-update works best with a signed/notarized build. Until you have an Apple Developer cert, friends on Mac can use the banner’s GitHub link to download the new dmg.
+2. CI publishes the `test` prerelease from this workflow (including pull requests) and from `master`.
 
 ## Strategy curation
 

@@ -1,6 +1,7 @@
 import AppKit
 import CoreGraphics
 import Foundation
+import ScreenCaptureKit
 import Vision
 
 func hearthstoneWindows() -> [[String: Any]] {
@@ -34,6 +35,10 @@ func windowRect(_ row: [String: Any]) -> CGRect? {
   )
 }
 
+func windowId(_ row: [String: Any]) -> CGWindowID {
+  CGWindowID((row[kCGWindowNumber as String] as? UInt32) ?? 0)
+}
+
 func cmdPresent() {
   print(hearthstoneWindows().isEmpty ? "0" : "1")
 }
@@ -51,40 +56,65 @@ func cmdBounds() {
   print("\(Int(rect.origin.x.rounded())),\(Int(rect.origin.y.rounded())),\(Int(rect.width.rounded())),\(Int(rect.height.rounded()))")
 }
 
-func cmdOcr(x: Int, y: Int, w: Int, h: Int) {
-  guard w >= 40, h >= 40, let row = hearthstoneWindows().first, let winRect = windowRect(row) else {
-    return
-  }
-  let windowId = CGWindowID((row[kCGWindowNumber as String] as? UInt32) ?? 0)
-  guard windowId != 0,
-        let image = CGWindowListCreateImage(
-          .null,
-          [.optionIncludingWindow, .excludeDesktopElements],
-          windowId,
-          [.boundsIgnoreFraming, .bestResolution]
-        )
-  else {
-    return
-  }
-  let request = CGRect(x: x, y: y, width: w, height: h)
-  let local = request.intersection(winRect)
-  guard !local.isNull, local.width >= 8, local.height >= 8 else { return }
-  let scaleX = CGFloat(image.width) / winRect.width
-  let scaleY = CGFloat(image.height) / winRect.height
-  let crop = CGRect(
-    x: (local.origin.x - winRect.origin.x) * scaleX,
-    y: (local.origin.y - winRect.origin.y) * scaleY,
-    width: local.width * scaleX,
-    height: local.height * scaleY
-  )
-  guard let cropped = image.cropping(to: crop) else { return }
-  let handler = VNImageRequestHandler(cgImage: cropped, options: [:])
+func recognizeText(_ image: CGImage) -> String {
+  let handler = VNImageRequestHandler(cgImage: image, options: [:])
   let textRequest = VNRecognizeTextRequest()
   textRequest.recognitionLevel = .accurate
   textRequest.usesLanguageCorrection = false
   try? handler.perform([textRequest])
   let lines = (textRequest.results ?? []).compactMap { $0.topCandidates(1).first?.string }
-  print(lines.joined(separator: "\n"))
+  return lines.joined(separator: "\n")
+}
+
+func cmdOcr(x: Int, y: Int, w: Int, h: Int) {
+  let group = DispatchGroup()
+  group.enter()
+  Task.detached {
+    defer { group.leave() }
+    await ocrHearthstone(x: x, y: y, w: w, h: h)
+  }
+  group.wait()
+}
+
+func ocrHearthstone(x: Int, y: Int, w: Int, h: Int) async {
+  guard w >= 40, h >= 40, let row = hearthstoneWindows().first, let winRect = windowRect(row) else { return }
+  let request = CGRect(x: x, y: y, width: w, height: h)
+  let local = request.intersection(winRect)
+  guard !local.isNull, local.width >= 8, local.height >= 8 else { return }
+
+  do {
+    let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+    let targetId = windowId(row)
+    let window =
+      content.windows.first(where: { $0.windowID == targetId })
+      ?? content.windows.first(where: { win in
+        let name = win.owningApplication?.applicationName ?? ""
+        let title = win.title ?? ""
+        return name == "Hearthstone" || title.localizedCaseInsensitiveContains("Hearthstone")
+      })
+    guard let window else { return }
+
+    let filter = SCContentFilter(desktopIndependentWindow: window)
+    let config = SCStreamConfiguration()
+    let crop = CGRect(
+      x: local.origin.x - winRect.origin.x,
+      y: local.origin.y - winRect.origin.y,
+      width: local.width,
+      height: local.height
+    )
+    config.sourceRect = crop
+    config.showsCursor = false
+    config.capturesAudio = false
+    let scale = max(1, Int(filter.pointPixelScale.rounded()))
+    config.width = max(40, Int(crop.width.rounded()) * scale)
+    config.height = max(40, Int(crop.height.rounded()) * scale)
+
+    let image = try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
+    let text = recognizeText(image)
+    if !text.isEmpty { print(text) }
+  } catch {
+    return
+  }
 }
 
 let args = Array(CommandLine.arguments.dropFirst())
