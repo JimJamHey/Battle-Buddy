@@ -8,7 +8,8 @@ import {
   parseHsjsonBuild,
   reviewCurated,
   snapshotFromCatalog,
-  strategyCandidates
+  strategyCandidates,
+  strategyCatalog
 } from './strategy'
 
 function card(partial: Partial<BgMinion> & Pick<BgMinion, 'id' | 'name'>): BgMinion {
@@ -114,5 +115,17 @@ describe('strategy candidates', () => {
 
   it('waits for lobby tribes before listing live-pool comps', () => {
     expect(overlayStrategies(mechs, [], { skillBand: 'mid', comps: [] })).toEqual([])
+  })
+
+  it('lists the full catalog with lobby matches first', () => {
+    const rows = strategyCatalog(mechs, ['Mech'], { skillBand: 'mid', comps: [] })
+    expect(rows.some((row) => row.id === 'mech-magnetic' && row.inLobby)).toBe(true)
+    expect(rows.length).toBeGreaterThan(0)
+  })
+
+  it('marks every catalog row available when there is no lobby filter', () => {
+    const rows = strategyCatalog(mechs, [], { skillBand: 'mid', comps: [] })
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows.every((row) => row.inLobby)).toBe(true)
   })
 })

@@ -16,6 +16,8 @@ import { PoolList } from './PoolList'
 import { CompsPanel } from './CompsPanel'
 import type { BgMinion, StrategyCompView } from '../core/types'
 
+type PoolMode = 'pool' | 'strategies'
+
 export function PoolBrowser({
   groups,
   availableTribes = [],
@@ -49,6 +51,7 @@ export function PoolBrowser({
   waitingForTribes?: boolean
   minions?: BgMinion[]
 }) {
+  const [mode, setMode] = useState<PoolMode>('pool')
   const [tribe, setTribe] = useState<string | null>(null)
   const [mechanic, setMechanic] = useState<string | null>(null)
   const titles = useMemo(() => groups.map((group) => group.title), [groups])
@@ -68,7 +71,7 @@ export function PoolBrowser({
   }, [mechanic, mechanicNames])
 
   return (
-    <section className="panel pool-panel capture-mouse">
+    <section className={`panel pool-panel capture-mouse pool-mode-${mode}`}>
       <header className="pool-nav no-drag">
         {live ? (
           <div className="pool-nav-top">
@@ -78,93 +81,119 @@ export function PoolBrowser({
             </p>
           </div>
         ) : null}
-        <div className="tier-track" role="tablist" aria-label="Tavern tier">
+        <div className="pool-mode-toggle" role="tablist" aria-label="Pool or strategies">
           <button
             type="button"
             role="tab"
-            aria-selected={selectedTier === 0}
-            className={`tier-tab ${selectedTier === 0 ? 'active' : ''}`}
-            onClick={() => onTier(0)}
+            aria-selected={mode === 'pool'}
+            className={mode === 'pool' ? 'active' : ''}
+            onClick={() => setMode('pool')}
           >
-            All
+            Pool
           </button>
-          {[1, 2, 3, 4, 5, 6, 7].map((tier) => (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={selectedTier === tier}
-              key={tier}
-              className={`tier-tab ${selectedTier === tier ? 'active' : ''} ${live && tavernTier === tier ? 'shop-tier' : ''}`}
-              title={live && tavernTier === tier ? 'Your current tavern' : undefined}
-              onClick={() => onTier(tier)}
-            >
-              {tier}
-            </button>
-          ))}
-        </div>
-        <div className="tribe-track" role="tablist" aria-label="Minion type">
           <button
             type="button"
             role="tab"
-            aria-selected={tribe == null}
-            className={`tribe-tab ${tribe == null ? 'active' : ''}`}
-            onClick={() => setTribe(null)}
+            aria-selected={mode === 'strategies'}
+            className={mode === 'strategies' ? 'active' : ''}
+            onClick={() => setMode('strategies')}
           >
-            All types
+            Strategies
           </button>
-          {titles.map((title) => (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tribe === title}
-              key={title}
-            className={`tribe-tab tribe-${tribeSlug(title)} ${tribe === title ? 'active' : ''} ${
-              tribeAvailableInLobby(title, availableTribes, buddyAvailable, tribesComplete) ? '' : 'unavailable'
-            }`}
-              onClick={() => setTribe((current) => (current === title ? null : title))}
-            >
-              {groupLabel(title)}
-            </button>
-          ))}
         </div>
-        {mechanicNames.length ? (
-          <div className="mechanic-track" role="tablist" aria-label="Mechanic">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mechanic == null}
-              className={`mechanic-tab ${mechanic == null ? 'active' : ''}`}
-              onClick={() => setMechanic(null)}
-            >
-              Any
-            </button>
-            {mechanicNames.map((name) => (
+        {mode === 'pool' ? (
+          <>
+            <div className="tier-track" role="tablist" aria-label="Tavern tier">
               <button
                 type="button"
                 role="tab"
-                aria-selected={mechanic === name}
-                key={name}
-                className={`mechanic-tab ${mechanic === name ? 'active' : ''}`}
-                onClick={() => setMechanic((current) => (current === name ? null : name))}
+                aria-selected={selectedTier === 0}
+                className={`tier-tab ${selectedTier === 0 ? 'active' : ''}`}
+                onClick={() => onTier(0)}
               >
-                {name}
+                All
               </button>
-            ))}
-          </div>
+              {[1, 2, 3, 4, 5, 6, 7].map((tier) => (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedTier === tier}
+                  key={tier}
+                  className={`tier-tab ${selectedTier === tier ? 'active' : ''} ${live && tavernTier === tier ? 'shop-tier' : ''}`}
+                  title={live && tavernTier === tier ? 'Your current tavern' : undefined}
+                  onClick={() => onTier(tier)}
+                >
+                  {tier}
+                </button>
+              ))}
+            </div>
+            <div className="tribe-track" role="tablist" aria-label="Minion type">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tribe == null}
+                className={`tribe-tab ${tribe == null ? 'active' : ''}`}
+                onClick={() => setTribe(null)}
+              >
+                All types
+              </button>
+              {titles.map((title) => (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tribe === title}
+                  key={title}
+                  className={`tribe-tab tribe-${tribeSlug(title)} ${tribe === title ? 'active' : ''} ${
+                    tribeAvailableInLobby(title, availableTribes, buddyAvailable, tribesComplete) ? '' : 'unavailable'
+                  }`}
+                  onClick={() => setTribe((current) => (current === title ? null : title))}
+                >
+                  {groupLabel(title)}
+                </button>
+              ))}
+            </div>
+            {mechanicNames.length ? (
+              <div className="mechanic-track" role="tablist" aria-label="Mechanic">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mechanic == null}
+                  className={`mechanic-tab ${mechanic == null ? 'active' : ''}`}
+                  onClick={() => setMechanic(null)}
+                >
+                  Any
+                </button>
+                {mechanicNames.map((name) => (
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={mechanic === name}
+                    key={name}
+                    className={`mechanic-tab ${mechanic === name ? 'active' : ''}`}
+                    onClick={() => setMechanic((current) => (current === name ? null : name))}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </>
         ) : null}
       </header>
-      <PoolList
-        groups={visible}
-        showTierBubble={showPoolTierBubbles(Boolean(tribe), selectedTier)}
-        cardUnavailable={(card) => !cardAvailableInLobby(card, availableTribes, buddyAvailable, tribesComplete)}
-      />
-      <CompsPanel
-        comps={comps}
-        live={compsLive}
-        waitingForTribes={waitingForTribes}
-        minions={minions}
-        embedded
-      />
+      {mode === 'pool' ? (
+        <PoolList
+          groups={visible}
+          showTierBubble={showPoolTierBubbles(Boolean(tribe), selectedTier)}
+          cardUnavailable={(card) => !cardAvailableInLobby(card, availableTribes, buddyAvailable, tribesComplete)}
+        />
+      ) : (
+        <CompsPanel
+          comps={comps}
+          live={compsLive}
+          waitingForTribes={waitingForTribes}
+          minions={minions}
+        />
+      )}
     </section>
   )
 }

@@ -19,7 +19,8 @@ export {
   markStale,
   parseHsjsonBuild,
   latestHsjsonBuild,
-  overlayStrategies
+  overlayStrategies,
+  strategyCatalog
 } from './strategy'
 export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strategy'
 export { mergeLogConfig, trackerBanner } from './logConfig'

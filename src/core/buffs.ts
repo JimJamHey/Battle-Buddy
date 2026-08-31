@@ -15,7 +15,7 @@ const KINDS: Record<BuffKey, BuffKind> = {
   gems: { key: 'gems', label: 'Blood gems', iconCardId: 'BG20_GEM' },
   elemental: { key: 'elemental', label: 'Elementals', iconCardId: 'BGS_115' },
   pirate: { key: 'pirate', label: 'Pirates', iconCardId: 'BG26_135' },
-  undead: { key: 'undead', label: 'Undead', iconCardId: 'BG28_300' },
+  undead: { key: 'undead', label: 'Undead', iconCardId: 'BG25_008' },
   spells: { key: 'spells', label: 'Spells', iconCardId: 'BG28_810' },
   shop: { key: 'shop', label: 'Shop', iconCardId: 'BGS_104' }
 }

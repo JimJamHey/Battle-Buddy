@@ -252,6 +252,53 @@ describe('parser', () => {
     expect(match.availableTribes).toEqual(['Dragon', 'Mech'])
   })
 
+  it('completes lobby tribes from GameEntity tags on the combat CREATE_GAME', () => {
+    const p = new BattlegroundsParser('TestPlayer')
+    for (const line of [
+      'D 12:00 GameState.DebugPrintPower() - CREATE_GAME',
+      'D 12:00 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS',
+      'D 12:00 GameState.DebugPrintGame() - PlayerID=1, PlayerName=TestPlayer#1234'
+    ]) {
+      p.feed(line)
+    }
+    expect(p.getMatch().tribesComplete).toBe(false)
+    p.feed('D 12:10 GameState.DebugPrintPower() - CREATE_GAME')
+    for (const line of [
+      'D 12:10 GameState.DebugPrintPower() -     GameEntity EntityID=1',
+      'D 12:10 GameState.DebugPrintPower() -         tag=BACON_SUBSET_DEMON value=1',
+      'D 12:10 GameState.DebugPrintPower() -         tag=BACON_SUBSET_MECH value=1',
+      'D 12:10 GameState.DebugPrintPower() -         tag=BACON_SUBSET_NAGA value=1',
+      'D 12:10 GameState.DebugPrintPower() -         tag=BACON_SUBSET_PIRATE value=1',
+      'D 12:10 GameState.DebugPrintPower() -         tag=BACON_SUBSET_UNDEAD value=1',
+      'D 12:10 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_SUBSET_QUILLBOAR value=1'
+    ]) {
+      p.feed(line)
+    }
+    const match = p.getMatch()
+    expect(match.inCombat).toBe(true)
+    expect(match.availableTribes).toEqual(['Demon', 'Mech', 'Naga', 'Pirate', 'Quilboar', 'Undead'])
+    expect(match.tribesComplete).toBe(true)
+  })
+
+  it('records 1st place from a leaderboard tag during the last combat CREATE_GAME', () => {
+    const p = new BattlegroundsParser('TestPlayer')
+    for (const line of [
+      'D 12:00 GameState.DebugPrintPower() - CREATE_GAME',
+      'D 12:00 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS',
+      'D 12:00 GameState.DebugPrintGame() - PlayerID=1, PlayerName=TestPlayer#1234',
+      'D 12:00 GameState.DebugPrintPower() - Player EntityID=2 PlayerID=1 GameAccountId=[hi=1 lo=2]'
+    ]) {
+      p.feed(line)
+    }
+    p.feed('D 12:10 GameState.DebugPrintPower() - CREATE_GAME')
+    const result = p.feed(
+      'D 12:10 GameState.DebugPrintPower() - TAG_CHANGE Entity=[id=2 cardId= type=PLAYER zone=PLAY] tag=PLAYER_LEADERBOARD_PLACE value=1'
+    )
+    expect(p.getMatch().placement).toBe(1)
+    expect(p.getMatch().gameActive).toBe(false)
+    expect(result.completed).toEqual({ placement: 1, turn: 1, matchKey: '12:00' })
+  })
+
   it('freezes combat boards from PowerTaskList after the spectator CREATE_GAME', () => {
     const p = new BattlegroundsParser('TestPlayer')
     for (const line of [
@@ -514,7 +561,7 @@ describe('parser', () => {
       { key: 'gems', label: 'Blood gems', attack: 3, health: 3, iconCardId: 'BG20_GEM' },
       { key: 'elemental', label: 'Elementals', attack: 50, health: 26, iconCardId: 'BGS_115' },
       { key: 'pirate', label: 'Pirates', attack: 4, health: 1, iconCardId: 'BG26_135' },
-      { key: 'undead', label: 'Undead', attack: 8, health: 0, iconCardId: 'BG28_300' },
+      { key: 'undead', label: 'Undead', attack: 8, health: 0, iconCardId: 'BG25_008' },
       { key: 'spells', label: 'Spells', attack: 3, health: 3, iconCardId: 'BG28_810' },
       { key: 'shop', label: 'Shop', attack: 24, health: 24, iconCardId: 'BGS_104' }
     ])

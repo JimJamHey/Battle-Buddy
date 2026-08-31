@@ -39,7 +39,7 @@ import {
   simulateCombat,
   enrichCombatInput,
   combatInputHasGaps,
-  overlayStrategies,
+  strategyCatalog,
   curatedStrategies,
   sanitizeSettings,
   sanitizeTier,
@@ -287,7 +287,7 @@ function noteObservedRating(
 async function pollPlayRating(force = false): Promise<void> {
   if ((process.platform !== 'win32' && process.platform !== 'darwin') || playRatingBusy || !hsFound) return
   const wantResults =
-    awaitingPostGameMmr || Boolean(playedAsSelf && match.placement && match.placement > 0 && !match.inCombat)
+    awaitingPostGameMmr || Boolean(playedAsSelf && match.placement && match.placement > 0)
   if (match.gameActive && !wantResults) return
   const now = Date.now()
   const minGap = wantResults ? 900 : 2500
@@ -298,17 +298,18 @@ async function pollPlayRating(force = false): Promise<void> {
   playRatingBusy = true
   try {
     const observed = await readRatingObservation(bounds, { includeResults: wantResults })
+    const place = observed.placement ?? match.placement
     if (
       playedAsSelf &&
       !recordedThisMatch &&
       !logCatchup &&
-      match.placement &&
-      match.placement > 0 &&
-      observed.rating != null &&
-      observed.delta != null
+      place &&
+      place > 0 &&
+      (observed.rating != null || observed.delta != null || observed.placement != null)
     ) {
+      if (observed.placement && !match.placement) match = { ...match, placement: observed.placement }
       recordCompleted({
-        placement: match.placement,
+        placement: place,
         turn: match.turn,
         matchKey: null
       })
@@ -369,22 +370,24 @@ function snapshot(): OverlaySnapshot {
       errorMessage: null
     },
     combat: match.gameActive ? combat : { ...EMPTY_COMBAT },
-    strategies:
-      match.gameActive && !match.tribesComplete
-        ? []
-        : overlayStrategies(minions, match.availableTribes, curatedStrategies).map((row) => ({
+    strategies: strategyCatalog(
+      minions,
+      match.gameActive ? match.availableTribes : [],
+      curatedStrategies
+    ).map((row) => ({
       id: row.id,
       name: row.name,
       tribes: row.tribes,
       mechanic: row.mechanic,
       status: row.status,
-      core: row.core.slice(0, 5),
-      essential: row.essential.slice(0, 4),
+      inLobby: row.inLobby,
+      core: row.core,
+      essential: row.essential,
       phases: row.phases.map((phase) => ({
         stage: phase.stage,
         tiers: phase.tiers,
         goal: phase.goal,
-        cards: phase.cards.slice(0, 4)
+        cards: phase.cards
       })),
       why: row.why,
       commitWhen: row.commitWhen,
@@ -555,7 +558,11 @@ function bindTailer(): LogTailer {
     },
     (line) => {
       if (!isEndGameDisconnect(line) || logCatchup || match.spectating) return
-      beginPostGameMmr()
+      if (!recordedThisMatch && match.placement && match.placement > 0) {
+        recordCompleted({ placement: match.placement, turn: match.turn, matchKey: null })
+      } else {
+        beginPostGameMmr()
+      }
     }
   )
 }
@@ -945,6 +952,7 @@ function createSettingsWindow(): BrowserWindow {
     height: 880,
     show: false,
     title: 'BattleBuddy',
+    icon: appIcon(),
     autoHideMenuBar: true,
     backgroundColor: '#0c1016',
     webPreferences: {

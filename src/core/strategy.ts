@@ -326,16 +326,31 @@ export function overlayStrategies(
   curated: CuratedFile,
   limit = 6
 ): StrategyComp[] {
+  const wanted = lobbyTribes.map((tribe) => tribe.toLowerCase()).filter((t) => t && t !== 'buddy')
+  if (!wanted.length) return []
+  return strategyCatalog(pool, lobbyTribes, curated)
+    .filter((row) => row.inLobby)
+    .slice(0, limit)
+}
+
+/** Full strategy list for the Strategies pane — lobby matches first, nothing sliced off. */
+export function strategyCatalog(
+  pool: BgMinion[],
+  lobbyTribes: string[],
+  curated: CuratedFile
+): Array<StrategyComp & { inLobby: boolean }> {
   const wanted = new Set(lobbyTribes.map((tribe) => tribe.toLowerCase()).filter((t) => t && t !== 'buddy'))
-  if (!wanted.size) return []
-  const fits = (comp: StrategyComp) => {
-    if (comp.status === 'stale') return false
-    return comp.tribes.every((tribe) => wanted.has(tribe.toLowerCase()))
-  }
-  const curatedRows = reviewCurated(curated, pool).filter(fits)
+  const curatedRows = reviewCurated(curated, pool)
   const seen = new Set(curatedRows.map((row) => row.id))
-  const candidates = strategyCandidates(pool).filter((row) => fits(row) && !seen.has(row.id))
-  return [...curatedRows, ...candidates].slice(0, limit)
+  const candidates = strategyCandidates(pool).filter((row) => !seen.has(row.id))
+  const inLobby = (comp: StrategyComp) => {
+    if (!wanted.size) return true
+    if (comp.status === 'stale') return false
+    return comp.tribes.every((tribe) => wanted.has(tribe.toLowerCase()) || tribe.toLowerCase() === 'buddy')
+  }
+  return [...curatedRows, ...candidates]
+    .map((comp) => ({ ...comp, inLobby: inLobby(comp) }))
+    .sort((a, b) => Number(b.inLobby) - Number(a.inLobby) || a.name.localeCompare(b.name))
 }
 
 export function summarizeDiff(diff: PoolDiff, listLimit = 40): string {

@@ -298,6 +298,7 @@ export interface StrategyCompView {
   tribes: string[]
   mechanic: string | null
   status: 'candidate' | 'curated' | 'stale'
+  inLobby?: boolean
   core: Array<{ id: string; name: string; techLevel: number }>
   essential: Array<{ id: string; name: string; techLevel: number; role: string }>
   phases: Array<{

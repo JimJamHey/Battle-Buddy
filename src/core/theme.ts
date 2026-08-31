@@ -1,7 +1,7 @@
 export const THEMES = [
-  { id: 'classic', name: 'Classic', hint: 'Tavern gold and stone' },
-  { id: 'cthulhu', name: 'Cthulhu', hint: 'Abyssal teal and violet' },
-  { id: 'buddy', name: 'Battle Buddy', hint: 'Coin gold and ember' }
+  { id: 'classic', name: 'Classic', hint: 'Oak, parchment, lantern gold' },
+  { id: 'cthulhu', name: 'Cthulhu', hint: 'Abyss teal, violet, bioluminescence' },
+  { id: 'buddy', name: 'Battle Buddy', hint: 'Navy coin-rim, ember, mint' }
 ] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']

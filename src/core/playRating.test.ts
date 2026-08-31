@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { encodeBmp32, parsePlayRating, parseRatingObservation, acceptObservedRating, ratingCaptureRect, mergeRatingObservations, isSessionTotalDelta } from './playRating'
+import { encodeBmp32, parsePlayRating, parseRatingObservation, parseResultsPlacement, acceptObservedRating, ratingCaptureRect, resultCaptureRects, mergeRatingObservations, isSessionTotalDelta } from './playRating'
 
 describe('parsePlayRating', () => {
   it('reads the Play-screen Rating label and ignores gold and other numbers', () => {
@@ -21,19 +21,26 @@ describe('parsePlayRating', () => {
     expect(
       parseRatingObservation('Al\'Akir LIVE Start 5,216 Now 5,073 Today -143 Avg place 5.3 Last 10')
     ).toEqual({ rating: null, delta: null })
-    expect(parseRatingObservation('3rd Place! Rating 5204 +14')).toEqual({ rating: 5204, delta: 14 })
+    expect(parseRatingObservation('3rd Place! Rating 5204 +14')).toEqual({
+      rating: 5204,
+      delta: 14,
+      placement: 3
+    })
     expect(parseRatingObservation('Start 5,248 Current 5,248 Latest Games')).toEqual({
       rating: null,
       delta: null
     })
     expect(parseRatingObservation('Start 5,248 Current 5,248 4th Place! Rating 5190 +27')).toEqual({
       rating: 5190,
-      delta: 27
+      delta: 27,
+      placement: 4
     })
-    expect(parseRatingObservation('1st Place!!! Rating 5248 + 101 + 168 + 10')).toEqual({
-      rating: 5248,
-      delta: 101
+    expect(parseRatingObservation('1st Place!!! Rating 5601 +101')).toEqual({
+      rating: 5601,
+      delta: 101,
+      placement: 1
     })
+    expect(parseResultsPlacement('1st Place!!! Rating 5601 +101')).toBe(1)
     expect(parseRatingObservation('+ 168 + 10 Rating 5248 + 101')).toEqual({ rating: 5248, delta: 101 })
     expect(parseRatingObservation('+ 168 Rating 5248')).toEqual({ rating: 5248, delta: null })
     expect(parseRatingObservation('1st A. F. Kay -16 Now 5,147')).toEqual({ rating: null, delta: null })
@@ -69,6 +76,15 @@ describe('ratingCaptureRect', () => {
     expect(region.width).toBeGreaterThan(200)
     expect(region.y).toBeLessThan(40 + Math.round(1080 * 0.12))
     expect(region.x + region.width).toBeLessThanOrEqual(100 + 1920)
+  })
+
+  it('crops the results plaque and stays above the gold pile', () => {
+    const client = { x: 0, y: 0, width: 1920, height: 1080 }
+    const rects = resultCaptureRects(client)
+    expect(rects[0]?.y).toBeGreaterThanOrEqual(Math.round(1080 * 0.45))
+    for (const region of rects.slice(0, 3)) {
+      expect(region.y + region.height).toBeLessThan(Math.round(1080 * 0.78))
+    }
   })
 })
 

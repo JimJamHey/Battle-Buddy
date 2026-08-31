@@ -5,6 +5,15 @@ import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
 import { gamesToday } from '../core/session'
 import { UpdateBanner } from '../ui/UpdateBanner'
 import logoUrl from './logo.png'
+import themeClassic from './previews/theme-classic.png'
+import themeCthulhu from './previews/theme-cthulhu.png'
+import themeBuddy from './previews/theme-buddy.png'
+
+const THEME_PREVIEWS: Record<(typeof THEMES)[number]['id'], string> = {
+  classic: themeClassic,
+  cthulhu: themeCthulhu,
+  buddy: themeBuddy
+}
 
 export function SettingsApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
@@ -211,7 +220,7 @@ export function SettingsApp() {
               className={`theme-pick ${state.settings.theme === theme.id ? 'active' : ''}`}
               onClick={() => patch({ theme: theme.id })}
             >
-              <span className={`theme-swatch ${theme.id}`} />
+              <img className={`theme-swatch ${theme.id}`} src={THEME_PREVIEWS[theme.id]} alt="" />
               <strong>{theme.name}</strong>
               <span>{theme.hint}</span>
             </button>

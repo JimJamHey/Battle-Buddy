@@ -148,8 +148,11 @@ export function OverlayApp() {
             <div className="buff-dock capture-mouse">
               {state.match.buffs.map((buff) => (
                 <div className={`buff-tag buff-${buff.key} capture-mouse`} key={buff.key} title={buff.label}>
-                  <CardArt className="buff-art" cardId={buff.iconCardId} variant="portrait" hideIfMissing />
-                  <strong>{formatBuffValue(buff)}</strong>
+                  <CardArt className="buff-art" cardId={buff.iconCardId} variant="face" hideIfMissing />
+                  <div className="buff-copy">
+                    <span>{buff.label}</span>
+                    <strong>{formatBuffValue(buff)}</strong>
+                  </div>
                 </div>
               ))}
             </div>

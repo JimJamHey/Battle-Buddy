@@ -110,13 +110,28 @@ export function applyRatingObservation(
   }
   if (delta != null && !deltaFitsPlacement(game.placement, delta)) delta = null
   const before = game.mmrBefore ?? null
+  if (rating != null && delta != null) {
+    const impliedBefore = rating - delta
+    if (impliedBefore > 0 && deltaFitsPlacement(game.placement, delta)) {
+      if (game.mmrAfter === rating && game.mmrDelta === delta && game.mmrBefore === impliedBefore) {
+        return session
+      }
+      const next = [...session.games]
+      next[idx] = {
+        ...game,
+        mmrBefore: impliedBefore,
+        mmrAfter: rating,
+        mmrDelta: delta,
+        mmrEstimated: false
+      }
+      return { ...session, games: next }
+    }
+    delta = null
+  }
   if (rating != null && before != null && !ratingFitsPlacement(game.placement, before, rating)) {
     rating = null
   }
   if (rating == null && delta == null) return session
-  if (rating != null && delta != null && before != null && rating !== before + delta) {
-    delta = null
-  }
   let nextBefore = before
   let after = game.mmrAfter ?? null
   if (delta != null) {

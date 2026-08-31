@@ -220,33 +220,65 @@ export class BoardTracker {
   }
 
   private boardsLookReady(friendlyPlayerId: number | null): boolean {
-    const self = friendlyPlayerId ?? this.detectedHandPlayer
-    if (self == null) return false
-    let opp = this.opponentPlayerId && this.opponentPlayerId !== self ? this.opponentPlayerId : null
-    if (opp == null || this.minionsFor(opp).length === 0) {
-      opp = this.otherPlayersWithMinions(self)[0] ?? opp
-    }
-    if (opp == null) return false
-    return this.minionsFor(opp).length > 0
+    const { self, opp } = this.combatSides(friendlyPlayerId)
+    if (self == null || opp == null || self === opp) return false
+    return this.minionsFor(self).length > 0 && this.minionsFor(opp).length > 0
   }
 
   private freeze(friendlyPlayerId: number | null, playerName: (id: number) => string): void {
-    const self = friendlyPlayerId ?? this.detectedHandPlayer
-    if (self == null) return
-    let minionPlayer = this.opponentPlayerId && this.opponentPlayerId !== self ? this.opponentPlayerId : null
-    if (minionPlayer == null || this.minionsFor(minionPlayer).length === 0) {
-      minionPlayer = this.otherPlayersWithMinions(self)[0] ?? minionPlayer
-    }
-    if (minionPlayer == null || minionPlayer === self) return
-    const displayId = this.opponentLobbyId ?? this.opponentPlayerId ?? minionPlayer
+    const { self, opp } = this.combatSides(friendlyPlayerId)
+    if (self == null || opp == null || self === opp) return
+    if (this.minionsFor(self).length === 0 && this.minionsFor(opp).length === 0) return
+    const displayId = this.opponentLobbyId ?? this.opponentPlayerId ?? opp
     const named = this.opponentName && !/^(lady deathwhisper|kel'?thuzad|bob)$/i.test(this.opponentName)
       ? this.opponentName
       : null
     const name = named || playerName(displayId)
     this.frozen = {
-      friendly: this.side(self, playerName(self)),
-      opponent: { ...this.side(minionPlayer, name), playerId: displayId }
+      friendly: this.side(self, playerName(friendlyPlayerId ?? self)),
+      opponent: { ...this.side(opp, name), playerId: displayId }
     }
+  }
+
+  /**
+   * Combat clones often use controller ids other than lobby PLAYER_ID (1–8).
+   * Never treat the only board with minions as the opponent — an empty enemy
+   * warband used to freeze as a 100% loss.
+   */
+  private combatSides(lobbyFriendlyId: number | null): { self: number | null; opp: number | null } {
+    const hintedOpp = this.opponentPlayerId
+    const hintedLobby = this.opponentLobbyId
+    const hinted = new Set<number>()
+    if (hintedOpp != null && hintedOpp > 0) hinted.add(hintedOpp)
+    if (hintedLobby != null && hintedLobby > 0) hinted.add(hintedLobby)
+
+    const withMinions = this.otherPlayersWithMinions(null)
+    let self: number | null = null
+    if (lobbyFriendlyId != null && this.minionsFor(lobbyFriendlyId).length > 0) {
+      self = lobbyFriendlyId
+    } else if (
+      this.detectedHandPlayer != null &&
+      !hinted.has(this.detectedHandPlayer) &&
+      this.minionsFor(this.detectedHandPlayer).length > 0
+    ) {
+      self = this.detectedHandPlayer
+    } else {
+      self = withMinions.find((id) => !hinted.has(id)) ?? null
+    }
+
+    let opp: number | null = null
+    if (hintedOpp != null && hintedOpp !== self && this.minionsFor(hintedOpp).length > 0) {
+      opp = hintedOpp
+    } else {
+      opp =
+        withMinions.find((id) => id !== self) ??
+        (hintedOpp != null && hintedOpp !== self ? hintedOpp : null) ??
+        (hintedLobby != null && hintedLobby !== self ? hintedLobby : null)
+    }
+
+    if (self == null) self = lobbyFriendlyId ?? this.detectedHandPlayer
+    if (self != null && opp === self) opp = null
+    return { self, opp }
   }
 
   private otherPlayersWithMinions(friendlyPlayerId: number | null): number[] {
@@ -365,7 +397,7 @@ export class BoardTracker {
         e.zonePos = Number(value) || 0
         break
       case 'CONTROLLER':
-        if (!e.player) e.player = Number(value) || e.player
+        e.player = Number(value) || e.player
         break
       case 'PLAYER_ID':
         e.player = Number(value) || e.player

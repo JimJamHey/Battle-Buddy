@@ -38,11 +38,11 @@ describe('mergeBuffs / formatBuffValue', () => {
       mergeBuffs([
         { key: 'shop', label: 'Shop', attack: 24, health: 24, iconCardId: 'BGS_104' },
         { key: 'elemental', label: 'Elementals', attack: 50, health: 26, iconCardId: 'BGS_115' },
-        { key: 'undead', label: 'Undead', attack: 8, health: 0, iconCardId: 'BG28_300' }
+        { key: 'undead', label: 'Undead', attack: 8, health: 0, iconCardId: 'BG25_008' }
       ])
     ).toEqual([
       { key: 'elemental', label: 'Elementals', attack: 50, health: 26, iconCardId: 'BGS_115' },
-      { key: 'undead', label: 'Undead', attack: 8, health: 0, iconCardId: 'BG28_300' },
+      { key: 'undead', label: 'Undead', attack: 8, health: 0, iconCardId: 'BG25_008' },
       { key: 'shop', label: 'Shop', attack: 24, health: 24, iconCardId: 'BGS_104' }
     ])
     expect(formatBuffValue({ key: 'elemental', label: 'Elementals', attack: 50, health: 26, iconCardId: 'x' })).toBe(

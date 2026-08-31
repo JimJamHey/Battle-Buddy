@@ -260,6 +260,68 @@ describe('board tracker', () => {
     expect(t.getFrozen()?.opponent.minions[0]?.attack).toBe(2)
   })
 
+  it('uses combat clone controllers so odds are not 100% loss on an empty lobby id', () => {
+    const t = new BoardTracker()
+    const name = (id: number) => (id === 1 ? 'Me' : id === 8 ? 'Them' : `P${id}`)
+    t.setCombatOpponent(8, 'Them')
+    const lines = [
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_CURRENT_COMBAT_PLAYER_ID value=18',
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=PLAY',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=15',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=8',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=8',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=PLAY',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=18',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=30',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    let event = null
+    for (const line of lines) event = t.feed(line, 1, name) ?? event
+    expect(event).toBe('start')
+    const frozen = t.getFrozen()
+    expect(frozen?.friendly.minions).toHaveLength(1)
+    expect(frozen?.friendly.minions[0]?.attack).toBe(8)
+    expect(frozen?.opponent.minions[0]?.attack).toBe(2)
+    expect(frozen?.opponent.minions[0]?.health).toBe(30)
+    expect(frozen?.opponent.playerId).toBe(8)
+  })
+
+  it('does not treat our clone board as the opponent when they have no minions', () => {
+    const t = new BoardTracker()
+    const name = (id: number) => (id === 1 ? 'Me' : id === 8 ? 'Them' : `P${id}`)
+    t.setCombatOpponent(8, 'Them')
+    const setup = [
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_CURRENT_COMBAT_PLAYER_ID value=18',
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=PLAY',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=15',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=8',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=8',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    for (const line of setup) {
+      expect(t.feed(line, 1, name)).toBeNull()
+    }
+    expect(t.getFrozen()).toBeNull()
+    expect(
+      t.feed('D 12:00 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=10', 1, name)
+    ).toBe('start')
+    const frozen = t.getFrozen()
+    expect(frozen?.friendly.minions).toHaveLength(1)
+    expect(frozen?.friendly.minions[0]?.attack).toBe(8)
+    expect(frozen?.opponent.minions).toHaveLength(0)
+    expect(frozen?.opponent.playerId).toBe(8)
+  })
+
   it('does not freeze a combat board against yourself', () => {
     const t = new BoardTracker()
     const name = (id: number) => `P${id}`

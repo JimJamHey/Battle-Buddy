@@ -8,6 +8,7 @@ export interface CaptureRect {
 export interface RatingObservation {
   rating: number | null
   delta: number | null
+  placement?: number | null
 }
 
 const RATING_LABEL =
@@ -102,18 +103,24 @@ export function parseRatingObservation(
     const lone = raw.match(new RegExp(`(?:^|[^\\d])${SIGN}\\s*(\\d{2,3})\\b`))
     if (lone) delta = asDelta(Number(lone[1] + lone[2]), false, opts?.allowSmallLoneDelta)
   }
-  return { rating, delta }
+  const placement = parseResultsPlacement(raw)
+  return placement != null ? { rating, delta, placement } : { rating, delta }
 }
 
 /** Keep a rating and delta only when they came from the same crop. */
 export function mergeRatingObservations(parts: RatingObservation[]): RatingObservation {
+  const placement = parts.find((part) => part.placement != null)?.placement
   const paired = parts.find((part) => part.rating != null && part.delta != null)
-  if (paired) return paired
-  const rated = parts.find((part) => part.rating != null)
-  const deltaOnly = parts.find((part) => part.delta != null)
-  if (rated && deltaOnly?.delta != null) return { rating: rated.rating, delta: deltaOnly.delta }
-  if (rated) return rated
-  return deltaOnly ?? { rating: null, delta: null }
+  const merged = paired
+    ? paired
+    : (() => {
+        const rated = parts.find((part) => part.rating != null)
+        const deltaOnly = parts.find((part) => part.delta != null)
+        if (rated && deltaOnly?.delta != null) return { rating: rated.rating, delta: deltaOnly.delta }
+        if (rated) return rated
+        return deltaOnly ?? { rating: null, delta: null }
+      })()
+  return placement != null ? { ...merged, placement } : merged
 }
 
 /** Overlay "Today −143" is the session total, not this game's delta. */
@@ -156,35 +163,37 @@ export function ratingCaptureRects(client: CaptureRect): CaptureRect[] {
   ]
 }
 
-/** Center of the client — Battlegrounds results / rating tick after a game. */
+/** Center plaque on the Battlegrounds results screen — avoid gold and the quest bar. */
 export function resultCaptureRects(client: CaptureRect): CaptureRect[] {
   return [
     {
-      x: client.x + Math.round(client.width * 0.38),
-      y: client.y + Math.round(client.height * 0.52),
-      width: Math.max(220, Math.round(client.width * 0.24)),
-      height: Math.max(72, Math.round(client.height * 0.12))
+      x: client.x + Math.round(client.width * 0.3),
+      y: client.y + Math.round(client.height * 0.48),
+      width: Math.max(260, Math.round(client.width * 0.4)),
+      height: Math.max(90, Math.round(client.height * 0.22))
     },
     {
-      x: client.x + Math.round(client.width * 0.34),
-      y: client.y + Math.round(client.height * 0.44),
-      width: Math.max(240, Math.round(client.width * 0.32)),
-      height: Math.max(90, Math.round(client.height * 0.18))
+      x: client.x + Math.round(client.width * 0.32),
+      y: client.y + Math.round(client.height * 0.54),
+      width: Math.max(240, Math.round(client.width * 0.36)),
+      height: Math.max(72, Math.round(client.height * 0.16))
     },
     {
-      x: client.x + Math.round(client.width * 0.28),
-      y: client.y + Math.round(client.height * 0.36),
-      width: Math.max(280, Math.round(client.width * 0.44)),
-      height: Math.max(110, Math.round(client.height * 0.24))
-    },
-    {
-      x: client.x + Math.round(client.width * 0.22),
-      y: client.y + Math.round(client.height * 0.18),
-      width: Math.max(240, Math.round(client.width * 0.56)),
-      height: Math.max(160, Math.round(client.height * 0.52))
+      x: client.x + Math.round(client.width * 0.26),
+      y: client.y + Math.round(client.height * 0.4),
+      width: Math.max(280, Math.round(client.width * 0.48)),
+      height: Math.max(120, Math.round(client.height * 0.28))
     },
     ...ratingCaptureRects(client)
   ]
+}
+
+export function parseResultsPlacement(text: string): number | null {
+  if (!text) return null
+  const m = text.match(/\b([1-8])(?:st|nd|rd|th)\s+place/i)
+  if (!m) return null
+  const place = Number(m[1])
+  return place >= 1 && place <= 8 ? place : null
 }
 
 export function encodeBmp32(width: number, height: number, bgra: Buffer): Buffer {

@@ -84,10 +84,15 @@ export async function readRatingObservation(
   const includeResults = Boolean(opts?.includeResults)
   const regions = includeResults ? resultCaptureRects(client) : ratingCaptureRects(client)
   const parts: RatingObservation[] = []
-  for (const region of regions) {
-    const observed = await ocrRegion(region, includeResults)
+  for (const [i, region] of regions.entries()) {
+    const plaque = includeResults && i < 3
+    const observed = await ocrRegion(region, plaque)
     parts.push(observed)
-    if (observed.rating != null && observed.delta != null) return observed
+    if (observed.rating != null && observed.delta != null) {
+      return observed.placement != null
+        ? observed
+        : { ...observed, placement: mergeRatingObservations(parts).placement }
+    }
   }
   return mergeRatingObservations(parts)
 }

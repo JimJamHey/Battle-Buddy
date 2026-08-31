@@ -145,6 +145,7 @@ export class BattlegroundsParser {
   private playerHeroEntity = new Map<number, number>()
   private tribes = new Set<string>()
   private tribesFromGame = false
+  private acceptingGameTribes = false
   private pendingBattlegrounds: boolean | null = null
   private selfBattleTag: string
   private finished = false
@@ -178,6 +179,7 @@ export class BattlegroundsParser {
     this.playerHeroEntity.clear()
     this.tribes.clear()
     this.tribesFromGame = false
+    this.acceptingGameTribes = false
     this.pendingBattlegrounds = null
     this.finished = false
     this.ignoreLobbyWrites = false
@@ -312,6 +314,7 @@ export class BattlegroundsParser {
         this.boards.reset()
         this.ignoreLobbyWrites = true
         this.match.inCombat = true
+        this.acceptingGameTribes = !this.tribesFromGame
       } else {
         this.startNewMatch(line, false)
         combatEvent = 'end'
@@ -433,15 +436,30 @@ export class BattlegroundsParser {
         }
       }
     }
-    if (tag.tag === 'PLAYER_LEADERBOARD_PLACE' && !this.ignoreLobbyWrites) {
+    if (tag.tag === 'PLAYER_LEADERBOARD_PLACE') {
       const pid = this.playerIdFor(tag)
       const place = Number(tag.value)
-      if (pid != null && Number.isFinite(place) && place > 0 && !this.bobPlayerIds.has(pid)) {
+      const selfWrite = this.isSelfEntity(tag) || pid === this.match.friendlyPlayerId
+      if (
+        pid != null &&
+        Number.isFinite(place) &&
+        place > 0 &&
+        !this.bobPlayerIds.has(pid) &&
+        (!this.ignoreLobbyWrites || selfWrite)
+      ) {
         this.placeByPlayer.set(pid, place)
-        this.ensureLobbyPlayer(pid)
+        if (!this.ignoreLobbyWrites) this.ensureLobbyPlayer(pid)
         const row = this.match.lobby.find((p) => p.playerId === pid)
         if (row) row.place = place
         this.refreshFriendlyStats()
+        if (selfWrite && place > 0 && !this.finished && !this.match.spectating) {
+          this.match.placement = place
+          if (place === 1) {
+            this.finished = true
+            this.match.gameActive = false
+            completed = { placement: place, turn: this.match.turn, matchKey: this.matchKey }
+          }
+        }
       }
     }
     if (tag.tag === 'HERO_ENTITY' && !this.ignoreLobbyWrites && !this.match.inCombat) {
@@ -461,15 +479,18 @@ export class BattlegroundsParser {
       }
     }
     const tribe = TRIBE_SUBSET_TAGS[tag.tag]
-    if (tribe && !this.ignoreLobbyWrites) {
+    if (tribe) {
       const fromGame = tag.entityName === 'GameEntity' || tag.entityName === 'Game'
-      if (tag.value === '1' || tag.value.toUpperCase() === 'TRUE') {
-        this.tribes.add(tribe)
-        if (fromGame) this.tribesFromGame = true
-      } else if (fromGame) {
-        this.tribes.delete(tribe)
+      const allow = !this.ignoreLobbyWrites || (fromGame && this.acceptingGameTribes)
+      if (allow) {
+        if (tag.value === '1' || tag.value.toUpperCase() === 'TRUE') {
+          this.tribes.add(tribe)
+          if (fromGame && tribe !== 'Buddy') this.tribesFromGame = true
+        } else if (fromGame) {
+          this.tribes.delete(tribe)
+        }
+        this.match.availableTribes = sortTribes([...this.tribes])
       }
-      this.match.availableTribes = sortTribes([...this.tribes])
     }
     if (tag.tag === 'BACON_CURRENT_COMBAT_PLAYER_ID') {
       this.noteCombatPairing(tag)
@@ -512,6 +533,18 @@ export class BattlegroundsParser {
     if (tag.tag === 'STATE' && isCompleteState(tag.value)) {
       if (this.ignoreLobbyWrites) {
         this.ignoreLobbyWrites = false
+        if (!this.finished && !this.match.spectating) {
+          const place =
+            this.match.friendlyPlayerId != null
+              ? this.placeByPlayer.get(this.match.friendlyPlayerId) ?? this.match.placement
+              : this.match.placement
+          if (place && place > 0) {
+            this.finished = true
+            this.match.gameActive = false
+            this.match.placement = place
+            completed = { placement: place, turn: this.match.turn, matchKey: this.matchKey }
+          }
+        }
       } else if (this.match.inBattlegrounds && !this.finished) {
         this.finished = true
         this.match.gameActive = false
@@ -539,12 +572,14 @@ export class BattlegroundsParser {
     if (gameEntity != null) {
       this.lastEntityId = gameEntity
       this.lastEntityIsGame = true
+      if (!this.tribesFromGame) this.acceptingGameTribes = true
       return
     }
     const playerEnt = parsePlayerEntity(payload)
     if (playerEnt) {
       this.lastEntityId = playerEnt.entityId
       this.lastEntityIsGame = false
+      this.acceptingGameTribes = false
       this.entityToPlayer.set(this.lastEntityId, playerEnt.playerId)
       return
     }
@@ -552,6 +587,7 @@ export class BattlegroundsParser {
     if (created) {
       this.lastEntityId = created.id
       this.lastEntityIsGame = false
+      this.acceptingGameTribes = false
       if (created.cardId) this.entityCardId.set(this.lastEntityId, created.cardId)
       return
     }

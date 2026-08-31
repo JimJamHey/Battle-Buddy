@@ -50,26 +50,37 @@ export function CompsPanel({
   const hover = useCardHover(rootRef, cardById)
 
   const curated = comps.some((row) => row.status === 'curated')
-  const chip = waitingForTribes ? 'Waiting' : curated ? 'Curated' : 'Live pool'
-  const empty = waitingForTribes
-    ? 'Lobby types still resolving…'
+  const inLobbyCount = comps.filter((row) => row.inLobby !== false).length
+  const chip = waitingForTribes
+    ? 'Waiting'
     : live
-      ? 'No live-pool comps for this lobby’s types yet.'
-      : 'Join a match to filter comps by lobby tribes.'
+      ? `${inLobbyCount}/${comps.length} lobby`
+      : curated
+        ? 'Curated'
+        : 'Catalog'
+  const empty = comps.length
+    ? null
+    : waitingForTribes
+      ? 'Lobby types still resolving…'
+      : 'No strategies in the catalog yet.'
 
   return (
     <section
       ref={rootRef}
-      className={`panel comps-panel capture-mouse ${embedded ? 'comps-embedded' : ''}`}
+      className={`panel comps-panel capture-mouse ${embedded ? 'comps-embedded' : 'comps-filled'}`}
     >
       <header className="panel-head">
-        <h2>Comps</h2>
+        <h2>Strategies</h2>
         {comps.length || waitingForTribes ? <span className="chip">{chip}</span> : null}
       </header>
       {comps.length ? (
         <ul className="comp-list">
           {comps.map((comp) => (
-            <li className={`comp-row ${comp.status}`} key={comp.id} title={comp.notes || undefined}>
+            <li
+              className={`comp-row ${comp.status} ${comp.inLobby === false ? 'unavailable' : ''}`}
+              key={comp.id}
+              title={comp.notes || undefined}
+            >
               <div className="comp-title">
                 <strong>{comp.name}</strong>
                 <span>
