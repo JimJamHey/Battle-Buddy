@@ -348,7 +348,7 @@ export class BoardTracker {
     return {
       playerId,
       name,
-      heroHealth: hero ? currentHp(hero) || 30 : 30,
+      heroHealth: hero ? currentHp(hero) ?? 30 : 30,
       heroArmor: hero?.armor ?? 0,
       minions,
       hand: this.handFor(playerId).map((e) => this.toMinion(e)),
@@ -449,6 +449,7 @@ export class BoardTracker {
         e.player = Number(value) || e.player
         break
       case 'PLAYER_ID':
+        if (e.cardType === 'MINION' || e.cardType === 'HERO' || e.cardType === 'HERO_POWER') break
         e.player = Number(value) || e.player
         break
       case 'CARDTYPE':

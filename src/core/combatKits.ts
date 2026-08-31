@@ -36,12 +36,6 @@ export const COMBAT_KITS: Record<string, KitEntry> = {
   // says "two extra times", which the parser used to miss.
   BG25_354: { extraDeathrattles: 1 },
   BG25_354_G: { extraDeathrattles: 2 },
-  // Common start of combat the parser already reads — kept as a template.
-  BG36_620: {
-    triggers: [
-      { when: 'startOfCombat', effects: [{ op: 'damage', attack: 3, target: 'allOther' }] }
-    ]
-  },
   // Tavern spell / combat SoC the text parser cannot express (set health).
   BG28_573: {
     triggers: [

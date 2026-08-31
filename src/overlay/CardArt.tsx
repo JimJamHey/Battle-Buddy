@@ -61,7 +61,12 @@ export function CardArt({
         setSrc(url)
       }
       img.onerror = () => {
-        if (live) setSrc(url)
+        if (!live) return
+        const i = urls.indexOf(url)
+        const next = i >= 0 ? urls[i + 1] : undefined
+        if (next && next !== url) show(next)
+        else if (hideIfMissing) setSrc(null)
+        else setSrc(url)
       }
       img.src = url
     }

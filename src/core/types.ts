@@ -17,9 +17,9 @@ export interface OverlayLayout {
 }
 
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
-  rail: { x: 0.7, y: 6 },
-  combat: { x: 29, y: 1.4 },
-  pool: { x: 74, y: 3.5 }
+  rail: { x: 0.55, y: 5.5 },
+  combat: { x: 27, y: 1.4 },
+  pool: { x: 71.5, y: 3.2 }
 }
 
 export interface AppSettings {

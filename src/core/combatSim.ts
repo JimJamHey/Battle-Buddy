@@ -187,6 +187,7 @@ function spawn(
   ctx: FightCtx,
   base: Partial<SimMinion> & { attack: number; health: number; name?: string }
 ): SimMinion {
+  const kit = base.kit ?? { triggers: [], extraDeathrattles: 0, cleave: false }
   return {
     uid: ctx.nextUid++,
     cardId: base.cardId ?? '',
@@ -204,8 +205,8 @@ function spawn(
     stealth: Boolean(base.stealth),
     cleave: Boolean(base.cleave),
     tribes: base.tribes ?? [],
-    kit: base.kit ?? { triggers: [], extraDeathrattles: 0, cleave: false },
-    avenge: [],
+    kit,
+    avenge: kit.triggers.filter((row) => row.when === 'avenge').map(() => 0),
     overkill: 0
   }
 }
@@ -593,7 +594,8 @@ function nextAttacker(board: SimMinion[], cursor: number): { minion: SimMinion; 
   if (!living(board).length) return null
   for (let step = 0; step < board.length; step++) {
     const i = (cursor + step) % board.length
-    if (board[i] && board[i].health > 0) return { minion: board[i], cursor: i }
+    const m = board[i]
+    if (m && m.health > 0 && m.attack > 0) return { minion: m, cursor: i }
   }
   return null
 }
@@ -677,6 +679,7 @@ export function fightOnce(
         if (!defender) break
         const killed = strike(found.minion, defender, defBoard, ctx)
         found.minion.stealth = false
+        found.minion.overkill = defender.overkill
         trigger('rally', found.minion, atkBoard, defBoard, ctx, rng, side, defender)
         if (killed) trigger('afterKill', found.minion, atkBoard, defBoard, ctx, rng, side, defender)
         resolveDeaths(fBoard, oBoard, ctx, rng, 0)
@@ -758,20 +761,6 @@ function namedFromInput(input: CombatInput): FightCtx['named'] {
   const named = new Map<string, NamedCombatBody>()
   for (const [name, body] of Object.entries(input.named ?? {})) {
     named.set(name.toLowerCase(), body)
-  }
-  for (const m of [
-    ...input.friendly.minions,
-    ...input.opponent.minions,
-    ...(input.friendly.hand ?? []),
-    ...(input.opponent.hand ?? [])
-  ]) {
-    if (!m.name) continue
-    named.set(m.name.toLowerCase(), {
-      attack: m.attack,
-      health: m.health,
-      kit: m.kit ?? { triggers: [], extraDeathrattles: 0, cleave: false },
-      tribes: m.tribes ?? []
-    })
   }
   return named
 }

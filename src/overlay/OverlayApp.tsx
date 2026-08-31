@@ -132,7 +132,7 @@ export function OverlayApp() {
           className="rail"
           pos={layout.rail}
           unlocked={unlocked}
-          width="min(300px, 26vw)"
+          width="min(368px, 32vw)"
           onMove={(pos) => movePanel('rail', pos)}
           onMoveEnd={(pos) => savePanel('rail', pos)}
           onInteract={interact}
@@ -164,7 +164,7 @@ export function OverlayApp() {
         className="pool"
         pos={layout.pool}
         unlocked={unlocked}
-        width="min(300px, 26vw)"
+        width="min(368px, 32vw)"
         onMove={(pos) => movePanel('pool', pos)}
         onMoveEnd={(pos) => savePanel('pool', pos)}
         onInteract={interact}

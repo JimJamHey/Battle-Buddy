@@ -243,11 +243,11 @@ export function cardGoldenRenderUrls(goldenId: string, name: string, baseId?: st
   return [...ids.flatMap((id) => hsjsonBgsCardUrls(id)), ...cardTavernRenderUrls(name, dbfId, true)]
 }
 
-/** HDT-style 256×59 strips for the right-hand pool list. */
+/** HDT-style 256×59 strips for the right-hand pool list. No square-art fallback. */
 export function cardTileUrls(cardId: string): string[] {
   return artCandidates(cardId).flatMap((id) => [
     `https://art.hearthstonejson.com/v1/tiles/${id}.png`
-  ]).concat(cardArtUrls(cardId))
+  ])
 }
 
 export function catalogSummonsFromCardsJson(cards: RawCard[]): Record<string, DeathrattleSummon> {

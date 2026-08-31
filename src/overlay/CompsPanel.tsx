@@ -95,11 +95,12 @@ export function CompsPanel({
                 >
                   <span className="comp-need-art" aria-hidden>
                     <CardArt
-                      className="comp-need-face"
+                      className="comp-need-card"
                       cardId={card.id}
                       name={card.name}
                       dbfId={full?.dbfId}
-                      variant="face"
+                      variant="render"
+                      hideIfMissing
                     />
                   </span>
                   <span className="pool-name">{card.name}</span>

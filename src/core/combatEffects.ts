@@ -105,19 +105,24 @@ function tribeIn(blob: string): string | undefined {
 function targetFrom(blob: string): CombatTarget {
   if (/all other minions/i.test(blob)) return 'allOther'
   if (/all (?:enemy )?minions/i.test(blob) && /enemy/i.test(blob)) return 'allEnemy'
-  if (/all (?:your |friendly )?minions/i.test(blob) || /all your /i.test(blob)) return 'allFriendly'
+  if (/your other minions/i.test(blob)) return 'otherFriendly'
+  if (/all (?:your |friendly )?minions/i.test(blob) || /all your /i.test(blob) || /your minions/i.test(blob)) {
+    return 'allFriendly'
+  }
   if (/adjacent/i.test(blob) && /enemy|target/i.test(blob)) return 'adjacentEnemy'
   if (/left-?most/i.test(blob)) return 'leftMost'
   if (/another|other friendly|a different/i.test(blob)) return 'otherFriendly'
   if (/this minion|itself/i.test(blob)) return 'self'
   if (/the target/i.test(blob)) return 'defender'
-  if (/a random enemy/i.test(blob)) return 'randomEnemy'
+  if (/an? enemy minion|a random enemy|enemy minions?/i.test(blob)) return 'randomEnemy'
   if (/a random friendly|a friendly/i.test(blob)) return 'randomFriendly'
+  if (/\benemy\b/i.test(blob) && !/\byour\b|\bfriendly\b/i.test(blob)) return 'randomEnemy'
   return 'randomFriendly'
 }
 
 function parseSummon(clause: string): CombatEffect | null {
   if (!/summon/i.test(clause)) return null
+  if (/\bcopy of\b/i.test(clause)) return null
   const stats = clause.match(
     /summon(?:s)?\s+(\d+|a|an|one|two|three|four|five|six)\s+(?:[^./]{0,48}?)(\d+)\s*\/\s*(\d+)/i
   )
@@ -303,8 +308,30 @@ export function parseCardCombat(text: string): CombatKit {
   return {
     triggers,
     extraDeathrattles,
-    cleave: /\bcleave\b/i.test(raw) || /adjacent minions/i.test(raw)
+    cleave: /\bcleave\b/i.test(raw)
   }
+}
+
+function triggerBody(raw: string, kind: CombatTrigger): string | null {
+  if (kind === 'avenge') {
+    return raw.match(/avenge\s*\(\d+\)\s*:\s*(.+?)(?=(?:deathrattle|rally|start of combat|$))/i)?.[1] ?? null
+  }
+  if (kind === 'startOfCombat') {
+    return raw.match(/start of combat\s*:\s*(.+?)(?=(?:deathrattle|rally|avenge|$))/i)?.[1] ?? null
+  }
+  if (kind === 'rally') {
+    return raw.match(/\brally\s*:\s*(.+?)(?=(?:deathrattle|start of combat|avenge|$))/i)?.[1] ?? null
+  }
+  if (kind === 'deathrattle') {
+    return raw.match(/deathrattle\s*:\s*(.+?)(?=(?:rally|start of combat|avenge|$))/i)?.[1] ?? null
+  }
+  return null
+}
+
+function bodyHasUnparsed(body: string): boolean {
+  const clauses = splitClauses(body)
+  if (!clauses.length) return true
+  return clauses.some((clause) => clause.length >= 12 && parseClause(clause).length === 0)
 }
 
 export function combatParseGaps(text: string, mechanics: string[] = []): string[] {
@@ -320,12 +347,30 @@ export function combatParseGaps(text: string, mechanics: string[] = []): string[
     gaps.push('Start of Combat')
   }
   if ((/\bavenge\s*\(/i.test(raw) || mech('Avenge')) && !has('avenge')) gaps.push('Avenge')
+  for (const kind of ['deathrattle', 'rally', 'startOfCombat', 'avenge'] as const) {
+    const body = triggerBody(raw, kind)
+    if (body && has(kind) && bodyHasUnparsed(body)) gaps.push('Unparsed')
+  }
   const blob = `${raw} ${mechanics.join(' ')}`
   if (/\bfrenzy\b/i.test(blob)) gaps.push('Frenzy')
   if (/\bmagnetic\b/i.test(blob)) gaps.push('Magnetic')
   if (/\bspellcraft\b/i.test(blob)) gaps.push('Spellcraft')
   if (/\bactivate\b/i.test(blob)) gaps.push('Activate')
   if (/end of (?:your )?turn/i.test(blob)) gaps.push('End of Turn')
+  if (/copy.{0,40}deathrattle|gains?.{0,24}(?:a copy of |the )?deathrattle/i.test(blob)) {
+    gaps.push('Copy Deathrattle')
+  }
+  if (/summon(?:s)? a random\b/i.test(blob)) gaps.push('Random summon')
+  const combatBlob = [
+    triggerBody(raw, 'deathrattle'),
+    triggerBody(raw, 'rally'),
+    triggerBody(raw, 'startOfCombat'),
+    triggerBody(raw, 'avenge')
+  ]
+    .filter(Boolean)
+    .join(' ')
+  if (/\bthis game\b/i.test(combatBlob)) gaps.push('This game')
+  if (/\bfor each\b/i.test(combatBlob)) gaps.push('Scaled')
   return [...new Set(gaps)]
 }
 

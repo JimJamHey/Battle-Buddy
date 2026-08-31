@@ -70,7 +70,7 @@ export function PoolList({
                       cardId={card.id}
                       name={card.name}
                       dbfId={card.dbfId}
-                      variant="face"
+                      variant="tile"
                       hideIfMissing
                     />
                   </span>

@@ -24,5 +24,9 @@ export function migrateOverlayLayout(layout: OverlayLayout): OverlayLayout {
   if (merged.pool.x < 55 && merged.pool.y > 35) {
     return { ...merged, pool: { ...DEFAULT_OVERLAY_LAYOUT.pool } }
   }
+  // Wider side panels need a bit more room on the right edge.
+  if (merged.pool.x > 73) {
+    return { ...merged, pool: { ...merged.pool, x: DEFAULT_OVERLAY_LAYOUT.pool.x } }
+  }
   return merged
 }

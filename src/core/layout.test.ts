@@ -22,4 +22,12 @@ describe('overlay layout', () => {
   it('clamps panel positions onto the board', () => {
     expect(clampOverlayPos({ x: -4, y: 120 })).toEqual({ x: 0, y: 88 })
   })
+
+  it('pulls a too-far-right pool back for the wider side panels', () => {
+    const next = migrateOverlayLayout({
+      ...DEFAULT_OVERLAY_LAYOUT,
+      pool: { x: 74, y: 3.5 }
+    })
+    expect(next.pool.x).toBe(DEFAULT_OVERLAY_LAYOUT.pool.x)
+  })
 })

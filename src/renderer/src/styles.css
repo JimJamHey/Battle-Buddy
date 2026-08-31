@@ -30,49 +30,53 @@
 }
 
 html[data-theme='classic'] {
-  --bg: #14110d;
-  --bg-elevated: #1e1a14;
-  --panel: rgba(18, 14, 10, 0.92);
-  --panel-solid: #1e1a14;
-  --gold: #e8c87a;
+  --bg: #120e09;
+  --bg-elevated: #1c1610;
+  --panel: rgba(22, 16, 10, 0.94);
+  --panel-solid: #1c1610;
+  --text: #f6ead2;
+  --muted: #cbb892;
+  --gold: #e4c278;
   --mint: #d7b56a;
   --self: #f3e6c4;
-  --hero-a: rgba(226, 192, 122, 0.16);
-  --hero-b: rgba(168, 112, 58, 0.14);
-  --overlay-tint: rgba(226, 192, 122, 0.18);
-  --overlay-surface: rgba(18, 13, 8, 0.93);
-  --overlay-row: rgba(16, 12, 8, 0.96);
-  --overlay-row-hover: rgba(226, 192, 122, 0.16);
-  --overlay-accent: rgba(226, 192, 122, 0.28);
-  --overlay-accent-line: rgba(215, 181, 106, 0.45);
-  --overlay-edge-a: #e8c87a;
-  --overlay-edge-b: #a8703a;
+  --hero-a: rgba(226, 192, 122, 0.18);
+  --hero-b: rgba(120, 72, 28, 0.22);
+  --overlay-tint: rgba(226, 192, 122, 0.2);
+  --overlay-surface: #1a120c;
+  --overlay-row: #14100b;
+  --overlay-row-hover: #2a1e12;
+  --overlay-accent: rgba(226, 192, 122, 0.3);
+  --overlay-accent-line: rgba(215, 181, 106, 0.5);
+  --overlay-edge-a: #e4c278;
+  --overlay-edge-b: #8a5a22;
 }
 
 html[data-theme='cthulhu'] {
-  --bg: #05080c;
-  --bg-elevated: #0b1418;
-  --panel: rgba(5, 10, 12, 0.94);
-  --panel-solid: #0d1618;
+  --bg: #04070a;
+  --bg-elevated: #0a1216;
+  --panel: rgba(4, 10, 12, 0.95);
+  --panel-solid: #0a1418;
+  --text: #e7fff6;
+  --muted: #8ec9b8;
   --gold: #7dffd1;
   --mint: #67e8c8;
   --self: #c4b5fd;
-  --hero-a: rgba(103, 232, 200, 0.14);
-  --hero-b: rgba(107, 76, 255, 0.16);
+  --hero-a: rgba(103, 232, 200, 0.16);
+  --hero-b: rgba(88, 48, 210, 0.22);
   --overlay-tint: rgba(103, 232, 200, 0.16);
-  --overlay-surface: rgba(3, 8, 12, 0.94);
-  --overlay-row: rgba(4, 8, 12, 0.96);
-  --overlay-row-hover: rgba(103, 232, 200, 0.14);
-  --overlay-accent: rgba(125, 255, 209, 0.22);
-  --overlay-accent-line: rgba(124, 92, 255, 0.48);
+  --overlay-surface: #061016;
+  --overlay-row: #050c10;
+  --overlay-row-hover: #0c2428;
+  --overlay-accent: rgba(125, 255, 209, 0.24);
+  --overlay-accent-line: rgba(124, 92, 255, 0.5);
   --overlay-edge-a: #7dffd1;
-  --overlay-edge-b: #7b5cff;
+  --overlay-edge-b: #6a48e8;
 }
 
 html[data-theme='buddy'] {
   --bg: #080c14;
   --bg-elevated: #121820;
-  --panel: rgba(8, 12, 18, 0.9);
+  --panel: rgba(8, 12, 18, 0.92);
   --panel-solid: #121820;
   --gold: #f0c96a;
   --mint: #6ee0c4;
@@ -80,9 +84,9 @@ html[data-theme='buddy'] {
   --hero-a: rgba(240, 201, 106, 0.16);
   --hero-b: rgba(110, 224, 196, 0.12);
   --overlay-tint: rgba(240, 201, 106, 0.18);
-  --overlay-surface: rgba(7, 12, 22, 0.92);
-  --overlay-row: rgba(6, 10, 20, 0.96);
-  --overlay-row-hover: rgba(240, 201, 106, 0.14);
+  --overlay-surface: #0a1220;
+  --overlay-row: #070c16;
+  --overlay-row-hover: #1a1830;
   --overlay-accent: rgba(240, 201, 106, 0.24);
   --overlay-accent-line: rgba(240, 201, 106, 0.42);
   --overlay-edge-a: #f0c96a;
@@ -465,40 +469,68 @@ p {
 
 html[data-theme='classic'] .panel,
 html[data-theme='classic'] .combat-bar,
-html[data-theme='classic'] .pool-panel {
-  --radius: 10px;
-  border: 5px solid #6a4520;
-  background:
-    linear-gradient(180deg, rgba(255, 214, 140, 0.18), transparent 34%),
-    repeating-linear-gradient(-22deg, rgba(92, 58, 24, 0.18) 0 2px, transparent 2px 9px),
-    var(--overlay-surface);
+html[data-theme='classic'] .pool-panel,
+html[data-theme='classic'] .settings-root .card {
+  --radius: 8px;
+  border: 0;
+  color: #f6ead2;
+  background-color: #1a120c;
+  background-image:
+    linear-gradient(180deg, rgba(255, 214, 140, 0.24), transparent 28%),
+    repeating-linear-gradient(90deg, rgba(56, 32, 12, 0.3) 0 1px, transparent 1px 5px),
+    repeating-linear-gradient(0deg, rgba(110, 70, 28, 0.16) 0 2px, transparent 2px 8px),
+    radial-gradient(120% 70% at 50% -8%, rgba(255, 196, 96, 0.18), transparent 54%);
   box-shadow:
-    0 22px 40px rgba(0, 0, 0, 0.55),
-    0 0 0 1px #2a1608,
-    0 0 0 3px #c9a056,
-    0 0 0 5px #3d2410,
-    0 0 0 6px #ead08a,
-    inset 0 1px 0 rgba(255, 232, 180, 0.22);
+    0 28px 54px rgba(0, 0, 0, 0.64),
+    0 2px 0 #f0d08a,
+    0 0 0 2px #1a0c04,
+    0 0 0 5px #8a5a24,
+    0 0 0 8px #d7b56a,
+    0 0 0 10px #3a2410,
+    0 0 0 13px #c9a056,
+    0 0 0 16px #140a04,
+    inset 0 1px 0 rgba(255, 236, 190, 0.42),
+    inset 0 -24px 42px rgba(0, 0, 0, 0.52);
 }
 
 html[data-theme='classic'] .panel::before,
 html[data-theme='classic'] .combat-bar::before {
   display: block;
-  inset: -20px;
+  inset: -22px;
   background:
-    url('./frames/classic-corner-tl.png') left top / 78px 78px no-repeat,
-    url('./frames/classic-corner-tr.png') right top / 78px 78px no-repeat,
-    url('./frames/classic-corner-bl.png') left bottom / 78px 78px no-repeat,
-    url('./frames/classic-corner-br.png') right bottom / 78px 78px no-repeat;
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+    url('./frames/classic-corner-tl.png') left top / 86px 86px no-repeat,
+    url('./frames/classic-corner-tr.png') right top / 86px 86px no-repeat,
+    url('./frames/classic-corner-bl.png') left bottom / 86px 86px no-repeat,
+    url('./frames/classic-corner-br.png') right bottom / 86px 86px no-repeat;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  animation: torch-flicker 3.8s ease-in-out infinite;
 }
 
 html[data-theme='classic'] .panel::after,
 html[data-theme='classic'] .combat-bar::after {
+  background:
+    radial-gradient(circle at 13px 13px, #f0d08a 0 2.5px, #5a3a14 3.5px, transparent 4.5px),
+    radial-gradient(circle at calc(100% - 13px) 13px, #f0d08a 0 2.5px, #5a3a14 3.5px, transparent 4.5px),
+    radial-gradient(circle at 13px calc(100% - 13px), #f0d08a 0 2.5px, #5a3a14 3.5px, transparent 4.5px),
+    radial-gradient(circle at calc(100% - 13px) calc(100% - 13px), #f0d08a 0 2.5px, #5a3a14 3.5px, transparent 4.5px);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 226, 170, 0.38),
-    inset 0 0 0 3px rgba(42, 24, 8, 0.55),
-    inset 0 16px 26px rgba(40, 22, 8, 0.28);
+    inset 0 0 0 1px rgba(255, 220, 160, 0.3),
+    inset 0 0 0 7px rgba(42, 24, 8, 0.62),
+    inset 0 0 0 8px rgba(215, 181, 106, 0.4),
+    inset 0 26px 36px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme='classic'] .chip,
+html[data-theme='classic'] .pool-mode-toggle,
+html[data-theme='classic'] .mmr-block,
+html[data-theme='classic'] .pool-kicker {
+  border-color: rgba(215, 181, 106, 0.38);
+  background:
+    linear-gradient(180deg, rgba(255, 214, 140, 0.1), transparent 70%),
+    rgba(12, 8, 4, 0.55);
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px rgba(215, 181, 106, 0.18);
 }
 
 html[data-theme='classic'] .chip.live,
@@ -508,88 +540,103 @@ html[data-theme='classic'] .pool-mode-toggle button.active {
 
 html[data-theme='cthulhu'] .panel,
 html[data-theme='cthulhu'] .combat-bar,
-html[data-theme='cthulhu'] .pool-panel {
-  --radius: 18px;
-  border: 2px solid rgba(125, 255, 209, 0.42);
-  background:
-    radial-gradient(120% 90% at 100% -10%, rgba(107, 76, 255, 0.34), transparent 52%),
-    radial-gradient(80% 70% at 0% 110%, rgba(0, 90, 78, 0.46), transparent 48%),
-    var(--overlay-surface);
+html[data-theme='cthulhu'] .pool-panel,
+html[data-theme='cthulhu'] .settings-root .card {
+  --radius: 20px;
+  border: 0;
+  background-color: #061016;
+  background-image:
+    radial-gradient(90% 70% at 108% -8%, rgba(124, 92, 255, 0.42), transparent 46%),
+    radial-gradient(80% 60% at -10% 110%, rgba(0, 110, 92, 0.5), transparent 48%),
+    repeating-linear-gradient(118deg, rgba(80, 255, 210, 0.05) 0 1px, transparent 1px 11px);
+  background-size: 100% 100%, 100% 100%, 220% 220%;
+  animation: abyss-vein 14s linear infinite;
   box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.55),
-    0 0 22px rgba(103, 232, 200, 0.22),
-    0 0 0 1px rgba(107, 76, 255, 0.55),
-    inset 0 0 0 1px rgba(8, 20, 28, 0.85);
+    0 22px 50px rgba(0, 0, 0, 0.62),
+    0 0 28px rgba(80, 255, 210, 0.18),
+    0 0 0 1px rgba(40, 20, 70, 0.9),
+    0 0 0 3px rgba(125, 255, 209, 0.55),
+    0 0 0 6px rgba(20, 8, 36, 0.95),
+    inset 0 1px 0 rgba(180, 255, 230, 0.16);
 }
 
 html[data-theme='cthulhu'] .panel::before,
 html[data-theme='cthulhu'] .combat-bar::before {
   display: block;
-  inset: -42px;
+  inset: -46px;
   background:
-    url('./frames/cthulhu-tentacle-tl.png') left top / 128px 128px no-repeat,
-    url('./frames/cthulhu-tentacle-tr.png') right top / 128px 128px no-repeat,
-    url('./frames/cthulhu-tentacle-bl.png') left bottom / 128px 128px no-repeat,
-    url('./frames/cthulhu-tentacle-br.png') right bottom / 128px 128px no-repeat;
-  filter: drop-shadow(0 0 12px rgba(80, 255, 210, 0.35));
+    url('./frames/cthulhu-tentacle-tl.png') left top / 138px 138px no-repeat,
+    url('./frames/cthulhu-tentacle-tr.png') right top / 138px 138px no-repeat,
+    url('./frames/cthulhu-tentacle-bl.png') left bottom / 138px 138px no-repeat,
+    url('./frames/cthulhu-tentacle-br.png') right bottom / 138px 138px no-repeat;
+  filter: drop-shadow(0 0 14px rgba(80, 255, 210, 0.4));
+  transform-origin: center;
+  animation: tentacle-breathe 5.6s ease-in-out infinite;
 }
 
 html[data-theme='cthulhu'] .pool-panel::before {
   background:
-    url('./frames/cthulhu-tentacle-tl.png') left top / 128px 128px no-repeat,
-    url('./frames/cthulhu-tentacle-tr.png') right top / 128px 128px no-repeat,
-    url('./frames/cthulhu-tentacle-bl.png') left bottom / 128px 128px no-repeat,
-    url('./frames/cthulhu-tentacle-br.png') right bottom / 128px 128px no-repeat,
-    url('./frames/cthulhu-tentacle-side-l.png') left center / 54px 210px no-repeat,
-    url('./frames/cthulhu-tentacle-side-r.png') right center / 54px 210px no-repeat;
+    url('./frames/cthulhu-tentacle-tl.png') left top / 138px 138px no-repeat,
+    url('./frames/cthulhu-tentacle-tr.png') right top / 138px 138px no-repeat,
+    url('./frames/cthulhu-tentacle-bl.png') left bottom / 138px 138px no-repeat,
+    url('./frames/cthulhu-tentacle-br.png') right bottom / 138px 138px no-repeat,
+    url('./frames/cthulhu-tentacle-side-l.png') left center / 58px 230px no-repeat,
+    url('./frames/cthulhu-tentacle-side-r.png') right center / 58px 230px no-repeat;
 }
 
 html[data-theme='cthulhu'] .panel::after,
 html[data-theme='cthulhu'] .combat-bar::after {
   box-shadow:
-    inset 0 0 0 1px rgba(125, 255, 209, 0.4),
-    inset 0 0 0 4px rgba(20, 8, 40, 0.55),
-    inset 0 0 34px rgba(107, 76, 255, 0.22);
+    inset 0 0 0 1px rgba(125, 255, 209, 0.38),
+    inset 0 0 0 6px rgba(8, 16, 22, 0.72),
+    inset 0 0 0 7px rgba(124, 92, 255, 0.28),
+    inset 0 0 40px rgba(80, 40, 160, 0.28);
 }
 
 html[data-theme='buddy'] .panel,
 html[data-theme='buddy'] .combat-bar,
-html[data-theme='buddy'] .pool-panel {
+html[data-theme='buddy'] .pool-panel,
+html[data-theme='buddy'] .settings-root .card {
   --radius: 16px;
-  border: 3px solid #e8c45c;
-  background:
-    linear-gradient(180deg, rgba(240, 201, 106, 0.16), transparent 40%),
-    radial-gradient(120% 70% at 50% -30%, rgba(240, 201, 106, 0.12), transparent 55%),
-    var(--overlay-surface);
+  border: 0;
+  background-color: #0a1220;
+  background-image:
+    linear-gradient(180deg, rgba(240, 201, 106, 0.2), transparent 38%),
+    radial-gradient(120% 70% at 50% -28%, rgba(240, 201, 106, 0.16), transparent 56%),
+    linear-gradient(115deg, transparent 40%, rgba(255, 236, 180, 0.14) 50%, transparent 60%);
+  background-size: 100% 100%, 100% 100%, 220% 100%;
+  animation: coin-sheen 7s ease-in-out infinite;
   box-shadow:
-    0 20px 40px rgba(0, 0, 0, 0.5),
-    0 0 0 2px #2a1c08,
+    0 22px 44px rgba(0, 0, 0, 0.55),
+    0 0 20px rgba(240, 201, 106, 0.16),
+    0 0 0 2px #1a1208,
     0 0 0 5px #c9a227,
     0 0 0 7px #f6e2a0,
-    0 0 0 10px #5a4010,
-    0 0 0 12px #e0b64a,
-    0 0 18px rgba(240, 201, 106, 0.16),
-    inset 0 1px 0 rgba(255, 236, 180, 0.28);
+    0 0 0 10px #3a2a10,
+    0 0 0 13px #e0b64a,
+    0 0 0 15px #1a1208,
+    inset 0 1px 0 rgba(255, 236, 180, 0.32);
 }
 
 html[data-theme='buddy'] .panel::before,
 html[data-theme='buddy'] .combat-bar::before {
   display: block;
-  inset: -16px;
+  inset: -18px;
   background:
-    url('./frames/buddy-corner-tl.png') left top / 70px 70px no-repeat,
-    url('./frames/buddy-corner-tr.png') right top / 70px 70px no-repeat,
-    url('./frames/buddy-corner-bl.png') left bottom / 70px 70px no-repeat,
-    url('./frames/buddy-corner-br.png') right bottom / 70px 70px no-repeat;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    url('./frames/buddy-corner-tl.png') left top / 76px 76px no-repeat,
+    url('./frames/buddy-corner-tr.png') right top / 76px 76px no-repeat,
+    url('./frames/buddy-corner-bl.png') left bottom / 76px 76px no-repeat,
+    url('./frames/buddy-corner-br.png') right bottom / 76px 76px no-repeat;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
 }
 
 html[data-theme='buddy'] .panel::after,
 html[data-theme='buddy'] .combat-bar::after {
   box-shadow:
-    inset 0 0 0 1px rgba(255, 232, 180, 0.35),
-    inset 0 0 0 4px rgba(12, 16, 28, 0.55),
-    inset 0 14px 24px rgba(0, 0, 0, 0.22);
+    inset 0 0 0 1px rgba(255, 232, 180, 0.38),
+    inset 0 0 0 6px rgba(8, 12, 22, 0.62),
+    inset 0 0 0 7px rgba(110, 224, 196, 0.16),
+    inset 0 16px 28px rgba(0, 0, 0, 0.28);
 }
 
 .panel-head {
@@ -716,10 +763,14 @@ html[data-theme='buddy'] .combat-bar::after {
 }
 
 .mmr-block {
-  padding: 10px 0 8px;
-  margin: 2px 0 8px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  padding: 10px 8px 8px;
+  margin: 6px 0 10px;
+  border: 1px solid var(--overlay-accent-line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .session-section-label {
@@ -795,9 +846,15 @@ html[data-theme='buddy'] .combat-bar::after {
 }
 
 .comps-panel.comps-filled {
-  margin: 0;
+  margin: 6px 8px 10px;
   padding: 0;
   min-height: 0;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 2px 10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
 }
 
 .comp-list-meta {
@@ -896,27 +953,30 @@ html[data-theme='buddy'] .combat-bar::after {
 }
 
 .comp-need .pool-row {
-  min-height: 60px;
+  min-height: 88px;
+  padding: 6px 10px;
+  gap: 10px;
 }
 
 .comp-need-art {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #0d1018;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  width: 62px;
+  height: 86px;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
 }
 
-.comp-need-face {
+.comp-need-card {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: 50% 18%;
+  object-fit: contain;
+  object-position: center top;
   display: block;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.62));
 }
 
 .comp-list .pool-row.unavailable {
@@ -1481,10 +1541,15 @@ html[data-theme='buddy'] .combat-bar::after {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-bottom: 6px;
+  margin: 6px 8px 10px;
+  padding: 0;
   position: relative;
   z-index: 1;
-  border-radius: 0 0 calc(var(--radius) - 3px) calc(var(--radius) - 3px);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 2px 10px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.45);
 }
 
 .pool-group-head {
@@ -1535,13 +1600,13 @@ html[data-theme='buddy'] .combat-bar::after {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 38px;
-  padding: 4px 10px 4px 8px;
+  min-height: 48px;
+  padding: 0 10px 0 8px;
   gap: 8px;
   overflow: hidden;
   isolation: isolate;
   background: var(--overlay-row);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: background 160ms ease;
 }
 
@@ -1609,10 +1674,8 @@ html[data-theme='buddy'] .combat-bar::after {
 
 .pool-slice {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(58%, 170px);
+  inset: 0;
+  width: 100%;
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
@@ -1630,10 +1693,9 @@ html[data-theme='buddy'] .combat-bar::after {
   background: linear-gradient(
     90deg,
     var(--overlay-row) 0%,
-    color-mix(in srgb, var(--overlay-row) 88%, transparent) 18%,
-    color-mix(in srgb, var(--overlay-row) 42%, transparent) 52%,
-    color-mix(in srgb, var(--overlay-row) 8%, transparent) 78%,
-    transparent 100%
+    color-mix(in srgb, var(--overlay-row) 82%, transparent) 34%,
+    color-mix(in srgb, var(--overlay-row) 18%, transparent) 58%,
+    transparent 78%
   );
 }
 
@@ -1641,24 +1703,22 @@ html[data-theme='buddy'] .combat-bar::after {
   background: linear-gradient(
     90deg,
     var(--overlay-row-hover) 0%,
-    color-mix(in srgb, var(--overlay-row-hover) 82%, transparent) 22%,
-    color-mix(in srgb, var(--overlay-row) 28%, transparent) 58%,
-    transparent 100%
+    color-mix(in srgb, var(--overlay-row-hover) 70%, transparent) 36%,
+    transparent 72%
   );
 }
 
 .pool-tile {
   position: absolute;
-  top: 50%;
-  right: 0;
+  inset: 0;
   width: 100%;
-  height: 240%;
-  transform: translateY(-50%);
+  height: 100%;
   object-fit: cover;
-  object-position: 50% 18%;
+  object-position: right center;
   display: block;
   background: transparent;
-  opacity: 0.9;
+  opacity: 1;
+  filter: saturate(1.08) brightness(1.06);
 }
 
 .pool-cost {
@@ -2052,4 +2112,99 @@ button.ghost.danger {
 
 .theme-toggles button[data-theme-id='buddy'].active {
   border-color: #f0c96a;
+}
+
+html[data-theme='classic'] .pool-group-head,
+html[data-theme='classic'] .pool-group-head.tier-head {
+  background:
+    linear-gradient(180deg, rgba(215, 181, 106, 0.28), rgba(90, 50, 18, 0.55));
+  color: #f6ead2;
+  border-left-color: #d7b56a;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 0 #2a1608;
+}
+
+html[data-theme='cthulhu'] .pool-group-head,
+html[data-theme='cthulhu'] .pool-group-head.tier-head {
+  background:
+    linear-gradient(180deg, rgba(80, 255, 210, 0.16), rgba(40, 16, 70, 0.7));
+  color: #e7fff6;
+}
+
+html[data-theme='buddy'] .pool-group-head,
+html[data-theme='buddy'] .pool-group-head.tier-head {
+  background:
+    linear-gradient(180deg, rgba(240, 201, 106, 0.22), rgba(20, 28, 48, 0.78));
+  color: #f8e7b8;
+}
+
+html[data-theme='classic'] .settings-root {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(226, 192, 122, 0.22), transparent 36%),
+    repeating-linear-gradient(90deg, rgba(56, 32, 12, 0.28) 0 1px, transparent 1px 6px),
+    #120e09;
+}
+
+html[data-theme='cthulhu'] .settings-root {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(124, 92, 255, 0.28), transparent 34%),
+    radial-gradient(circle at 8% 100%, rgba(0, 110, 92, 0.32), transparent 40%),
+    #04070a;
+}
+
+@keyframes torch-flicker {
+  0%,
+  100% {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 4px rgba(255, 180, 70, 0.2));
+  }
+  42% {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 12px rgba(255, 210, 90, 0.55));
+  }
+  68% {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 3px rgba(255, 160, 40, 0.18));
+  }
+}
+
+@keyframes tentacle-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.035) rotate(0.5deg);
+  }
+}
+
+@keyframes abyss-vein {
+  0% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+  100% {
+    background-position: 0 0, 0 0, 180px 120px;
+  }
+}
+
+@keyframes coin-sheen {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0% 0;
+  }
+  50% {
+    background-position: 0 0, 0 0, 100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme='classic'] .panel::before,
+  html[data-theme='classic'] .combat-bar::before,
+  html[data-theme='cthulhu'] .panel::before,
+  html[data-theme='cthulhu'] .combat-bar::before,
+  html[data-theme='cthulhu'] .panel,
+  html[data-theme='cthulhu'] .combat-bar,
+  html[data-theme='cthulhu'] .pool-panel,
+  html[data-theme='buddy'] .panel,
+  html[data-theme='buddy'] .combat-bar,
+  html[data-theme='buddy'] .pool-panel {
+    animation: none;
+  }
 }

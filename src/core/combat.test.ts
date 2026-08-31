@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   COMBAT_KITS,
   combatInputHasGaps,
+  combatParseGaps,
   enrichCombatInput,
   fightOnce,
   lookupCombatKit,
@@ -145,6 +146,15 @@ describe('combat sim', () => {
     }
     const r = fightOnce(input, {}, () => 0, true)
     expect(r.win).toBe('opponent')
+  })
+
+  it('keeps attacking on the same side after a 0-attack minion', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(0, 5), minion(10, 1)]),
+      opponent: side(2, [minion(8, 8)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
   })
 
   it('reborn keeps a 1-health body after the deathrattle', () => {
@@ -462,7 +472,13 @@ describe('combat kit registry', () => {
     const kit = parseCardCombat('Deathrattle: Summon a 1/1 Imp and give your other minions +2/+2.')
     const effects = kit.triggers.find((row) => row.when === 'deathrattle')?.effects ?? []
     expect(effects.some((fx) => fx.op === 'summon' && fx.attack === 1 && fx.health === 1)).toBe(true)
-    expect(effects.some((fx) => fx.op === 'buff' && fx.attack === 2 && fx.health === 2)).toBe(true)
+    expect(effects.some((fx) => fx.op === 'buff' && fx.attack === 2 && fx.health === 2 && fx.target === 'otherFriendly')).toBe(
+      true
+    )
+    expect(parseCardCombat('Rally: Give your minions +1/+1.').triggers[0]?.effects[0]?.target).toBe('allFriendly')
+    expect(
+      parseCardCombat('Start of Combat: Deal 3 damage to an enemy minion.').triggers[0]?.effects[0]?.target
+    ).toBe('randomEnemy')
   })
 
   it('must hit taunt instead of a fatter body', () => {
@@ -557,6 +573,45 @@ describe('combat kit registry', () => {
       [{ id: 'DR', name: 'DR Bot', text: '', mechanics: ['Deathrattle'] }]
     )
     expect(combatInputHasGaps(dr, [{ id: 'DR', name: 'DR Bot', text: '', mechanics: ['Deathrattle'] }])).toBe(true)
+  })
+
+  it('flags a half-parsed deathrattle leftover as unparsed', () => {
+    expect(
+      combatParseGaps('Deathrattle: Summon a 1/1 Imp. Also swallow the enemy warband.')
+    ).toContain('Unparsed')
+    expect(combatParseGaps('Deathrattle: Summon a 1/1 Imp.')).not.toContain('Unparsed')
+  })
+
+  it('flags copy-deathrattle and random summons instead of pretending they work', () => {
+    expect(combatParseGaps('Deathrattle: Copy a random deathrattle.')).toEqual(
+      expect.arrayContaining(['Deathrattle', 'Copy Deathrattle'])
+    )
+    expect(combatParseGaps('Start of Combat: Summon a random Beast.')).toContain('Random summon')
+  })
+
+  it('only treats this-game text as a gap when it sits on a combat trigger', () => {
+    expect(combatParseGaps('After you play a minion, give it +1/+1 this game.')).not.toContain('This game')
+    expect(combatParseGaps('Deathrattle: Give your minions +1/+1 this game.')).toContain('This game')
+    expect(combatParseGaps('Start of Combat: Give your minions +1/+1 for each friendly Beast.')).toContain('Scaled')
+    expect(parseCardCombat('Deathrattle: Summon a 1/1 copy of a friendly Mech.').triggers).toEqual([])
+    expect(combatParseGaps('Deathrattle: Summon a 1/1 copy of a friendly Mech.')).toContain('Deathrattle')
+  })
+
+  it('uses strike leftover on adjacent overkill, not the attacker leftover', () => {
+    const input: CombatInput = {
+      friendly: side(1, [
+        minion(10, 10, {
+          kit: {
+            triggers: [{ when: 'afterKill', effects: [{ op: 'damage', count: -2, target: 'adjacentEnemy' }] }],
+            extraDeathrattles: 0,
+            cleave: false
+          }
+        })
+      ]),
+      opponent: side(2, [minion(1, 3), minion(0, 1)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
   })
 })
 

@@ -213,7 +213,7 @@ export class BattlegroundsParser {
       },
       opponent: {
         ...frozen.opponent,
-        tavernTier: this.techByPlayer.get(frozen.opponent.playerId) ?? 1
+        tavernTier: this.techByPlayer.get(frozen.opponent.playerId) ?? this.match.tavernTier ?? 1
       },
       gems: gems ? { attack: gems.attack, health: gems.health } : undefined,
       opponentGems: oppGems ? { attack: oppGems.attack, health: oppGems.health } : undefined
