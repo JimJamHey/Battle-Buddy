@@ -44,7 +44,7 @@ npm run curate
 
 See [strategy-curation.md](strategy-curation.md). Curated comps live in `data/strategies/curated.json`. Visual review: open [strategy-preview.html](strategy-preview.html) in a browser.
 
-Overlay comps appear in the **Comps** panel (session rail) during a live BG match when lobby tribes match.
+Overlay strategies appear in the **Strategies** pane. During a live match, lobby tribes sort to the top and the rest stay dimmed.
 
 ## Code signing
 

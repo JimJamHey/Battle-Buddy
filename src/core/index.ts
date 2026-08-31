@@ -1,7 +1,7 @@
-export { BattlegroundsParser, baconShopTurn, baconPhaseLabel, isPlaceholderName, isWarbandMinion, seenFromCombat, isCombatSpectatorCreateGame, isEndGameDisconnect, lastCreateGameOffset, normalizeName, parseLoadingScreenScene, parsePowerLogTime, sceneFromMode } from './parser'
+export { BattlegroundsParser, baconShopTurn, baconPhaseLabel, isPlaceholderName, isWarbandMinion, seenFromCombat, isCombatSpectatorCreateGame, isEndGameDisconnect, normalizeName, parseLoadingScreenScene, parsePowerLogTime, sceneFromMode } from './parser'
 export { parseDeathrattleSummon, parseStartOfCombat, parseCardCombat, simulateCombat, enrichCombatInput, combatInputHasGaps } from './combatSim'
 export type { CombatInput, CombatMinion, CombatResult, CombatSide, DeathrattleSummon } from './combatSim'
-export { cardArtUrls, cardFaceUrls, cardRenderUrls, cardGoldenRenderUrls, cardTavernRenderUrls, boardCardUrls, cardTileUrls, cardSlug, baseCardId, poolBaseId, isTrinketCardId, heroBuddyCardId, heroHasBuddy, goldenCardId, catalogFromCardsJson, catalogHeroesFromCardsJson, catalogSummonsFromCardsJson, isBattlegroundsPoolMinion, isBattlegroundsBuddy, isBattlegroundsTrinket, toBgMinion } from './cards'
+export { cardArtUrls, cardFaceUrls, cardGoldenRenderUrls, cardTavernRenderUrls, boardCardUrls, cardTileUrls, cardSlug, baseCardId, poolBaseId, isTrinketCardId, heroBuddyCardId, heroHasBuddy, goldenCardId, catalogFromCardsJson, catalogHeroesFromCardsJson, catalogSummonsFromCardsJson, isBattlegroundsPoolMinion, isBattlegroundsBuddy, isBattlegroundsTrinket, toBgMinion } from './cards'
 export { isBgHeroCardId, isBaconBobHero, isPickedBgHero, looksLikeHeroName, canonicalTribe, sortTribes, tribeSlug } from './heroes'
 export { groupPoolCards, minionsForTier, filterPoolGroups, filterGroupsByMechanic, mechanicsInGroups, poolCopies, groupLabel, isTierGroupTitle, showPoolTierBubbles, relatedTribes, splitGroupsByTier, cardAvailableInLobby, tribeAvailableInLobby } from './pool'
 export { classifyPlayerBuff, mergeBuffs, formatBuffValue, playerTagBuff, PLAYER_STAT_TAGS, PLAYER_TAG_KEYS, emptyTagBuffs } from './buffs'
@@ -19,7 +19,6 @@ export {
   markStale,
   parseHsjsonBuild,
   latestHsjsonBuild,
-  overlayStrategies,
   strategyCatalog
 } from './strategy'
 export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strategy'

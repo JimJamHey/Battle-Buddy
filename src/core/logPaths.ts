@@ -4,7 +4,7 @@ import { join } from 'node:path'
 export const SESSION_LOG_DIR = /^Hearthstone_\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2}$/
 
 export function selectSessionLogDir(
-  entries: Array<{ name: string; mtimeMs: number; hasPowerLog: boolean }>
+  entries: Array<{ name: string; mtimeMs: number }>
 ): string | null {
   const sessions = entries.filter((entry) => SESSION_LOG_DIR.test(entry.name))
   if (!sessions.length) return null
@@ -16,7 +16,7 @@ export function selectSessionLogDir(
 export function resolveLogsDirectory(installPath: string): string | null {
   const root = join(installPath, 'Logs')
   if (!existsSync(root)) return null
-  const entries: Array<{ name: string; mtimeMs: number; hasPowerLog: boolean }> = []
+  const entries: Array<{ name: string; mtimeMs: number }> = []
   try {
     for (const name of readdirSync(root)) {
       if (!SESSION_LOG_DIR.test(name)) continue
@@ -25,11 +25,9 @@ export function resolveLogsDirectory(installPath: string): string | null {
         const st = statSync(full)
         if (!st.isDirectory()) continue
         const power = join(full, 'Power.log')
-        const hasPowerLog = existsSync(power)
         entries.push({
           name,
-          mtimeMs: hasPowerLog ? statSync(power).mtimeMs : st.mtimeMs,
-          hasPowerLog
+          mtimeMs: existsSync(power) ? statSync(power).mtimeMs : st.mtimeMs
         })
       } catch {
         /* ignore one bad folder */

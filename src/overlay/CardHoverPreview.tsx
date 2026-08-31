@@ -132,7 +132,7 @@ function hoverPosition(row: HTMLElement): Pick<Hover, 'left' | 'top' | 'placeRig
 export function useCardHover(
   rootRef: RefObject<HTMLElement | null>,
   cardById: Map<string, HoverCard>,
-  rowSelector = '.pool-row, .comp-card-hit'
+  rowSelector = '.pool-row'
 ): Hover | null {
   const [hover, setHover] = useState<Hover | null>(null)
 

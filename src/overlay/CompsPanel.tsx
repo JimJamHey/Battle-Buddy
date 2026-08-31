@@ -25,14 +25,12 @@ export function CompsPanel({
   comps,
   live,
   waitingForTribes,
-  minions,
-  embedded = false
+  minions
 }: {
   comps: StrategyCompView[]
   live: boolean
   waitingForTribes?: boolean
   minions: BgMinion[]
-  embedded?: boolean
 }) {
   const rootRef = useRef<HTMLElement>(null)
   const [openId, setOpenId] = useState<string | null>(null)
@@ -73,7 +71,7 @@ export function CompsPanel({
   return (
     <section
       ref={rootRef}
-      className={`comps-panel capture-mouse ${embedded ? 'comps-embedded' : 'comps-filled'}`}
+      className="comps-panel comps-filled capture-mouse"
     >
       {open ? (
         <div className="comp-detail">

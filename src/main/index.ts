@@ -383,14 +383,7 @@ function snapshot(): OverlaySnapshot {
       inLobby: row.inLobby,
       core: row.core,
       essential: row.essential,
-      phases: row.phases.map((phase) => ({
-        stage: phase.stage,
-        tiers: phase.tiers,
-        goal: phase.goal,
-        cards: phase.cards
-      })),
       why: row.why,
-      commitWhen: row.commitWhen,
       notes: row.notes
     }))
   }

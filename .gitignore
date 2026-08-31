@@ -13,4 +13,5 @@ coverage/
 data/pool-diff.json
 data/strategies/status.json
 resources/mac-host
+battle-buddy/
 

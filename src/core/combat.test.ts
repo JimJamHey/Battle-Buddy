@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { fightOnce, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat, simulateCombat, combatInputHasGaps, type CombatInput } from './combatSim'
 import { BoardTracker } from './entities'
-import { mapBattleNetRegion } from '../platform/battleNet'
 
 function side(
   playerId: number,
@@ -360,10 +359,3 @@ describe('combat gaps', () => {
   })
 })
 
-describe('region map', () => {
-  it('maps Battle.net regions onto leaderboard regions', () => {
-    expect(mapBattleNetRegion('EU')).toBe('EU')
-    expect(mapBattleNetRegion('kr')).toBe('AP')
-    expect(mapBattleNetRegion('US')).toBe('US')
-  })
-})

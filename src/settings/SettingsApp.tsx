@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_OVERLAY_LAYOUT, type AppSettings, type OverlaySnapshot } from '../core/types'
 import { THEMES } from '../core/theme'
 import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
-import { gamesToday } from '../core/session'
+import { averageFinish, gamesToday } from '../core/session'
 import { UpdateBanner } from '../ui/UpdateBanner'
 import logoUrl from './logo.png'
 
@@ -56,9 +56,7 @@ export function SettingsApp() {
       : 'status-wait'
     : 'status-wait'
   const today = gamesToday(state.session)
-  const avg = today.length
-    ? Math.round((today.reduce((a, g) => a + g.placement, 0) / today.length) * 10) / 10
-    : null
+  const avg = averageFinish(state.session)
   const checking = state.update.phase === 'checking'
 
   return (

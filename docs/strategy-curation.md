@@ -71,4 +71,4 @@ Candidates are **not** overlay UI. They are the inbox for curation.
 
 ## Later (overlay)
 
-The overlay already shows live-pool comps for this lobby’s tribes (`overlayStrategies`). Curated entries in `curated.json` win over generated candidates; stale cores are hidden. Keep running `npm run curate` after patches so the snapshot and candidates stay honest.
+The overlay shows the full strategy catalog in the **Strategies** pane. Lobby matches sort first; other tribes stay listed but dimmed. Curated entries in `curated.json` win over generated candidates; stale cores are hidden. Keep running `npm run curate` after patches so the snapshot and candidates stay honest.

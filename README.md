@@ -20,7 +20,7 @@ Start BattleBuddy, then Hearthstone.
 
 - **Combat odds** — lethal vs death once a fight starts
 - **Minion pool** — live card catalog by tavern tier with art
-- **Comps** — curated strategy lines for this lobby’s tribes
+- **Strategies** — curated lines for this lobby’s tribes
 - **Session** — start/current MMR, games today, average place, recent boards
 - **Updates** — installed copies check the rolling `test` release on launch
 

@@ -301,13 +301,6 @@ export interface StrategyCompView {
   inLobby?: boolean
   core: Array<{ id: string; name: string; techLevel: number }>
   essential: Array<{ id: string; name: string; techLevel: number; role: string }>
-  phases: Array<{
-    stage: 'early' | 'mid' | 'end'
-    tiers: string
-    goal: string
-    cards: Array<{ id: string; name: string; techLevel: number }>
-  }>
   why?: string
-  commitWhen?: string
   notes?: string
 }

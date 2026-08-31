@@ -1008,11 +1008,3 @@ export function isCombatSpectatorCreateGame(nearby: string): boolean {
   if (/End Spectator/i.test(nearby)) return false
   return /Spectator/i.test(nearby)
 }
-
-export function lastCreateGameOffset(content: string): number {
-  const needle = 'CREATE_GAME'
-  let idx = content.lastIndexOf(needle)
-  if (idx < 0) return 0
-  const lineStart = content.lastIndexOf('\n', idx)
-  return lineStart < 0 ? 0 : lineStart + 1
-}

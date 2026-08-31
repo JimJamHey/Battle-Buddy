@@ -238,22 +238,6 @@ export function boardCardUrls(cardId: string, name?: string, dbfId?: number, gol
   ]
 }
 
-/** Full constructed-style renders. Fallback only — missing the Battlegrounds gold frame. */
-export function cardRenderUrls(cardId: string, size: 256 | 512 = 512): string[] {
-  return artCandidates(cardId).flatMap((id) => {
-    if (size === 256) {
-      return [
-        `https://art.hearthstonejson.com/v1/bgs/latest/enUS/256x/${id}.png`,
-        `https://art.hearthstonejson.com/v1/render/latest/enUS/256x/${id}.png`
-      ]
-    }
-    return [
-      `https://art.hearthstonejson.com/v1/bgs/latest/enUS/512x/${id}.png`,
-      `https://art.hearthstonejson.com/v1/render/latest/enUS/512x/${id}.png`
-    ]
-  })
-}
-
 export function cardGoldenRenderUrls(goldenId: string, name: string, baseId?: string, dbfId?: number): string[] {
   const ids = [...new Set([goldenId, baseId ? goldenCardId(baseId) : ''].filter(Boolean))]
   return [...ids.flatMap((id) => hsjsonBgsCardUrls(id)), ...cardTavernRenderUrls(name, dbfId, true)]

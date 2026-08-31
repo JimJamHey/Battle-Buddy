@@ -320,19 +320,6 @@ export function reviewCurated(file: CuratedFile, pool: BgMinion[]): StrategyComp
   return markStale(comps, new Set(pool.map((card) => card.id)))
 }
 
-export function overlayStrategies(
-  pool: BgMinion[],
-  lobbyTribes: string[],
-  curated: CuratedFile,
-  limit = 6
-): StrategyComp[] {
-  const wanted = lobbyTribes.map((tribe) => tribe.toLowerCase()).filter((t) => t && t !== 'buddy')
-  if (!wanted.length) return []
-  return strategyCatalog(pool, lobbyTribes, curated)
-    .filter((row) => row.inLobby)
-    .slice(0, limit)
-}
-
 /** Full strategy list for the Strategies pane — lobby matches first, nothing sliced off. */
 export function strategyCatalog(
   pool: BgMinion[],

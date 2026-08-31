@@ -1,5 +1,5 @@
 import type { OverlaySnapshot, SessionGame } from '../core/types'
-import { gamesToday, MAX_RECENT_GAMES } from '../core/session'
+import { averageFinish, gamesToday, MAX_RECENT_GAMES } from '../core/session'
 import { formatDelta, ordinal, placeClass, ratingLabel, selfRating } from '../ui/format'
 import { CardArt } from './CardArt'
 
@@ -23,9 +23,7 @@ export function SessionRail({
 }) {
   const today = gamesToday(state.session)
   const recent = [...today].slice(-MAX_RECENT_GAMES).reverse()
-  const avg = today.length
-    ? Math.round((today.reduce((a, g) => a + g.placement, 0) / today.length) * 10) / 10
-    : '—'
+  const avg = averageFinish(state.session)
   const start = state.session.startMmr
   const current = selfRating(state)
   const todayDelta = current != null && start != null ? current - start : null
@@ -64,7 +62,7 @@ export function SessionRail({
       </div>
       <div className="stat-pills">
         <span>{today.length} games</span>
-        <span>{avg === '—' ? 'Avg place —' : `Avg place ${avg}`}</span>
+        <span>{avg == null ? 'Avg place —' : `Avg place ${avg}`}</span>
         {todayDelta != null ? (
           <span className={todayDelta > 0 ? 'delta-up' : todayDelta < 0 ? 'delta-down' : ''}>
             {formatDelta(todayDelta)}

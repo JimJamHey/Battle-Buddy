@@ -734,14 +734,6 @@ html[data-theme='buddy'] .pool-panel {
   z-index: 1;
 }
 
-.comps-panel.comps-embedded {
-  margin-top: 10px;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
-  background: transparent;
-  box-shadow: none;
-}
-
 .comps-panel.comps-filled {
   margin: 0;
   padding: 0;
@@ -1253,12 +1245,6 @@ html[data-theme='buddy'] .pool-panel {
   box-shadow: inset 0 0 0 1px var(--overlay-accent-line);
 }
 
-.pool-legend {
-  margin: 0;
-  font-size: 11px;
-  color: var(--muted);
-}
-
 .pool-kicker {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1560,20 +1546,6 @@ html[data-theme='buddy'] .pool-panel {
   text-overflow: ellipsis;
 }
 
-.pool-copies {
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-  min-width: 2.1em;
-  margin-right: 2px;
-  color: #67e8f9;
-  font-size: 12px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
-}
-
 .pool-slice {
   position: absolute;
   inset: 0;
@@ -1705,41 +1677,6 @@ html[data-theme='buddy'] .pool-panel {
   animation: pool-stow 220ms ease-in both;
 }
 
-.card-preview-glow {
-  position: absolute;
-  inset: 8% 10%;
-  pointer-events: none;
-  border-radius: 22px;
-  box-shadow: 0 0 34px 8px rgba(251, 191, 36, 0.42);
-  opacity: 0;
-}
-
-.card-preview.is-in .card-preview-glow {
-  animation: pool-gold-glow 680ms 110ms ease-out both;
-}
-
-.card-preview-sheen {
-  position: absolute;
-  inset: 4% 10% 8%;
-  pointer-events: none;
-  border-radius: 18px;
-  background: linear-gradient(
-    105deg,
-    transparent 28%,
-    rgba(255, 236, 170, 0) 40%,
-    rgba(255, 236, 170, 0.55) 50%,
-    rgba(255, 214, 90, 0) 62%,
-    transparent 74%
-  );
-  background-size: 220% 100%;
-  mix-blend-mode: screen;
-  opacity: 0;
-}
-
-.card-preview.is-in .card-preview-sheen {
-  animation: pool-sheen 640ms 160ms ease-out both;
-}
-
 @keyframes pool-draw {
   0% {
     opacity: 0;
@@ -1808,32 +1745,6 @@ html[data-theme='buddy'] .pool-panel {
   to {
     opacity: 0;
     transform: translate3d(0, 16px, -20px) rotateX(10deg) scale(0.9);
-  }
-}
-
-@keyframes pool-gold-glow {
-  0% {
-    opacity: 0;
-  }
-  38% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.28;
-  }
-}
-
-@keyframes pool-sheen {
-  from {
-    opacity: 0;
-    background-position: 120% 0;
-  }
-  35% {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-    background-position: -40% 0;
   }
 }
 

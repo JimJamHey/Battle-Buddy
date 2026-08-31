@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import {
@@ -48,8 +47,4 @@ export async function loadCardCatalog(userData: string): Promise<CardCatalog> {
     throw err
   }
   return cached
-}
-
-export function cacheExists(userData: string): boolean {
-  return existsSync(join(userData, 'cards-cache.json'))
 }
