@@ -1,0 +1,291 @@
+{
+  "skillBand": "mid",
+  "notes": "Curated for current pool (HSJSON 250339 / Season 14). Scaling is multiplicative: permanent 'this game' stacks, combat doublers, and tavern inflation — end boards target hundreds to thousands per minion, not flat combat buffs.",
+  "comps": [
+    {
+      "id": "beast-beetles",
+      "name": "Beast Beetles",
+      "tribes": ["Beast"],
+      "mechanic": "Deathrattle",
+      "coreIds": ["BG31_809", "BG36_209", "BG36_208", "BG36_210"],
+      "supportIds": ["BG31_803", "BG31_801", "BG36_204", "BG36_202"],
+      "why": "Permanent +5/+5 Beetle stacks compound; each spawn inherits the full stack for 200–1000+ tokens.",
+      "essential": [
+        { "id": "BG31_809", "role": "Locks +5/+5 Beetle buffs this game" },
+        { "id": "BG36_209", "role": "+5/+5 Beetles on each friendly attack" },
+        { "id": "BG36_208", "role": "Rally attacks trigger left deathrattle" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "Board 20–60; start beetle deathrattle chains",
+          "cardIds": ["BG31_803", "BG31_801", "BG36_202"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Carries 80–200; lock Skitterer + rally bodies",
+          "cardIds": ["BG31_809", "BG36_204", "BG36_210"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T6+",
+          "goal": "Beetles 300–1000+ via Scorpid and Deathstrider",
+          "cardIds": ["BG36_209", "BG36_208"]
+        }
+      ],
+      "commitWhen": "T4 when Skitterer appears with deathrattle beasts dying in combat.",
+      "notes": "Goldrinn is temp, not the plan."
+    },
+    {
+      "id": "beast-banana",
+      "name": "Beast Banana",
+      "tribes": ["Beast"],
+      "mechanic": "Deathrattle",
+      "coreIds": ["BG26_802", "BG35_602", "BG35_604", "BG25_354"],
+      "supportIds": ["BG31_803", "BG25_806", "BG36_202"],
+      "why": "Slamma doubles combat summon Attack; Leviathan stacks the bonus forever—tokens reach 500–2000 attack.",
+      "essential": [
+        { "id": "BG26_802", "role": "Doubles Attack on combat summons" },
+        { "id": "BG35_602", "role": "Permanent +Attack per beast summon" },
+        { "id": "BG25_354", "role": "Doubles deathrattles for more summons" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "Board 30–80; stock cheap deathrattle beasts",
+          "cardIds": ["BG31_803", "BG25_806", "BG36_202"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Slamma online; carries 150–400 attack post-combat",
+          "cardIds": ["BG26_802", "BG35_604", "BG25_354"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T6+",
+          "goal": "Leviathan +20–40/summon; minions break 1000+ attack",
+          "cardIds": ["BG35_602", "BG26_802"]
+        }
+      ],
+      "commitWhen": "Slamma in shop with two beasts summoning or dying in combat."
+    },
+    {
+      "id": "mech-deathrattle",
+      "name": "Mech Deathrattle",
+      "tribes": ["Mech"],
+      "mechanic": "Deathrattle",
+      "coreIds": ["BG35_342", "BG25_354", "BG26_148", "BGS_012"],
+      "supportIds": ["BG32_172", "BG29_611", "BG36_854"],
+      "why": "Golem gains +4/+2 per deathrattle this game; Titus doubles triggers for 800–2000+ bodies.",
+      "essential": [
+        { "id": "BG35_342", "role": "Scales with total deathrattle count" },
+        { "id": "BG25_354", "role": "Doubles every deathrattle trigger" },
+        { "id": "BG26_148", "role": "Magnet deathrattle engine for more deaths" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "Board 25–70; Cord Puller starts trigger count",
+          "cardIds": ["BG29_611", "BG36_854"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Golem 100–300 with Titus at 15–25 triggers",
+          "cardIds": ["BG32_172", "BG26_148", "BG25_354"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T6+",
+          "goal": "Golem 800–2000+ Divine Shield; Kangor replays",
+          "cardIds": ["BG35_342", "BGS_012"]
+        }
+      ],
+      "commitWhen": "T4–5 with Titus or 10+ triggers and Scrap Scraper in shop.",
+      "notes": "Magnetic mechs are a side path."
+    },
+    {
+      "id": "dragon-battlecry",
+      "name": "Dragon Battlecry",
+      "tribes": ["Dragon"],
+      "mechanic": "Battlecry",
+      "coreIds": ["BGS_041", "BG_LOE_077", "BG34_633", "BG36_241"],
+      "supportIds": ["BG36_242", "BG32_820", "BG26_963"],
+      "why": "Kalecgos +2/+2 per battlecry; Brann doubles to +4/+4—dragons reach 400–1200.",
+      "essential": [
+        { "id": "BGS_041", "role": "Dragons grow +2/+2 after each battlecry" },
+        { "id": "BG_LOE_077", "role": "Battlecries trigger twice" },
+        { "id": "BG34_633", "role": "Chromadrake battlecry + deathrattle loops" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "Board 40–100; economy until battlecry engine lands",
+          "cardIds": ["BG26_963"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Kalecgos chains; dragons hit 120–350 each shop",
+          "cardIds": ["BGS_041", "BG36_242", "BG34_633"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T6+",
+          "goal": "Brann + Vindicator rally; dragons 500–1500+",
+          "cardIds": ["BG_LOE_077", "BG36_241", "BG32_820"]
+        }
+      ],
+      "commitWhen": "T4 when Kalecgos or two battlecry dragons appear.",
+      "notes": "Buff in tavern, then Activate/buy same turn."
+    },
+    {
+      "id": "quilboar-gems",
+      "name": "Quilboar Blood Gems",
+      "tribes": ["Quilboar"],
+      "mechanic": "Blood Gems",
+      "coreIds": ["BG33_885", "BG33_883", "BG23_017", "BG36_333"],
+      "supportIds": ["BG20_101", "BG20_100", "BG33_886", "BG20_104"],
+      "why": "Gem multipliers stack permanently; Jailbird golem stats equal gems on body—1000–3000.",
+      "essential": [
+        { "id": "BG33_885", "role": "Rally: +1/+1 to every future gem" },
+        { "id": "BG23_017", "role": "Another +1/+1 to gem value forever" },
+        { "id": "BG36_333", "role": "Golem stats = gems on Juggernaut" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "2–4 gems/turn; carries 30–80",
+          "cardIds": ["BG20_101", "BG20_100", "BG33_886"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Refiner + Vineweaver; gems +3–5, carries 150–400",
+          "cardIds": ["BG33_885", "BG33_883", "BG20_104"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T6–7",
+          "goal": "Champion doubles gems; golems 1000–3000+",
+          "cardIds": ["BG23_017", "BG36_333"]
+        }
+      ],
+      "commitWhen": "T3+ gemming every turn when Refiner or Vineweaver appears."
+    },
+    {
+      "id": "demon-tavern",
+      "name": "Demon Tavern Inflation",
+      "tribes": ["Demon"],
+      "mechanic": "Battlecry",
+      "coreIds": ["BG27_016", "BG26_525", "BG26_523", "BG35_152"],
+      "supportIds": ["BG31_330", "BG35_150", "BG23_357"],
+      "why": "Champion stacks +8/+8 on tavern minions; buy 300–800 stat bodies late.",
+      "essential": [
+        { "id": "BG27_016", "role": "Stacks +8/+8 on tavern minions each bc/dr" },
+        { "id": "BG26_525", "role": "Discovers demons; feeds hero damage" },
+        { "id": "BG26_523", "role": "+3/+3 to demons per hero damage" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "Board 30–90; cheap demons without dying",
+          "cardIds": ["BG31_330", "BG23_357", "BG35_150"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Percussionist + Tichondrius; demons 100–250",
+          "cardIds": ["BG26_525", "BG26_523", "BG35_152"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T7",
+          "goal": "Stacked Champion; buy tavern minions 300–800+",
+          "cardIds": ["BG27_016"]
+        }
+      ],
+      "commitWhen": "T4+ with Percussionist online and hero damage turns ready.",
+      "notes": "Plan hero damage before the buy turn."
+    },
+    {
+      "id": "undead-knights",
+      "name": "Undead Eternal Knights",
+      "tribes": ["Undead"],
+      "mechanic": "Reborn",
+      "coreIds": ["BG25_008", "BG25_009", "BG25_354", "BG31_835"],
+      "supportIds": ["BG28_300", "BG25_010", "BG25_022"],
+      "why": "Knight +4/+2 per knight death this game; Summoner + Titus → 300–800 each.",
+      "essential": [
+        { "id": "BG25_008", "role": "Grows +4/+2 per knight death this game" },
+        { "id": "BG25_009", "role": "Reborn factory; feeds death counter twice" },
+        { "id": "BG25_354", "role": "Doubles Summoner deathrattle knights" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "Board 25–70; Handless/Bonehead Reborn chains",
+          "cardIds": ["BG28_300", "BG25_010", "BG25_022"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Summoner + Titus; knights enter 40–120",
+          "cardIds": ["BG25_009", "BG25_354"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T6+",
+          "goal": "Knights 300–800+; Striker cheats hand undead",
+          "cardIds": ["BG25_008", "BG31_835"]
+        }
+      ],
+      "commitWhen": "T4 when Summoner appears or two Knights already died."
+    },
+    {
+      "id": "elemental-buy",
+      "name": "Elemental Buy Scaling",
+      "tribes": ["Elemental"],
+      "mechanic": "Battlecry",
+      "coreIds": ["BG34_950", "BG26_162", "BG32_841", "BG34_865"],
+      "supportIds": ["BG34_856", "BG32_842", "BGS_126"],
+      "why": "Slab +20/+20 then doubles buys; Barnstormer inflates shop—one buy adds 500–1500.",
+      "essential": [
+        { "id": "BG34_950", "role": "Endgame: +20/+20 buy then double stats" },
+        { "id": "BG26_162", "role": "Tavern +8/+8 elementals each bc/dr" },
+        { "id": "BG32_841", "role": "Permanent +2 Attack on elemental bcs" }
+      ],
+      "phases": [
+        {
+          "stage": "early",
+          "tiers": "T1–3",
+          "goal": "Board 30–80; Sand Swirler starts tavern buffs",
+          "cardIds": ["BG32_841", "BG34_856"]
+        },
+        {
+          "stage": "mid",
+          "tiers": "T4–5",
+          "goal": "Barnstormer + En-Djinn; shop minions 120–300",
+          "cardIds": ["BG26_162", "BG34_865", "BG32_842"]
+        },
+        {
+          "stage": "end",
+          "tiers": "T7",
+          "goal": "Slab: one buy per turn adds 500–1500+ stats",
+          "cardIds": ["BG34_950"]
+        }
+      ],
+      "commitWhen": "T3+ Sand Swirler with second tavern buff within two turns.",
+      "notes": "Plan Activate: buff shop then buy same turn."
+    }
+  ]
+}

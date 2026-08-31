@@ -1,0 +1,863 @@
+{
+  "build": "250339",
+  "generatedAt": "2026-08-30T13:43:59.840Z",
+  "comps": [
+    {
+      "id": "beast-deathrattle",
+      "name": "Beast Deathrattle",
+      "tribes": [
+        "Beast"
+      ],
+      "mechanic": "Deathrattle",
+      "core": [
+        {
+          "id": "BG35_604",
+          "name": "Sewer Lord",
+          "techLevel": 5
+        },
+        {
+          "id": "BG31_809",
+          "name": "Turquoise Skitterer",
+          "techLevel": 5
+        },
+        {
+          "id": "BG36_208",
+          "name": "Deathstrider",
+          "techLevel": 6
+        },
+        {
+          "id": "BGS_018",
+          "name": "Goldrinn, the Great Wolf",
+          "techLevel": 6
+        },
+        {
+          "id": "BG36_209",
+          "name": "Ravaging Scorpid",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG31_803",
+          "name": "Buzzing Vermin",
+          "techLevel": 1
+        },
+        {
+          "id": "BG31_801",
+          "name": "Forest Rover",
+          "techLevel": 2
+        },
+        {
+          "id": "BG25_806",
+          "name": "Sly Raptor",
+          "techLevel": 3
+        },
+        {
+          "id": "BG36_202",
+          "name": "Tasty Lobster",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "beast-rally",
+      "name": "Beast Rally",
+      "tribes": [
+        "Beast"
+      ],
+      "mechanic": "Rally",
+      "core": [
+        {
+          "id": "BG36_204",
+          "name": "Headhunter Gryphon",
+          "techLevel": 4
+        },
+        {
+          "id": "BG36_210",
+          "name": "Hoarding Hyena",
+          "techLevel": 5
+        },
+        {
+          "id": "BG36_208",
+          "name": "Deathstrider",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG36_200",
+          "name": "Flittering Bat",
+          "techLevel": 1
+        },
+        {
+          "id": "BG36_207",
+          "name": "Wolf Pup",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "demon-battlecry",
+      "name": "Demon Battlecry",
+      "tribes": [
+        "Demon"
+      ],
+      "mechanic": "Battlecry",
+      "core": [
+        {
+          "id": "BG26_525",
+          "name": "Imposing Percussionist",
+          "techLevel": 4
+        },
+        {
+          "id": "BG35_152",
+          "name": "Void Pup Trainer",
+          "techLevel": 5
+        },
+        {
+          "id": "BG27_016",
+          "name": "Champion of Sargeras",
+          "techLevel": 7
+        }
+      ],
+      "support": [
+        {
+          "id": "BG31_330",
+          "name": "Ominous Seer",
+          "techLevel": 1
+        },
+        {
+          "id": "BG35_150",
+          "name": "Laboratory Assistant",
+          "techLevel": 2
+        },
+        {
+          "id": "BG23_357",
+          "name": "Mind Muck",
+          "techLevel": 2
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "dragon-battlecry",
+      "name": "Dragon Battlecry",
+      "tribes": [
+        "Dragon"
+      ],
+      "mechanic": "Battlecry",
+      "core": [
+        {
+          "id": "BG34_633",
+          "name": "Draconic Warden",
+          "techLevel": 5
+        },
+        {
+          "id": "BG32_820",
+          "name": "Firescale Hoarder",
+          "techLevel": 5
+        },
+        {
+          "id": "BGS_041",
+          "name": "Kalecgos, Arcane Aspect",
+          "techLevel": 5
+        }
+      ],
+      "support": [
+        {
+          "id": "BG26_963",
+          "name": "Electric Synthesizer",
+          "techLevel": 2
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "dragon-rally",
+      "name": "Dragon Rally",
+      "tribes": [
+        "Dragon"
+      ],
+      "mechanic": "Rally",
+      "core": [
+        {
+          "id": "BG36_242",
+          "name": "Bronze Timewalker",
+          "techLevel": 4
+        },
+        {
+          "id": "BG36_243",
+          "name": "Sky-hatch Runaway",
+          "techLevel": 4
+        },
+        {
+          "id": "BG36_241",
+          "name": "Crimson Vindicator",
+          "techLevel": 6
+        },
+        {
+          "id": "BG27_017",
+          "name": "Obsidian Ravager",
+          "techLevel": 7
+        }
+      ],
+      "support": [
+        {
+          "id": "BG29_888",
+          "name": "Glim Guardian",
+          "techLevel": 1
+        },
+        {
+          "id": "BG33_924",
+          "name": "Blue Whelp",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "dragon-start-of-combat",
+      "name": "Dragon Start of Combat",
+      "tribes": [
+        "Dragon"
+      ],
+      "mechanic": "Start of Combat",
+      "core": [
+        {
+          "id": "BG36_245",
+          "name": "Runic Arcanist",
+          "techLevel": 4
+        },
+        {
+          "id": "BG32_822",
+          "name": "Fire-forged Evoker",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG26_963",
+          "name": "Electric Synthesizer",
+          "techLevel": 2
+        },
+        {
+          "id": "BG29_810",
+          "name": "Thousandth Paper Drake",
+          "techLevel": 2
+        },
+        {
+          "id": "BG24_500",
+          "name": "Amber Guardian",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "dragon-divine-shield",
+      "name": "Dragon Divine Shield",
+      "tribes": [
+        "Dragon"
+      ],
+      "mechanic": "Divine Shield",
+      "core": [
+        {
+          "id": "BG29_813",
+          "name": "Persistent Poet",
+          "techLevel": 4
+        },
+        {
+          "id": "BG36_241",
+          "name": "Crimson Vindicator",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG35_814",
+          "name": "Scarlet Survivor",
+          "techLevel": 1
+        },
+        {
+          "id": "BG24_500",
+          "name": "Amber Guardian",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "elemental-deathrattle",
+      "name": "Elemental Deathrattle",
+      "tribes": [
+        "Elemental"
+      ],
+      "mechanic": "Deathrattle",
+      "core": [
+        {
+          "id": "BG32_842",
+          "name": "Glowing Cinder",
+          "techLevel": 4
+        },
+        {
+          "id": "BG26_162",
+          "name": "Dancing Barnstormer",
+          "techLevel": 5
+        },
+        {
+          "id": "BGS_121",
+          "name": "Gentle Djinni",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG34_856",
+          "name": "Waveling",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "elemental-battlecry",
+      "name": "Elemental Battlecry",
+      "tribes": [
+        "Elemental"
+      ],
+      "mechanic": "Battlecry",
+      "core": [
+        {
+          "id": "BG34_865",
+          "name": "En-Djinn Blazer",
+          "techLevel": 4
+        },
+        {
+          "id": "BGS_116",
+          "name": "Refreshing Anomaly",
+          "techLevel": 4
+        },
+        {
+          "id": "BGS_123",
+          "name": "Tavern Tempest",
+          "techLevel": 4
+        },
+        {
+          "id": "BG26_162",
+          "name": "Dancing Barnstormer",
+          "techLevel": 5
+        },
+        {
+          "id": "BGS_121",
+          "name": "Gentle Djinni",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG32_841",
+          "name": "Sand Swirler",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "mech-deathrattle",
+      "name": "Mech Deathrattle",
+      "tribes": [
+        "Mech"
+      ],
+      "mechanic": "Deathrattle",
+      "core": [
+        {
+          "id": "BG32_172",
+          "name": "Auto Assembler",
+          "techLevel": 4
+        },
+        {
+          "id": "BGS_012",
+          "name": "Kangor's Apprentice",
+          "techLevel": 5
+        },
+        {
+          "id": "BG26_148",
+          "name": "Scrap Scraper",
+          "techLevel": 5
+        },
+        {
+          "id": "BG35_342",
+          "name": "Falling Sky Golem",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG29_611",
+          "name": "Cord Puller",
+          "techLevel": 1
+        },
+        {
+          "id": "BG32_170",
+          "name": "Metallic Hunter",
+          "techLevel": 2
+        },
+        {
+          "id": "BG36_854",
+          "name": "Rescue Bot",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "mech-magnetic",
+      "name": "Mech Magnetic",
+      "tribes": [
+        "Mech"
+      ],
+      "mechanic": "Magnetic",
+      "core": [
+        {
+          "id": "BG32_172",
+          "name": "Auto Assembler",
+          "techLevel": 4
+        },
+        {
+          "id": "BG35_341",
+          "name": "Enchanted Sentinel",
+          "techLevel": 4
+        },
+        {
+          "id": "BG26_148",
+          "name": "Scrap Scraper",
+          "techLevel": 5
+        }
+      ],
+      "support": [
+        {
+          "id": "BG26_146",
+          "name": "Lullabot",
+          "techLevel": 1
+        },
+        {
+          "id": "BG26_147",
+          "name": "Accord-o-Tron",
+          "techLevel": 3
+        },
+        {
+          "id": "BG_BOT_911",
+          "name": "Annoy-o-Module",
+          "techLevel": 3
+        },
+        {
+          "id": "BG_DEEP_015",
+          "name": "Prosthetic Hand",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "mech-divine-shield",
+      "name": "Mech Divine Shield",
+      "tribes": [
+        "Mech"
+      ],
+      "mechanic": "Divine Shield",
+      "core": [
+        {
+          "id": "BG36_506",
+          "name": "Drone Duplicator",
+          "techLevel": 4
+        },
+        {
+          "id": "BG28_741",
+          "name": "Charging Czarina",
+          "techLevel": 5
+        },
+        {
+          "id": "BG35_342",
+          "name": "Falling Sky Golem",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG29_611",
+          "name": "Cord Puller",
+          "techLevel": 1
+        },
+        {
+          "id": "BG_BOT_911",
+          "name": "Annoy-o-Module",
+          "techLevel": 3
+        },
+        {
+          "id": "BGS_071",
+          "name": "Deflect-o-Bot",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "murloc-battlecry",
+      "name": "Murloc Battlecry",
+      "tribes": [
+        "Murloc"
+      ],
+      "mechanic": "Battlecry",
+      "core": [
+        {
+          "id": "BG35_143",
+          "name": "Deepwater Chieftain",
+          "techLevel": 4
+        },
+        {
+          "id": "BG36_701",
+          "name": "Kelp Keeper",
+          "techLevel": 4
+        },
+        {
+          "id": "BGS_020",
+          "name": "Primalfin Lookout",
+          "techLevel": 5
+        }
+      ],
+      "support": [
+        {
+          "id": "BG35_140",
+          "name": "Mama Mrrglton",
+          "techLevel": 3
+        },
+        {
+          "id": "BG35_141",
+          "name": "Papa Mrrglton",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "murloc-start-of-combat",
+      "name": "Murloc Start of Combat",
+      "tribes": [
+        "Murloc"
+      ],
+      "mechanic": "Start of Combat",
+      "core": [
+        {
+          "id": "BG34_142",
+          "name": "Costume Enthusiast",
+          "techLevel": 5
+        },
+        {
+          "id": "BG26_354",
+          "name": "Choral Mrrrglr",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG32_330",
+          "name": "Flighty Scout",
+          "techLevel": 1
+        },
+        {
+          "id": "BG27_556",
+          "name": "Diremuck Forager",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "naga-spellcraft",
+      "name": "Naga Spellcraft",
+      "tribes": [
+        "Naga"
+      ],
+      "mechanic": "Spellcraft",
+      "core": [
+        {
+          "id": "BG33_319",
+          "name": "Rimescale Priestess",
+          "techLevel": 4
+        },
+        {
+          "id": "BG26_505",
+          "name": "Zesty Shaker",
+          "techLevel": 4
+        },
+        {
+          "id": "BG31_920",
+          "name": "Darkcrest Strategist",
+          "techLevel": 5
+        },
+        {
+          "id": "BG23_008",
+          "name": "Glowscale",
+          "techLevel": 5
+        },
+        {
+          "id": "BG32_835",
+          "name": "Tranquil Meditative",
+          "techLevel": 5
+        },
+        {
+          "id": "BG27_514",
+          "name": "Sea Witch Zar'jira",
+          "techLevel": 7
+        }
+      ],
+      "support": [
+        {
+          "id": "BG23_000",
+          "name": "Mini-Myrmidon",
+          "techLevel": 1
+        },
+        {
+          "id": "BG23_009",
+          "name": "Lava Lurker",
+          "techLevel": 2
+        },
+        {
+          "id": "BG31_924",
+          "name": "Thaumaturgist",
+          "techLevel": 2
+        },
+        {
+          "id": "BG23_004",
+          "name": "Deep-Sea Angler",
+          "techLevel": 3
+        },
+        {
+          "id": "BG23_007",
+          "name": "Waverider",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "pirate-battlecry",
+      "name": "Pirate Battlecry",
+      "tribes": [
+        "Pirate"
+      ],
+      "mechanic": "Battlecry",
+      "core": [
+        {
+          "id": "BG26_814",
+          "name": "Lovesick Balladist",
+          "techLevel": 4
+        },
+        {
+          "id": "BG33_821",
+          "name": "Shipwrecked Rascal",
+          "techLevel": 5
+        },
+        {
+          "id": "BG36_343",
+          "name": "Silent Deliverer",
+          "techLevel": 6
+        },
+        {
+          "id": "BG25_034",
+          "name": "Captain Sanders",
+          "techLevel": 7
+        }
+      ],
+      "support": [
+        {
+          "id": "BG26_135",
+          "name": "Southsea Busker",
+          "techLevel": 1
+        },
+        {
+          "id": "BG36_520",
+          "name": "Bilgewater Breakout",
+          "techLevel": 2
+        },
+        {
+          "id": "BG33_830",
+          "name": "Azsharan Cutlassier",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "quilboar-rally",
+      "name": "Quilboar Rally",
+      "tribes": [
+        "Quilboar"
+      ],
+      "mechanic": "Rally",
+      "core": [
+        {
+          "id": "BG20_104",
+          "name": "Bonker",
+          "techLevel": 4
+        },
+        {
+          "id": "BG36_331",
+          "name": "Bramble Tunneler",
+          "techLevel": 4
+        },
+        {
+          "id": "BG33_883",
+          "name": "Razorfen Vineweaver",
+          "techLevel": 5
+        },
+        {
+          "id": "BG33_885",
+          "name": "Sanguine Refiner",
+          "techLevel": 5
+        },
+        {
+          "id": "BG36_333",
+          "name": "Jailbird Juggernaut",
+          "techLevel": 7
+        }
+      ],
+      "support": [
+        {
+          "id": "BG33_886",
+          "name": "Tusked Camper",
+          "techLevel": 1
+        },
+        {
+          "id": "BG20_101",
+          "name": "Roadboar",
+          "techLevel": 2
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "undead-deathrattle",
+      "name": "Undead Deathrattle",
+      "tribes": [
+        "Undead"
+      ],
+      "mechanic": "Deathrattle",
+      "core": [
+        {
+          "id": "BG32_880",
+          "name": "Friendly Geist",
+          "techLevel": 4
+        },
+        {
+          "id": "BG34_690",
+          "name": "Plaguerunner",
+          "techLevel": 4
+        },
+        {
+          "id": "BG31_835",
+          "name": "Deathly Striker",
+          "techLevel": 6
+        },
+        {
+          "id": "BG25_009",
+          "name": "Eternal Summoner",
+          "techLevel": 6
+        },
+        {
+          "id": "BG31_999",
+          "name": "Stitched Salvager",
+          "techLevel": 7
+        }
+      ],
+      "support": [
+        {
+          "id": "BG28_300",
+          "name": "Harmless Bonehead",
+          "techLevel": 1
+        },
+        {
+          "id": "BG25_022",
+          "name": "Scarlet Skull",
+          "techLevel": 2
+        },
+        {
+          "id": "BG30_125",
+          "name": "Cadaver Caretaker",
+          "techLevel": 3
+        },
+        {
+          "id": "BG25_010",
+          "name": "Handless Forsaken",
+          "techLevel": 3
+        },
+        {
+          "id": "BG28_309",
+          "name": "Mummifier",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    },
+    {
+      "id": "undead-reborn",
+      "name": "Undead Reborn",
+      "tribes": [
+        "Undead"
+      ],
+      "mechanic": "Reborn",
+      "core": [
+        {
+          "id": "BG36_511",
+          "name": "Dead Bellringer",
+          "techLevel": 4
+        },
+        {
+          "id": "BG36_514",
+          "name": "Barrier Banshee",
+          "techLevel": 5
+        },
+        {
+          "id": "BG25_009",
+          "name": "Eternal Summoner",
+          "techLevel": 6
+        },
+        {
+          "id": "BG36_515",
+          "name": "Snazzy Phantom",
+          "techLevel": 6
+        }
+      ],
+      "support": [
+        {
+          "id": "BG25_001",
+          "name": "Risen Rider",
+          "techLevel": 1
+        },
+        {
+          "id": "BG25_022",
+          "name": "Scarlet Skull",
+          "techLevel": 2
+        },
+        {
+          "id": "BG25_010",
+          "name": "Handless Forsaken",
+          "techLevel": 3
+        },
+        {
+          "id": "BG28_309",
+          "name": "Mummifier",
+          "techLevel": 3
+        },
+        {
+          "id": "BG_DEEP_015",
+          "name": "Prosthetic Hand",
+          "techLevel": 3
+        }
+      ],
+      "status": "candidate"
+    }
+  ]
+}

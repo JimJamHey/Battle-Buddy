@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BattleBuddy — Curated Strategies v3</title>
+  <style>
+    :root {
+      --bg: #0c1018; --panel: #151d2b; --border: #2a3850; --text: #e8edf4;
+      --muted: #8fa3bf; --accent: #d4af37; --essential: #e8b84a;
+      --early: #6db88a; --mid: #6aa3c7; --end: #c99252;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 1rem 0.75rem 2rem; }
+    header { max-width: 1080px; margin: 0 auto 1.25rem; text-align: center; }
+    h1 { margin: 0 0 0.3rem; font-size: 1.45rem; }
+    .sub { color: var(--muted); font-size: 0.88rem; line-height: 1.5; max-width: 44rem; margin: 0 auto; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 0.85rem; max-width: 1080px; margin: 0 auto; }
+    .strategy { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .strategy-head { padding: 0.8rem 0.9rem; border-bottom: 1px solid var(--border); }
+    .strategy-head h2 { margin: 0 0 0.25rem; font-size: 1.05rem; color: var(--accent); }
+    .tags { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-bottom: 0.45rem; }
+    .tag { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.35rem; border-radius: 999px; background: #1f2a3d; color: var(--muted); }
+    .why { margin: 0; font-size: 0.8rem; line-height: 1.45; color: #c5d4e8; }
+    .block { padding: 0.65rem 0.9rem; border-bottom: 1px solid var(--border); }
+    .block h3 { margin: 0 0 0.4rem; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .essential li { font-size: 0.76rem; line-height: 1.4; margin-bottom: 0.35rem; padding: 0.35rem 0.45rem; border-radius: 6px; background: rgba(212,175,55,0.07); border: 1px solid rgba(212,175,55,0.2); list-style: none; }
+    .essential strong { color: var(--essential); }
+    .phase { margin-bottom: 0.55rem; }
+    .phase-head { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.25rem; }
+    .phase-head.early { color: var(--early); }
+    .phase-head.mid { color: var(--mid); }
+    .phase-head.end { color: var(--end); }
+    .phase-goal { font-size: 0.74rem; line-height: 1.4; color: var(--muted); margin-bottom: 0.35rem; }
+    .cards { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .card { width: 56px; text-align: center; }
+    .card img { width: 56px; height: 56px; border-radius: 6px; border: 2px solid var(--border); object-fit: cover; background: #0a0e14; }
+    .card.essential img { border-color: var(--essential); }
+    .card span { display: block; font-size: 0.55rem; color: var(--muted); margin-top: 0.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .commit { padding: 0.55rem 0.9rem 0.7rem; font-size: 0.74rem; line-height: 1.4; color: #b8c8dc; }
+    .commit strong { color: var(--text); }
+    footer { text-align: center; color: var(--muted); font-size: 0.72rem; margin-top: 1.25rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Curated strategies — scaling edition</h1>
+    <p class="sub">Eight lines aligned to Season 14 / patch 36.2.2. Endgame targets are hundreds–thousands per minion via permanent stacks, multipliers, and tavern inflation — not one-shot +8 buffs.</p>
+  </header>
+  <div class="grid" id="grid"></div>
+  <footer>HSJSON 250339 · Gold border = essential</footer>
+  <script>
+    const art = (id) => `https://art.hearthstonejson.com/v1/bgs/latest/enUS/256x/${id}.png`;
+    const strategies = [{"name":"Beast Beetles","tribes":["Beast"],"mechanic":"Deathrattle","why":"Permanent +5/+5 Beetle stacks compound; each spawn inherits the full stack for 200–1000+ tokens.","essential":[{"id":"BG31_809","name":"Turquoise Skitterer","role":"Locks +5/+5 Beetle buffs this game"},{"id":"BG36_209","name":"Ravaging Scorpid","role":"+5/+5 Beetles on each friendly attack"},{"id":"BG36_208","name":"Deathstrider","role":"Rally attacks trigger left deathrattle"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"Board 20–60; start beetle deathrattle chains","cards":["BG31_803","BG31_801","BG36_202"]},{"stage":"mid","tiers":"T4–5","goal":"Carries 80–200; lock Skitterer + rally bodies","cards":["BG31_809","BG36_204","BG36_210"]},{"stage":"end","tiers":"T6+","goal":"Beetles 300–1000+ via Scorpid and Deathstrider","cards":["BG36_209","BG36_208"]}],"commit":"T4 when Skitterer appears with deathrattle beasts dying in combat."},{"name":"Beast Banana","tribes":["Beast"],"mechanic":"Deathrattle","why":"Slamma doubles combat summon Attack; Leviathan stacks the bonus forever—tokens reach 500–2000 attack.","essential":[{"id":"BG26_802","name":"Banana Slamma","role":"Doubles Attack on combat summons"},{"id":"BG35_602","name":"Lurking Leviathan","role":"Permanent +Attack per beast summon"},{"id":"BG25_354","name":"Titus Rivendare","role":"Doubles deathrattles for more summons"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"Board 30–80; stock cheap deathrattle beasts","cards":["BG31_803","BG25_806","BG36_202"]},{"stage":"mid","tiers":"T4–5","goal":"Slamma online; carries 150–400 attack post-combat","cards":["BG26_802","BG35_604","BG25_354"]},{"stage":"end","tiers":"T6+","goal":"Leviathan +20–40/summon; minions break 1000+ attack","cards":["BG35_602","BG26_802"]}],"commit":"Slamma in shop with two beasts summoning or dying in combat."},{"name":"Mech Deathrattle","tribes":["Mech"],"mechanic":"Deathrattle","why":"Golem gains +4/+2 per deathrattle this game; Titus doubles triggers for 800–2000+ bodies.","essential":[{"id":"BG35_342","name":"Falling Sky Golem","role":"Scales with total deathrattle count"},{"id":"BG25_354","name":"Titus Rivendare","role":"Doubles every deathrattle trigger"},{"id":"BG26_148","name":"Scrap Scraper","role":"Magnet deathrattle engine for more deaths"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"Board 25–70; Cord Puller starts trigger count","cards":["BG29_611","BG36_854"]},{"stage":"mid","tiers":"T4–5","goal":"Golem 100–300 with Titus at 15–25 triggers","cards":["BG32_172","BG26_148","BG25_354"]},{"stage":"end","tiers":"T6+","goal":"Golem 800–2000+ Divine Shield; Kangor replays","cards":["BG35_342","BGS_012"]}],"commit":"T4–5 with Titus or 10+ triggers and Scrap Scraper in shop."},{"name":"Dragon Battlecry","tribes":["Dragon"],"mechanic":"Battlecry","why":"Kalecgos +2/+2 per battlecry; Brann doubles to +4/+4—dragons reach 400–1200.","essential":[{"id":"BGS_041","name":"Kalecgos","role":"Dragons grow +2/+2 after each battlecry"},{"id":"BG_LOE_077","name":"Brann Bronzebeard","role":"Battlecries trigger twice"},{"id":"BG34_633","name":"Draconic Warden","role":"Chromadrake battlecry + deathrattle loops"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"Board 40–100; economy until battlecry engine lands","cards":["BG26_963"]},{"stage":"mid","tiers":"T4–5","goal":"Kalecgos chains; dragons hit 120–350 each shop","cards":["BGS_041","BG36_242","BG34_633"]},{"stage":"end","tiers":"T6+","goal":"Brann + Vindicator rally; dragons 500–1500+","cards":["BG_LOE_077","BG36_241","BG32_820"]}],"commit":"T4 when Kalecgos or two battlecry dragons appear."},{"name":"Quilboar Blood Gems","tribes":["Quilboar"],"mechanic":"Blood Gems","why":"Gem multipliers stack permanently; Jailbird golem stats equal gems on body—1000–3000.","essential":[{"id":"BG33_885","name":"Sanguine Refiner","role":"Rally: +1/+1 to every future gem"},{"id":"BG23_017","name":"Sanguine Champion","role":"Another +1/+1 to gem value forever"},{"id":"BG36_333","name":"Jailbird Juggernaut","role":"Golem stats = gems on Juggernaut"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"2–4 gems/turn; carries 30–80","cards":["BG20_101","BG20_100","BG33_886"]},{"stage":"mid","tiers":"T4–5","goal":"Refiner + Vineweaver; gems +3–5, carries 150–400","cards":["BG33_885","BG33_883","BG20_104"]},{"stage":"end","tiers":"T6–7","goal":"Champion doubles gems; golems 1000–3000+","cards":["BG23_017","BG36_333"]}],"commit":"T3+ gemming every turn when Refiner or Vineweaver appears."},{"name":"Demon Tavern Inflation","tribes":["Demon"],"mechanic":"Battlecry","why":"Champion stacks +8/+8 on tavern minions; buy 300–800 stat bodies late.","essential":[{"id":"BG27_016","name":"Champion of Sargeras","role":"Stacks +8/+8 on tavern minions each bc/dr"},{"id":"BG26_525","name":"Imposing Percussionist","role":"Discovers demons; feeds hero damage"},{"id":"BG26_523","name":"Tichondrius","role":"+3/+3 to demons per hero damage"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"Board 30–90; cheap demons without dying","cards":["BG31_330","BG23_357","BG35_150"]},{"stage":"mid","tiers":"T4–5","goal":"Percussionist + Tichondrius; demons 100–250","cards":["BG26_525","BG26_523","BG35_152"]},{"stage":"end","tiers":"T7","goal":"Stacked Champion; buy tavern minions 300–800+","cards":["BG27_016"]}],"commit":"T4+ with Percussionist online and hero damage turns ready."},{"name":"Undead Eternal Knights","tribes":["Undead"],"mechanic":"Reborn","why":"Knight +4/+2 per knight death this game; Summoner + Titus → 300–800 each.","essential":[{"id":"BG25_008","name":"Eternal Knight","role":"Grows +4/+2 per knight death this game"},{"id":"BG25_009","name":"Eternal Summoner","role":"Reborn factory; feeds death counter twice"},{"id":"BG25_354","name":"Titus Rivendare","role":"Doubles Summoner deathrattle knights"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"Board 25–70; Handless/Bonehead Reborn chains","cards":["BG28_300","BG25_010","BG25_022"]},{"stage":"mid","tiers":"T4–5","goal":"Summoner + Titus; knights enter 40–120","cards":["BG25_009","BG25_354"]},{"stage":"end","tiers":"T6+","goal":"Knights 300–800+; Striker cheats hand undead","cards":["BG25_008","BG31_835"]}],"commit":"T4 when Summoner appears or two Knights already died."},{"name":"Elemental Buy Scaling","tribes":["Elemental"],"mechanic":"Battlecry","why":"Slab +20/+20 then doubles buys; Barnstormer inflates shop—one buy adds 500–1500.","essential":[{"id":"BG34_950","name":"Stone Age Slab","role":"Endgame: +20/+20 buy then double stats"},{"id":"BG26_162","name":"Dancing Barnstormer","role":"Tavern +8/+8 elementals each bc/dr"},{"id":"BG32_841","name":"Sand Swirler","role":"Permanent +2 Attack on elemental bcs"}],"phases":[{"stage":"early","tiers":"T1–3","goal":"Board 30–80; Sand Swirler starts tavern buffs","cards":["BG32_841","BG34_856"]},{"stage":"mid","tiers":"T4–5","goal":"Barnstormer + En-Djinn; shop minions 120–300","cards":["BG26_162","BG34_865","BG32_842"]},{"stage":"end","tiers":"T7","goal":"Slab: one buy per turn adds 500–1500+ stats","cards":["BG34_950"]}],"commit":"T3+ Sand Swirler with second tavern buff within two turns."}];
+
+    const names = Object.fromEntries(strategies.flatMap(s => [
+      ...s.essential.map(e => [e.id, e.name]),
+      ...s.phases.flatMap(p => p.cards.map(id => [id, null]))
+    ]));
+    // resolve card names from essential entries
+    for (const s of strategies) {
+      for (const p of s.phases) {
+        p.cardNames = p.cards.map(id => {
+          const ess = s.essential.find(e => e.id === id);
+          return ess ? ess.name : id.replace('BG', '').slice(0, 8);
+        });
+      }
+    }
+
+    const grid = document.getElementById('grid');
+    const essIds = (s) => new Set(s.essential.map(e => e.id));
+    for (const s of strategies) {
+      const ess = essIds(s);
+      const el = document.createElement('article');
+      el.className = 'strategy';
+      el.innerHTML = `
+        <div class="strategy-head">
+          <h2>${s.name}</h2>
+          <div class="tags">${s.tribes.map(t => `<span class="tag">${t}</span>`).join('')}<span class="tag">${s.mechanic}</span></div>
+          <p class="why">${s.why}</p>
+        </div>
+        <div class="block">
+          <h3>Essential</h3>
+          <ul class="essential">${s.essential.map(e => `<li><strong>${e.name}</strong> — ${e.role}</li>`).join('')}</ul>
+        </div>
+        <div class="block" id="phases-${s.name}"></div>
+        <div class="commit"><strong>Commit:</strong> ${s.commit}</div>
+      `;
+      const phasesEl = el.querySelector(`#phases-${CSS.escape(s.name)}`);
+      phasesEl.innerHTML = '<h3>Early → mid → end</h3>' + s.phases.map(p => `
+        <div class="phase">
+          <div class="phase-head ${p.stage}">${p.stage} · ${p.tiers}</div>
+          <div class="phase-goal">${p.goal}</div>
+          <div class="cards">${p.cards.map((id, i) => {
+            const name = s.essential.find(e => e.id === id)?.name || id;
+            return `<div class="card ${ess.has(id)?'essential':''}" title="${name}"><img src="${art(id)}" alt="" loading="lazy"/><span>${name}</span></div>`;
+          }).join('')}</div>
+        </div>
+      `).join('');
+      grid.appendChild(el);
+    }
+  </script>
+</body>
+</html>
