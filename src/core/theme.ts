@@ -1,14 +1,26 @@
 export const THEMES = [
-  { id: 'ember', name: 'Ember', hint: 'Gold tavern light' },
-  { id: 'tide', name: 'Tide', hint: 'Deep sea blue' },
-  { id: 'arcane', name: 'Arcane', hint: 'Violet spellwork' },
-  { id: 'grove', name: 'Grove', hint: 'Moss and amber' }
+  { id: 'classic', name: 'Classic', hint: 'Tavern gold and stone' },
+  { id: 'cthulhu', name: 'Cthulhu', hint: 'Abyssal teal and violet' },
+  { id: 'buddy', name: 'Battle Buddy', hint: 'Coin gold and ember' }
 ] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']
 
-export const DEFAULT_THEME: ThemeId = 'ember'
+export const DEFAULT_THEME: ThemeId = 'buddy'
+
+const LEGACY_THEMES: Record<string, ThemeId> = {
+  ember: 'classic',
+  grove: 'classic',
+  arcane: 'classic',
+  tide: 'cthulhu'
+}
 
 export function isThemeId(value: unknown): value is ThemeId {
   return THEMES.some((theme) => theme.id === value)
+}
+
+export function resolveTheme(value: unknown): ThemeId {
+  if (isThemeId(value)) return value
+  if (typeof value === 'string' && value in LEGACY_THEMES) return LEGACY_THEMES[value]
+  return DEFAULT_THEME
 }

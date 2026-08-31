@@ -290,7 +290,7 @@ async function pollPlayRating(force = false): Promise<void> {
     awaitingPostGameMmr || Boolean(playedAsSelf && match.placement && match.placement > 0 && !match.inCombat)
   if (match.gameActive && !wantResults) return
   const now = Date.now()
-  const minGap = wantResults ? 900 : 4000
+  const minGap = wantResults ? 900 : 2500
   if (!force && now - lastPlayRatingAt < minGap) return
   lastPlayRatingAt = now
   const bounds = await host.getClientBounds()
@@ -427,6 +427,7 @@ async function ensureWindowedOptions(): Promise<void> {
 
 async function powerLogAlreadyVerbose(): Promise<boolean> {
   const install = settings.hearthstonePath || host.defaultInstallPath()
+  if (!install) return false
   const logsDir = resolveLogsDirectory(install) ?? join(install, 'Logs')
   return powerFileHasDebugPrint(join(logsDir, 'Power.log'))
 }

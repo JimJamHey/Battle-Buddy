@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showLobbyOnOverlay: false,
   overlayLayout: DEFAULT_OVERLAY_LAYOUT,
   currentMmr: null,
-  theme: 'ember'
+  theme: 'buddy'
 }
 
 export interface LobbyPlayer {

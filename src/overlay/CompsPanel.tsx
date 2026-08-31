@@ -42,7 +42,7 @@ export function CompsPanel({
     for (const comp of comps) {
       for (const card of [...comp.core, ...comp.essential, ...comp.phases.flatMap((p) => p.cards)]) {
         const full = catalog.get(card.id)
-        map.set(card.id, full ?? { id: card.id, name: card.name, dbfId: full?.dbfId })
+        map.set(card.id, full ?? { id: card.id, name: card.name, dbfId: 0 })
       }
     }
     return map

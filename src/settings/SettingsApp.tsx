@@ -4,6 +4,7 @@ import { THEMES } from '../core/theme'
 import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
 import { gamesToday } from '../core/session'
 import { UpdateBanner } from '../ui/UpdateBanner'
+import logoUrl from './logo.png'
 
 export function SettingsApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
@@ -20,7 +21,7 @@ export function SettingsApp() {
   }, [state?.settings.battleTag])
 
   useEffect(() => {
-    document.documentElement.dataset.theme = state?.settings.theme ?? 'ember'
+    document.documentElement.dataset.theme = state?.settings.theme ?? 'buddy'
     document.body.style.background = ''
   }, [state?.settings.theme])
 
@@ -28,8 +29,13 @@ export function SettingsApp() {
     return (
       <div className="settings-root">
         <header className="settings-hero">
-          <p className="eyebrow">BattleBuddy</p>
-          <h1>Starting…</h1>
+          <div className="settings-hero-brand">
+            <img className="settings-logo" src={logoUrl} alt="" />
+            <div>
+              <p className="eyebrow">BattleBuddy</p>
+              <h1>Starting…</h1>
+            </div>
+          </div>
         </header>
       </div>
     )
@@ -60,10 +66,13 @@ export function SettingsApp() {
       <UpdateBanner update={state.update} />
 
       <header className="settings-hero">
-        <div>
-          <p className="eyebrow">Battlegrounds overlay</p>
-          <h1>BattleBuddy</h1>
-          <p className="lede">Launch anytime. The overlay follows the Hearthstone window.</p>
+        <div className="settings-hero-brand">
+          <img className="settings-logo" src={logoUrl} alt="" />
+          <div>
+            <p className="eyebrow">Battlegrounds overlay</p>
+            <h1>BattleBuddy</h1>
+            <p className="lede">Launch anytime. The overlay follows the Hearthstone window.</p>
+          </div>
         </div>
         <span className="version-pill">v{state.update.currentVersion}</span>
       </header>

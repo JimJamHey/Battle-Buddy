@@ -25,7 +25,14 @@ npm run dist:win   # Windows
 npm run dist:mac   # macOS
 ```
 
-CI publishes a rolling `test` prerelease and a matching `v0.1.0-test.<run>` tag on every `master` push. Tag `v0.1.x` in `package.json` for numbered stable releases.
+PRs run `.github/workflows/ci.yml` (unit tests + typecheck only). Installers are not built or published from pull requests.
+
+Pushing `master` (or a `v*` tag) runs `.github/workflows/release.yml`: tests, then Windows/macOS packaging. That is **one release pipeline**, not two. It still writes two GitHub Release tags for auto-update:
+
+- Rolling `test` tag — generic feed at `releases/download/test/latest.yml`
+- Semver tag `v0.1.0-test.<run>` — GitHub-provider clients (older testers)
+
+The `version` job only computes `0.1.0-test.<run_number>`. Tag `v0.1.x` in `package.json` for numbered stable releases.
 
 ## Strategy curation
 

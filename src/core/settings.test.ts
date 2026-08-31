@@ -18,12 +18,13 @@ describe('sanitizeSettings', () => {
     expect(next.battleTag.length).toBeLessThanOrEqual(64)
     expect(next.showLobbyOnOverlay).toBe(false)
     expect(next.currentMmr).toBe(30000)
-    expect(next.theme).toBe('ember')
+    expect(next.theme).toBe('buddy')
   })
 
   it('keeps a valid launcher theme', () => {
-    expect(sanitizeSettings(DEFAULT_SETTINGS, { theme: 'arcane' }).theme).toBe('arcane')
-    expect(sanitizeSettings(DEFAULT_SETTINGS, { theme: 'nope' as never }).theme).toBe('ember')
+    expect(sanitizeSettings(DEFAULT_SETTINGS, { theme: 'cthulhu' }).theme).toBe('cthulhu')
+    expect(sanitizeSettings(DEFAULT_SETTINGS, { theme: 'ember' as never }).theme).toBe('classic')
+    expect(sanitizeSettings(DEFAULT_SETTINGS, { theme: 'nope' as never }).theme).toBe('buddy')
   })
 
   it('clamps tavern peek', () => {

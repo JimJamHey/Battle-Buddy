@@ -29,84 +29,64 @@
   font-feature-settings: "ss01" 1, "kern" 1;
 }
 
-html[data-theme='ember'] {
+html[data-theme='classic'] {
+  --bg: #14110d;
+  --bg-elevated: #1e1a14;
+  --panel: rgba(18, 14, 10, 0.92);
+  --panel-solid: #1e1a14;
+  --gold: #e2c07a;
+  --mint: #d7b56a;
+  --self: #f3e6c4;
+  --hero-a: rgba(226, 192, 122, 0.12);
+  --hero-b: rgba(168, 112, 58, 0.1);
+  --overlay-tint: rgba(226, 192, 122, 0.16);
+  --overlay-surface: rgba(16, 12, 8, 0.92);
+  --overlay-row: rgba(12, 10, 7, 0.94);
+  --overlay-row-hover: rgba(226, 192, 122, 0.14);
+  --overlay-accent: rgba(226, 192, 122, 0.28);
+  --overlay-accent-line: rgba(215, 181, 106, 0.4);
+  --overlay-edge-a: #e2c07a;
+  --overlay-edge-b: #a8703a;
+}
+
+html[data-theme='cthulhu'] {
+  --bg: #070b0c;
+  --bg-elevated: #0d1618;
+  --panel: rgba(5, 10, 12, 0.94);
+  --panel-solid: #0d1618;
+  --gold: #7dffd1;
+  --mint: #67e8c8;
+  --self: #c4b5fd;
+  --hero-a: rgba(103, 232, 200, 0.1);
+  --hero-b: rgba(107, 76, 255, 0.12);
+  --overlay-tint: rgba(103, 232, 200, 0.14);
+  --overlay-surface: rgba(4, 8, 10, 0.94);
+  --overlay-row: rgba(3, 7, 9, 0.95);
+  --overlay-row-hover: rgba(103, 232, 200, 0.12);
+  --overlay-accent: rgba(125, 255, 209, 0.2);
+  --overlay-accent-line: rgba(107, 76, 255, 0.42);
+  --overlay-edge-a: #7dffd1;
+  --overlay-edge-b: #6b4cff;
+}
+
+html[data-theme='buddy'] {
   --bg: #0a0e14;
   --bg-elevated: #121820;
   --panel: rgba(8, 12, 18, 0.9);
   --panel-solid: #121820;
-  --gold: #e0c07a;
+  --gold: #f0c96a;
   --mint: #6ee0c4;
   --self: #7dd3fc;
-  --hero-a: rgba(110, 224, 196, 0.08);
-  --hero-b: rgba(224, 192, 122, 0.08);
-  --overlay-tint: rgba(110, 224, 196, 0.14);
+  --hero-a: rgba(240, 201, 106, 0.12);
+  --hero-b: rgba(110, 224, 196, 0.1);
+  --overlay-tint: rgba(240, 201, 106, 0.16);
   --overlay-surface: rgba(8, 12, 18, 0.9);
   --overlay-row: rgba(7, 9, 18, 0.94);
-  --overlay-row-hover: rgba(110, 224, 196, 0.12);
-  --overlay-accent: rgba(224, 192, 122, 0.22);
-  --overlay-accent-line: rgba(224, 192, 122, 0.35);
-  --overlay-edge-a: #e0c07a;
+  --overlay-row-hover: rgba(240, 201, 106, 0.12);
+  --overlay-accent: rgba(240, 201, 106, 0.24);
+  --overlay-accent-line: rgba(110, 224, 196, 0.35);
+  --overlay-edge-a: #f0c96a;
   --overlay-edge-b: #6ee0c4;
-}
-
-html[data-theme='tide'] {
-  --bg: #071018;
-  --bg-elevated: #0d1a24;
-  --panel: rgba(6, 14, 22, 0.92);
-  --panel-solid: #0d1a24;
-  --gold: #7ec8e3;
-  --mint: #5eead4;
-  --self: #93c5fd;
-  --hero-a: rgba(56, 189, 248, 0.1);
-  --hero-b: rgba(45, 212, 191, 0.08);
-  --overlay-tint: rgba(56, 189, 248, 0.16);
-  --overlay-surface: rgba(6, 14, 22, 0.92);
-  --overlay-row: rgba(5, 12, 20, 0.94);
-  --overlay-row-hover: rgba(56, 189, 248, 0.14);
-  --overlay-accent: rgba(126, 200, 227, 0.24);
-  --overlay-accent-line: rgba(94, 234, 212, 0.32);
-  --overlay-edge-a: #7ec8e3;
-  --overlay-edge-b: #5eead4;
-}
-
-html[data-theme='arcane'] {
-  --bg: #120c18;
-  --bg-elevated: #1b1326;
-  --panel: rgba(16, 10, 24, 0.92);
-  --panel-solid: #1b1326;
-  --gold: #d8b4fe;
-  --mint: #c4b5fd;
-  --self: #f0abfc;
-  --hero-a: rgba(192, 132, 252, 0.12);
-  --hero-b: rgba(244, 114, 182, 0.08);
-  --overlay-tint: rgba(192, 132, 252, 0.16);
-  --overlay-surface: rgba(16, 10, 24, 0.92);
-  --overlay-row: rgba(14, 8, 22, 0.94);
-  --overlay-row-hover: rgba(192, 132, 252, 0.14);
-  --overlay-accent: rgba(216, 180, 254, 0.24);
-  --overlay-accent-line: rgba(240, 171, 252, 0.32);
-  --overlay-edge-a: #d8b4fe;
-  --overlay-edge-b: #f0abfc;
-}
-
-html[data-theme='grove'] {
-  --bg: #0c120c;
-  --bg-elevated: #151c14;
-  --panel: rgba(10, 16, 10, 0.92);
-  --panel-solid: #151c14;
-  --gold: #d4c078;
-  --mint: #86efac;
-  --self: #bbf7d0;
-  --hero-a: rgba(134, 239, 172, 0.1);
-  --hero-b: rgba(212, 192, 120, 0.08);
-  --overlay-tint: rgba(134, 239, 172, 0.14);
-  --overlay-surface: rgba(10, 16, 10, 0.92);
-  --overlay-row: rgba(8, 14, 8, 0.94);
-  --overlay-row-hover: rgba(134, 239, 172, 0.12);
-  --overlay-accent: rgba(212, 192, 120, 0.24);
-  --overlay-accent-line: rgba(134, 239, 172, 0.3);
-  --overlay-edge-a: #d4c078;
-  --overlay-edge-b: #86efac;
 }
 
 * {
@@ -1364,8 +1344,8 @@ p {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 48px;
-  padding: 4px 10px 4px 8px;
+  min-height: 52px;
+  padding: 3px 10px 3px 6px;
   gap: 8px;
   overflow: hidden;
   background: var(--overlay-row);
@@ -1429,6 +1409,7 @@ p {
   font-size: 14px;
   font-weight: 650;
   color: #f4f7fb;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1438,19 +1419,19 @@ p {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  width: 34px;
-  height: 46px;
-  border-radius: 6px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   overflow: hidden;
   background: #0d1018;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .pool-thumb-art {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
+  object-position: 50% 18%;
   display: block;
 }
 
@@ -1753,6 +1734,21 @@ p {
   margin-bottom: 18px;
 }
 
+.settings-hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.settings-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
 .settings-hero h1 {
   font-size: 28px;
   font-weight: 650;
@@ -1906,7 +1902,7 @@ button.ghost.danger {
 
 .theme-picks {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
   margin: 8px 0 4px;
 }
@@ -1932,20 +1928,16 @@ button.ghost.danger {
   border-radius: 8px;
 }
 
-.theme-swatch.ember {
-  background: linear-gradient(90deg, #e0c07a, #6ee0c4);
+.theme-swatch.classic {
+  background: linear-gradient(90deg, #e2c07a, #a8703a);
 }
 
-.theme-swatch.tide {
-  background: linear-gradient(90deg, #7ec8e3, #5eead4);
+.theme-swatch.cthulhu {
+  background: linear-gradient(90deg, #7dffd1, #6b4cff);
 }
 
-.theme-swatch.arcane {
-  background: linear-gradient(90deg, #d8b4fe, #f0abfc);
-}
-
-.theme-swatch.grove {
-  background: linear-gradient(90deg, #d4c078, #86efac);
+.theme-swatch.buddy {
+  background: linear-gradient(90deg, #f0c96a, #6ee0c4);
 }
 
 .theme-pick strong {

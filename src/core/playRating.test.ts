@@ -62,10 +62,12 @@ describe('parsePlayRating', () => {
 })
 
 describe('ratingCaptureRect', () => {
-  it('crops the center-right of the client where Rating is drawn', () => {
+  it('crops the upper-right Play widget where Rating is drawn', () => {
     const region = ratingCaptureRect({ x: 100, y: 40, width: 1920, height: 1080 })
-    expect(region.x).toBe(100 + Math.round(1920 * 0.42))
-    expect(region.width).toBeGreaterThan(300)
+    expect(region.x).toBe(100 + Math.round(1920 * 0.56))
+    expect(region.y).toBe(40 + Math.round(1080 * 0.05))
+    expect(region.width).toBeGreaterThan(200)
+    expect(region.y).toBeLessThan(40 + Math.round(1080 * 0.12))
     expect(region.x + region.width).toBeLessThanOrEqual(100 + 1920)
   })
 })

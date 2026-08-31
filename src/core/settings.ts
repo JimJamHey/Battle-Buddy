@@ -1,5 +1,5 @@
 import { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
-import { isThemeId } from './theme'
+import { resolveTheme } from './theme'
 import { DEFAULT_SETTINGS, type AppSettings, type OverlayLayout, type Region } from './types'
 
 const REGIONS = new Set<Region>(['US', 'EU', 'AP'])
@@ -42,8 +42,7 @@ export function sanitizeSettings(base: AppSettings, patch: Partial<AppSettings> 
   else if (typeof patch.currentMmr === 'number' && Number.isFinite(patch.currentMmr)) {
     next.currentMmr = clamp(Math.round(patch.currentMmr), 0, 30000)
   }
-  if (isThemeId(patch.theme)) next.theme = patch.theme
-  else if (!isThemeId(next.theme)) next.theme = 'ember'
+  next.theme = resolveTheme(patch.theme ?? next.theme)
   return next
 }
 

@@ -127,13 +127,13 @@ export function isSessionTotalDelta(
   return delta === before - start
 }
 
-/** Center-right of the Battlegrounds Play screen, where "Rating NNNN" sits. */
+/** Upper-right Battlegrounds Play widget, where "Rating NNNN" sits. */
 export function ratingCaptureRect(client: CaptureRect): CaptureRect {
   return {
-    x: client.x + Math.round(client.width * 0.42),
-    y: client.y + Math.round(client.height * 0.22),
-    width: Math.max(180, Math.round(client.width * 0.4)),
-    height: Math.max(100, Math.round(client.height * 0.36))
+    x: client.x + Math.round(client.width * 0.56),
+    y: client.y + Math.round(client.height * 0.05),
+    width: Math.max(160, Math.round(client.width * 0.3)),
+    height: Math.max(90, Math.round(client.height * 0.28))
   }
 }
 
@@ -142,16 +142,16 @@ export function ratingCaptureRects(client: CaptureRect): CaptureRect[] {
   return [
     primary,
     {
-      x: client.x + Math.round(client.width * 0.32),
-      y: client.y + Math.round(client.height * 0.18),
-      width: Math.max(200, Math.round(client.width * 0.5)),
-      height: Math.max(120, Math.round(client.height * 0.45))
+      x: client.x + Math.round(client.width * 0.5),
+      y: client.y + Math.round(client.height * 0.03),
+      width: Math.max(180, Math.round(client.width * 0.38)),
+      height: Math.max(110, Math.round(client.height * 0.34))
     },
     {
-      x: client.x + Math.round(client.width * 0.56),
-      y: client.y + Math.round(client.height * 0.24),
-      width: Math.max(140, Math.round(client.width * 0.24)),
-      height: Math.max(72, Math.round(client.height * 0.18))
+      x: client.x + Math.round(client.width * 0.42),
+      y: client.y + Math.round(client.height * 0.08),
+      width: Math.max(200, Math.round(client.width * 0.46)),
+      height: Math.max(120, Math.round(client.height * 0.36))
     }
   ]
 }

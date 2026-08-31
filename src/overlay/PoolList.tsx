@@ -13,8 +13,7 @@ function PoolThumb({ card }: { card: BgMinion }) {
         cardId={card.id}
         name={card.name}
         dbfId={card.dbfId}
-        variant="render"
-        hideIfMissing
+        variant="face"
       />
     </span>
   )
@@ -79,6 +78,16 @@ export function PoolList({
                   key={card.id}
                   onPointerEnter={() => warmHoverCard(card)}
                 >
+                  <span className="pool-slice" aria-hidden>
+                    <CardArt
+                      className="pool-tile"
+                      cardId={card.id}
+                      name={card.name}
+                      dbfId={card.dbfId}
+                      variant="tile"
+                      hideIfMissing
+                    />
+                  </span>
                   {showTierBubble ? <span className="pool-tier">{card.techLevel}</span> : null}
                   <PoolThumb card={card} />
                   <span className="pool-name">{card.name}</span>
