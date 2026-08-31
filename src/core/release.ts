@@ -16,3 +16,8 @@ export function releasePageUrl(currentVersion: string, availableVersion: string 
 export function testReleaseFeedUrl(): string {
   return `https://github.com/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/releases/download/test`
 }
+
+/** Tag already-installed GitHub-provider clients can parse from releases.atom (`test` is not semver). */
+export function semverReleaseTag(version: string): string {
+  return `v${version.trim().replace(/^v/i, '')}`
+}

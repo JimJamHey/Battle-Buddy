@@ -25,7 +25,7 @@ npm run dist:win   # Windows
 npm run dist:mac   # macOS
 ```
 
-CI publishes the `test` prerelease on every `master` push (`0.1.0-test.<run>`). Tag `v0.1.x` in `package.json` for numbered releases.
+CI publishes a rolling `test` prerelease and a matching `v0.1.0-test.<run>` tag on every `master` push. Tag `v0.1.x` in `package.json` for numbered stable releases.
 
 ## Strategy curation
 
@@ -45,8 +45,10 @@ Unsigned builds are fine for a small test group. To remove SmartScreen/Gatekeepe
 
 ## Updates (test channel)
 
-- Installed copies **check** the `test` release on launch (`src/main/updater.ts`).
-- Test builds use the rolling `test` tag (not semver) — updater uses a **generic feed** pointing at `releases/download/test/latest.yml`.
+- Installed copies **check** for a newer test build on launch (`src/main/updater.ts`).
+- CI publishes the same installer twice:
+  - Rolling `test` tag — generic feed at `releases/download/test/latest.yml` (and `test.yml`).
+  - Semver tag `v0.1.0-test.<run>` — required by electron-updater's GitHub provider. Builds at `v0.1.0-test.26` and earlier ignore the `test` tag because it is not valid semver, so they cannot download unless this versioned release exists.
 - `autoDownload` is off — users click **Download**, then **Restart** (or install on quit).
 - Preferred installer for updates: `BattleBuddy-Setup.exe` (NSIS).
 

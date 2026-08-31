@@ -121,6 +121,17 @@ jobs:
         with:
           path: dist
           pattern: macos
+      # electron-updater's GitHub provider looks for <channel>.yml (test.yml / test-mac.yml)
+      # before falling back to latest.yml. Keep both so already-installed testers can download.
+      - name: Alias prerelease channel files
+        run: |
+          set -euo pipefail
+          if [[ -f dist/windows/latest.yml ]]; then
+            cp dist/windows/latest.yml dist/windows/test.yml
+          fi
+          if [[ -f dist/macos/latest-mac.yml ]]; then
+            cp dist/macos/latest-mac.yml dist/macos/test-mac.yml
+          fi
       - id: release-files
         run: |
           files=(
@@ -128,6 +139,9 @@ jobs:
             dist/windows/BattleBuddy-windows.zip
             dist/windows/latest.yml
           )
+          if [[ -f dist/windows/test.yml ]]; then
+            files+=(dist/windows/test.yml)
+          fi
           if [ -d dist/macos ]; then
             shopt -s nullglob
             for f in dist/macos/*.dmg dist/macos/*.zip dist/macos/*.yml; do
@@ -145,6 +159,31 @@ jobs:
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'Test build' }}
           prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
           make_latest: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          overwrite_files: true
+          files: ${{ steps.release-files.outputs.files }}
+          body: |
+            Build `${{ github.sha }}` (`${{ needs.version.outputs.version }}`).
+
+            **Windows**
+            - `BattleBuddy-Setup.exe` — double-click to install (auto-update on this test channel)
+            - `BattleBuddy-windows.zip` — unzip and run `BattleBuddy.exe`
+            - If SmartScreen warns about an unknown publisher: **More info** → **Run anyway** (one time)
+
+            **macOS**
+            - `BattleBuddy.dmg` — drag to Applications
+            - If macOS blocks the first open: right-click **BattleBuddy** → **Open**, then confirm
+
+            Start BattleBuddy, then Hearthstone. The overlay follows the game window.
+      # Rolling tag `test` is not valid semver. GitHub-provider clients (v0.1.0-test.26 and
+      # earlier) skip it in releases.atom and cannot download. Mirror the same assets onto a
+      # versioned prerelease tag so those launchers can update.
+      - if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: v${{ needs.version.outputs.version }}
+          prerelease: true
+          make_latest: false
           overwrite_files: true
           files: ${{ steps.release-files.outputs.files }}
           body: |

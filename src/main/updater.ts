@@ -13,7 +13,8 @@ function followPrerelease(version = app.getVersion()): boolean {
   return isPrerelease(version)
 }
 
-/** Rolling `test` releases use a non-semver tag; point electron-updater at latest.yml directly. */
+/** Rolling `test` releases use a non-semver tag; point electron-updater at latest.yml directly.
+ *  Already-installed GitHub-provider builds still need a `v0.1.0-test.*` release (see CI). */
 function configureUpdaterFeed(version = app.getVersion()): void {
   if (followPrerelease(version)) {
     autoUpdater.setFeedURL({ provider: 'generic', url: testReleaseFeedUrl() })

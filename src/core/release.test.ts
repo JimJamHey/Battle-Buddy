@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { releasePageUrl, testReleaseFeedUrl } from './release'
+import { releasePageUrl, semverReleaseTag, testReleaseFeedUrl } from './release'
 
 describe('releasePageUrl', () => {
   it('links test-channel installs to the rolling test release', () => {
@@ -26,5 +26,12 @@ describe('testReleaseFeedUrl', () => {
     expect(testReleaseFeedUrl()).toBe(
       'https://github.com/JimJamHey/Battle-Buddy/releases/download/test'
     )
+  })
+})
+
+describe('semverReleaseTag', () => {
+  it('gives GitHub-provider clients a parseable prerelease tag', () => {
+    expect(semverReleaseTag('0.1.0-test.26')).toBe('v0.1.0-test.26')
+    expect(semverReleaseTag('v0.1.0-test.30')).toBe('v0.1.0-test.30')
   })
 })
