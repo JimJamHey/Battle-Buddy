@@ -39,6 +39,8 @@ import {
   simulateCombat,
   enrichCombatInput,
   combatInputHasGaps,
+  COMBAT_QUICK_SAMPLES,
+  COMBAT_FULL_SAMPLES,
   strategyCatalog,
   curatedStrategies,
   sanitizeSettings,
@@ -739,7 +741,7 @@ function runCombatSim(input: CombatInput): void {
     opponentPlayerId: enriched.opponent.playerId
   }
   scheduleBroadcast()
-  const quick = simulateCombat(enriched, summons, 48)
+  const quick = simulateCombat(enriched, summons, COMBAT_QUICK_SAMPLES)
   if (gen !== simGen) return
   combat = {
     ...EMPTY_COMBAT,
@@ -753,7 +755,7 @@ function runCombatSim(input: CombatInput): void {
   scheduleBroadcast()
   setImmediate(() => {
     if (gen !== simGen || lastCombatKey !== key) return
-    const full = simulateCombat(enriched, summons, 180)
+    const full = simulateCombat(enriched, summons, COMBAT_FULL_SAMPLES)
     combat = {
       ...EMPTY_COMBAT,
       ...full,

@@ -1,17 +1,20 @@
 import {
   cardHasCleave,
   combatParseGaps,
-  parseCardCombat,
-  parseDeathrattleSummon,
   parseStartOfCombat,
   type CombatEffect,
   type CombatKit,
   type CombatTarget,
   type CombatTriggerSet
 } from './combatEffects'
+import { kitCoversGap, kitLookupIds, lookupCombatKit } from './combatKits'
 
 export type { CombatKit, SocEffect } from './combatEffects'
 export { cardHasCleave, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat, combatParseGaps } from './combatEffects'
+export { COMBAT_KITS, lookupCombatKit, mergeCombatKits } from './combatKits'
+
+export const COMBAT_QUICK_SAMPLES = 48
+export const COMBAT_FULL_SAMPLES = 640
 
 export interface CombatMinion {
   cardId: string
@@ -45,10 +48,19 @@ export interface CombatSide {
   trinkets?: CombatMinion[]
 }
 
+export interface NamedCombatBody {
+  attack: number
+  health: number
+  kit: CombatKit
+  tribes: string[]
+}
+
 export interface CombatInput {
   friendly: CombatSide
   opponent: CombatSide
   gems?: { attack: number; health: number }
+  opponentGems?: { attack: number; health: number }
+  named?: Record<string, NamedCombatBody>
 }
 
 export interface CombatResult {
@@ -95,14 +107,29 @@ interface SimMinion {
 }
 
 interface FightCtx {
-  gems: { attack: number; health: number }
+  gems: [{ attack: number; health: number }, { attack: number; health: number }]
   extraDr: [number, number]
   auraAtk: [number, number]
   auraTribe: [string | undefined, string | undefined]
-  named: Map<string, { attack: number; health: number; kit: CombatKit; tribes: string[] }>
+  named: Map<string, NamedCombatBody>
   nextUid: number
   killer: SimMinion | null
   hands: [SimMinion[], SimMinion[]]
+}
+
+function summonFor(
+  cardId: string,
+  summons: Record<string, DeathrattleSummon | null>
+): DeathrattleSummon | null {
+  for (const id of kitLookupIds(cardId)) {
+    if (Object.prototype.hasOwnProperty.call(summons, id)) return summons[id] ?? null
+  }
+  return null
+}
+
+function gemPair(input: CombatInput): FightCtx['gems'] {
+  const fallback = { attack: 1, health: 1 }
+  return [input.gems ?? fallback, input.opponentGems ?? fallback]
 }
 
 function living(board: SimMinion[]): SimMinion[] {
@@ -392,9 +419,15 @@ function runEffects(
       if (fx.keywords?.includes('taunt')) defender.taunt = false
       continue
     }
+    if (fx.op === 'setHealth') {
+      for (const m of pickTarget(own, enemy, source, fx.target, fx.tribe, rng, defender)) {
+        m.health = Math.max(1, fx.health ?? 1)
+      }
+      continue
+    }
     if (fx.op === 'playGem') {
-      const gemAtk = ctx.gems.attack
-      const gemHp = ctx.gems.health
+      const gemAtk = ctx.gems[side].attack
+      const gemHp = ctx.gems[side].health
       const times = fx.count ?? 1
       const targets = pickTarget(own, enemy, source, fx.target, fx.tribe, rng, defender)
       for (const m of targets) {
@@ -591,7 +624,7 @@ export function fightOnce(
   named: FightCtx['named'] = new Map()
 ): { win: 'friendly' | 'opponent' | 'tie'; damageToOpponent: number; damageToFriendly: number } {
   const ctx: FightCtx = {
-    gems: input.gems ?? { attack: 1, health: 1 },
+    gems: gemPair(input),
     extraDr: [0, 0],
     auraAtk: [0, 0],
     auraTribe: [undefined, undefined],
@@ -600,10 +633,10 @@ export function fightOnce(
     killer: null,
     hands: [[], []]
   }
-  const fBoard = input.friendly.minions.map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
-  const oBoard = input.opponent.minions.map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
-  ctx.hands[0] = (input.friendly.hand ?? []).map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
-  ctx.hands[1] = (input.opponent.hand ?? []).map((m) => toSim(m, ctx.nextUid++, summons[m.cardId] ?? null))
+  const fBoard = input.friendly.minions.map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
+  const oBoard = input.opponent.minions.map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
+  ctx.hands[0] = (input.friendly.hand ?? []).map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
+  ctx.hands[1] = (input.opponent.hand ?? []).map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
   const fTrinkets = (input.friendly.trinkets ?? []).map((m) => toSim(m, ctx.nextUid++, null))
   const oTrinkets = (input.opponent.trinkets ?? []).map((m) => toSim(m, ctx.nextUid++, null))
   const fCount = living(fBoard).length
@@ -670,20 +703,29 @@ export function fightOnce(
 export function simulateCombat(
   input: CombatInput,
   summons: Record<string, DeathrattleSummon | null> = {},
-  samples = 400,
-  rng: () => number = Math.random
+  samples = COMBAT_FULL_SAMPLES,
+  rng?: () => number
 ): CombatResult {
   const named = namedFromInput(input)
+  const roll = rng ?? mulberry32(hashCombat(input))
   let lethal = 0
   let win = 0
   let tie = 0
   let loss = 0
   let died = 0
+  let dealtMin = Number.POSITIVE_INFINITY
+  let dealtMax = 0
+  let takenMin = Number.POSITIVE_INFINITY
+  let takenMax = 0
   const oppHp = Math.max(1, input.opponent.heroHealth + input.opponent.heroArmor)
   const selfHp = Math.max(1, input.friendly.heroHealth + input.friendly.heroArmor)
 
   for (let i = 0; i < samples; i++) {
-    const r = fightOnce(input, summons, rng, undefined, named)
+    const r = fightOnce(input, summons, roll, undefined, named)
+    dealtMin = Math.min(dealtMin, r.damageToOpponent)
+    dealtMax = Math.max(dealtMax, r.damageToOpponent)
+    takenMin = Math.min(takenMin, r.damageToFriendly)
+    takenMax = Math.max(takenMax, r.damageToFriendly)
     if (r.win === 'tie') {
       tie++
       continue
@@ -697,7 +739,7 @@ export function simulateCombat(
     if (r.damageToFriendly >= selfHp) died++
   }
 
-  const pct = (n: number) => Math.round((n / samples) * 1000) / 10
+  const pct = (n: number) => (samples > 0 ? Math.round((n / samples) * 1000) / 10 : 0)
   return {
     samples,
     lethal: pct(lethal),
@@ -705,16 +747,24 @@ export function simulateCombat(
     tie: pct(tie),
     loss: pct(loss),
     died: pct(died),
-    dealtMin: 0,
-    dealtMax: 0,
-    takenMin: 0,
-    takenMax: 0
+    dealtMin: Number.isFinite(dealtMin) ? dealtMin : 0,
+    dealtMax,
+    takenMin: Number.isFinite(takenMin) ? takenMin : 0,
+    takenMax
   }
 }
 
 function namedFromInput(input: CombatInput): FightCtx['named'] {
-  const named = new Map<string, { attack: number; health: number; kit: CombatKit; tribes: string[] }>()
-  for (const m of [...input.friendly.minions, ...input.opponent.minions]) {
+  const named = new Map<string, NamedCombatBody>()
+  for (const [name, body] of Object.entries(input.named ?? {})) {
+    named.set(name.toLowerCase(), body)
+  }
+  for (const m of [
+    ...input.friendly.minions,
+    ...input.opponent.minions,
+    ...(input.friendly.hand ?? []),
+    ...(input.opponent.hand ?? [])
+  ]) {
     if (!m.name) continue
     named.set(m.name.toLowerCase(), {
       attack: m.attack,
@@ -726,30 +776,89 @@ function namedFromInput(input: CombatInput): FightCtx['named'] {
   return named
 }
 
-const kitCache = new Map<string, ReturnType<typeof parseCardCombat>>()
+function hashCombat(input: CombatInput): number {
+  const s = JSON.stringify(input)
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return h >>> 0
+}
 
-function kitFor(cardId: string, text: string): ReturnType<typeof parseCardCombat> {
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0
+    let t = a
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const kitCache = new Map<string, CombatKit>()
+
+function kitFor(
+  cardId: string,
+  text: string,
+  card?: { id: string; name?: string; text?: string }
+): CombatKit {
   const key = `${cardId}\n${text}`
   const hit = kitCache.get(key)
   if (hit) return hit
-  const kit = parseCardCombat(text)
+  const kit = lookupCombatKit(cardId, text, card)
   if (kitCache.size > 2000) kitCache.clear()
   kitCache.set(key, kit)
   return kit
 }
 
-export function enrichCombatInput(
-  input: CombatInput,
-  catalog: { id: string; name: string; text?: string; mechanics?: string[]; tribes?: string[]; attack?: number; health?: number }[]
-): CombatInput {
+type CatalogCard = {
+  id: string
+  name: string
+  text?: string
+  mechanics?: string[]
+  tribes?: string[]
+  attack?: number
+  health?: number
+}
+
+function catalogCard(
+  cardId: string,
+  name: string,
+  byId: Map<string, CatalogCard>,
+  byName: Map<string, CatalogCard>
+): CatalogCard | undefined {
+  if (cardId) {
+    for (const id of kitLookupIds(cardId)) {
+      const hit = byId.get(id)
+      if (hit) return hit
+    }
+  }
+  return name ? byName.get(name.toLowerCase()) : undefined
+}
+
+export function enrichCombatInput(input: CombatInput, catalog: CatalogCard[]): CombatInput {
   const byId = new Map(catalog.map((card) => [card.id, card]))
   const byName = new Map(catalog.map((card) => [card.name.toLowerCase(), card]))
+  const named: Record<string, NamedCombatBody> = { ...(input.named ?? {}) }
+  for (const card of catalog) {
+    const key = card.name.toLowerCase()
+    if (!key || named[key]) continue
+    named[key] = {
+      attack: card.attack ?? 1,
+      health: card.health ?? 1,
+      kit: kitFor(card.id, card.text ?? '', card),
+      tribes: card.tribes ?? []
+    }
+  }
   const enrich = (m: CombatMinion): CombatMinion => {
-    const card = byId.get(m.cardId) ?? byName.get(m.name.toLowerCase())
+    const card = catalogCard(m.cardId, m.name, byId, byName)
     const text = card?.text ?? ''
-    const kit = m.kit ?? kitFor(m.cardId || m.name, text)
+    const kit = m.kit ?? kitFor(m.cardId || m.name, text, card)
     return {
       ...m,
+      name: m.name || card?.name || m.name,
       cleave: m.cleave || cardHasCleave(card?.mechanics, text),
       tribes: m.tribes?.length ? m.tribes : card?.tribes,
       kit,
@@ -758,6 +867,7 @@ export function enrichCombatInput(
   }
   return {
     ...input,
+    named,
     friendly: {
       ...input.friendly,
       minions: input.friendly.minions.map(enrich),
@@ -788,9 +898,12 @@ export function combatInputHasGaps(
     ...(input.opponent.trinkets ?? [])
   ]
   return rows.some((m) => {
-    const card = byId.get(m.cardId) ?? byName.get(m.name.toLowerCase())
-    if (combatParseGaps(card?.text ?? '', card?.mechanics ?? []).length > 0) return true
-    if (m.deathrattle && !m.kit?.triggers.some((row) => row.when === 'deathrattle')) return true
+    const card = catalogCard(m.cardId, m.name, byId, byName)
+    const text = card?.text ?? ''
+    const kit = m.kit ?? kitFor(m.cardId || m.name, text, card)
+    const gaps = combatParseGaps(text, card?.mechanics ?? []).filter((gap) => !kitCoversGap(kit, gap))
+    if (gaps.length > 0) return true
+    if (m.deathrattle && !kit.triggers.some((row) => row.when === 'deathrattle')) return true
     return false
   })
 }

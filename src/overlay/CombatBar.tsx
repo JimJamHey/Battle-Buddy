@@ -29,6 +29,14 @@ export function CombatBar({
         <span className="combat-phase" title={vsName ?? undefined}>
           {phase}
         </span>
+        {combat.partial ? (
+          <span
+            className="combat-partial"
+            title="Some cards are missing scripts or kits — odds are an estimate"
+          >
+            Partial
+          </span>
+        ) : null}
       </div>
       <div className="combat-side right">
         <span

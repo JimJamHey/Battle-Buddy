@@ -1,4 +1,5 @@
 import { classifyPlayerBuff, mergeBuffs, playerTagBuff, PLAYER_STAT_TAGS, PLAYER_TAG_KEYS, emptyTagBuffs } from './buffs'
+import { poolBaseId } from './cards'
 import { BoardTracker, type CombatEvent } from './entities'
 import { canonicalTribe, isBgHeroCardId, isPickedBgHero, looksLikeHeroName, sortTribes, TRIBE_ORDER, TRIBE_SUBSET_TAGS } from './heroes'
 import {
@@ -200,9 +201,11 @@ export class BattlegroundsParser {
   }
 
   getCombat(): CombatInput | null {
+    this.boards.applyNames(this.entityName, this.namesByCardId())
     const frozen = this.boards.getFrozen()
     if (!frozen) return null
     const gems = this.currentBuffs().find((buff) => buff.key === 'gems')
+    const oppGems = this.buffsFor(frozen.opponent.playerId).find((buff) => buff.key === 'gems')
     return {
       friendly: {
         ...frozen.friendly,
@@ -212,7 +215,8 @@ export class BattlegroundsParser {
         ...frozen.opponent,
         tavernTier: this.techByPlayer.get(frozen.opponent.playerId) ?? 1
       },
-      gems: gems ? { attack: gems.attack, health: gems.health } : undefined
+      gems: gems ? { attack: gems.attack, health: gems.health } : undefined,
+      opponentGems: oppGems ? { attack: oppGems.attack, health: oppGems.health } : undefined
     }
   }
 
@@ -362,6 +366,7 @@ export class BattlegroundsParser {
     this.noteNestedEntity(line)
     if (!this.ignoreLobbyWrites) this.ingestEntityLine(line)
     if (!this.ignoreLobbyWrites) this.resolveFriendly()
+    this.boards.applyNames(this.entityName, this.namesByCardId())
     const handPlayer = this.boards.getDetectedHandPlayer()
     if (!this.ignoreLobbyWrites && handPlayer != null) {
       this.match.friendlyPlayerId = handPlayer
@@ -922,10 +927,21 @@ export class BattlegroundsParser {
   }
 
   private currentBuffs(): MatchBuff[] {
-    const self = this.match.friendlyPlayerId
+    return this.buffsFor(this.match.friendlyPlayerId)
+  }
+
+  private buffsFor(playerId: number | null): MatchBuff[] {
     const fromEnchant: MatchBuff[] = []
     for (const buff of this.buffs.values()) {
-      if (self != null && buff.player !== self && buff.player > 0) continue
+      if (playerId != null) {
+        if (buff.player === playerId) {
+          /* this player's enchant */
+        } else if (buff.player > 0) {
+          continue
+        } else if (playerId !== this.match.friendlyPlayerId) {
+          continue
+        }
+      }
       if (buff.zone && buff.zone !== 'PLAY' && buff.zone !== '1') continue
       fromEnchant.push({
         key: buff.key,
@@ -936,10 +952,26 @@ export class BattlegroundsParser {
       })
     }
     const quilboarInLobby = this.match.availableTribes.includes('Quilboar')
-    const fromTags = PLAYER_TAG_KEYS.map((key) =>
-      playerTagBuff(key, this.tagBuffs[key].attack, this.tagBuffs[key].health, { quilboarInLobby })
-    ).filter((buff): buff is NonNullable<typeof buff> => buff != null)
+    const fromTags =
+      playerId != null && playerId === this.match.friendlyPlayerId
+        ? PLAYER_TAG_KEYS.map((key) =>
+            playerTagBuff(key, this.tagBuffs[key].attack, this.tagBuffs[key].health, { quilboarInLobby })
+          ).filter((buff): buff is NonNullable<typeof buff> => buff != null)
+        : []
     return mergeBuffs([...fromEnchant, ...fromTags])
+  }
+
+  private namesByCardId(): Map<string, string> {
+    const out = new Map<string, string>()
+    for (const [entityId, name] of this.entityName) {
+      if (!name) continue
+      const cardId = this.entityCardId.get(entityId)
+      if (!cardId) continue
+      out.set(cardId, name)
+      const base = poolBaseId(cardId)
+      if (base !== cardId && !out.has(base)) out.set(base, name)
+    }
+    return out
   }
 
   /** Hero select is still the first shop round; Power.log often has no TURN tag yet. */

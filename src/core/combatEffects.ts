@@ -34,6 +34,7 @@ export type CombatOp =
   | 'tribeAuraAttack'
   | 'shinyRing'
   | 'summonFromHand'
+  | 'setHealth'
 
 export type CombatTarget =
   | 'self'
@@ -238,10 +239,7 @@ function parseClause(clause: string): CombatEffect[] {
   const out: CombatEffect[] = []
   if (summon) out.push(summon)
   if (damage) out.push(damage)
-  if (buff && !summon) out.push(buff)
-  else if (buff && buff.keywords?.length && summon) {
-    /* keywords already on summon */
-  }
+  if (buff) out.push(buff)
   return out
 }
 
@@ -263,7 +261,13 @@ export function parseCardCombat(text: string): CombatKit {
   if (!raw) return { ...EMPTY_KIT }
   const triggers: CombatTriggerSet[] = []
   let extraDeathrattles = 0
-  if (/your deathrattles trigger an extra time/i.test(raw)) extraDeathrattles = 1
+  const extra = raw.match(
+    /your deathrattles trigger (?:(\d+|a|an|one|two|three|four|five|six) extra times?|an extra time|twice)/i
+  )
+  if (extra) {
+    if (extra[1]) extraDeathrattles = countWord(extra[1])
+    else extraDeathrattles = /twice/i.test(extra[0]) ? 2 : 1
+  }
 
   const avenge = raw.match(/avenge\s*\((\d+)\)\s*:\s*(.+?)(?=(?:deathrattle|rally|start of combat|$))/i)
   if (avenge) {

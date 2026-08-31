@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { boardCardUrls, cardArtUrls, cardFaceUrls, cardTileUrls } from '../core/cards'
 import { firstAvailable, firstCached, warmUrls } from './imageCache'
-import { knockoutDarkBackdrop } from './knockout'
+import { isMostlyBlankImage, knockoutDarkBackdrop } from './knockout'
 
 export function CardArt({
   cardId,
@@ -31,14 +31,34 @@ export function CardArt({
     let live = true
     const show = (url: string) => {
       if (!live || !url) return
-      if (variant !== 'golden' || !url.includes('hsbg.cards')) {
+      if (variant === 'golden' && url.includes('hsbg.cards')) {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => {
+          if (live) setSrc(knockoutDarkBackdrop(img) ?? url)
+        }
+        img.onerror = () => {
+          if (live) setSrc(url)
+        }
+        img.src = url
+        return
+      }
+      if (!hideIfMissing) {
         setSrc(url)
         return
       }
       const img = new Image()
       img.crossOrigin = 'anonymous'
       img.onload = () => {
-        if (live) setSrc(knockoutDarkBackdrop(img) ?? url)
+        if (!live) return
+        if (isMostlyBlankImage(img)) {
+          const i = urls.indexOf(url)
+          const next = i >= 0 ? urls[i + 1] : undefined
+          if (next && next !== url) show(next)
+          else setSrc(null)
+          return
+        }
+        setSrc(url)
       }
       img.onerror = () => {
         if (live) setSrc(url)
@@ -60,7 +80,7 @@ export function CardArt({
     return () => {
       live = false
     }
-  }, [urls, wait, variant])
+  }, [urls, wait, variant, hideIfMissing])
 
   if (!cardId || !src) {
     if (hideIfMissing) return null

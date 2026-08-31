@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { fightOnce, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat, simulateCombat, combatInputHasGaps, type CombatInput } from './combatSim'
+import {
+  COMBAT_KITS,
+  combatInputHasGaps,
+  enrichCombatInput,
+  fightOnce,
+  lookupCombatKit,
+  parseCardCombat,
+  parseDeathrattleSummon,
+  parseStartOfCombat,
+  simulateCombat,
+  type CombatInput
+} from './combatSim'
 import { BoardTracker } from './entities'
 
 function side(
@@ -92,6 +103,7 @@ describe('combat sim', () => {
       health: 2
     })
     expect(parseCardCombat('Your Deathrattles trigger an extra time.').extraDeathrattles).toBe(1)
+    expect(parseCardCombat('Your Deathrattles trigger two extra times.').extraDeathrattles).toBe(2)
     expect(
       parseCardCombat('Rally: Gain +2 Attack.').triggers.some(
         (row) => row.when === 'rally' && row.effects[0]?.op === 'buff'
@@ -321,6 +333,43 @@ describe('board tracker', () => {
     expect(frozen?.opponent.playerId).toBe(8)
   })
 
+  it('upgrades an early empty-opponent freeze once their clones appear', () => {
+    const t = new BoardTracker()
+    const name = (id: number) => (id === 1 ? 'Me' : id === 8 ? 'Them' : `P${id}`)
+    t.setCombatOpponent(8, 'Them')
+    const setup = [
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_CURRENT_COMBAT_PLAYER_ID value=18',
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=PLAY',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=15',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=8',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=8',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    for (const line of setup) t.feed(line, 1, name)
+    expect(
+      t.feed('D 12:00 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=10', 1, name)
+    ).toBe('start')
+    expect(t.getFrozen()?.opponent.minions).toHaveLength(0)
+    const late = [
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=PLAY',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=18',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=30',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    let event = null
+    for (const line of late) event = t.feed(line, 1, name) ?? event
+    expect(event).toBe('start')
+    expect(t.getFrozen()?.opponent.minions).toHaveLength(1)
+    expect(t.getFrozen()?.opponent.minions[0]?.attack).toBe(2)
+    expect(t.getFrozen()?.friendly.minions[0]?.attack).toBe(8)
+  })
+
   it('does not freeze a combat board against yourself', () => {
     const t = new BoardTracker()
     const name = (id: number) => `P${id}`
@@ -356,6 +405,158 @@ describe('combat gaps', () => {
         [{ id: 'DR', name: 'DR Bot', text: '', mechanics: ['Deathrattle'] }]
       )
     ).toBe(true)
+  })
+})
+
+describe('combat kit registry', () => {
+  it('overlays a kit on text parse for a fake card id', () => {
+    const id = 'TEST_KIT_FAKE'
+    COMBAT_KITS[id] = {
+      extraDeathrattles: 3,
+      triggers: [{ when: 'deathrattle', effects: [{ op: 'summon', count: 9, attack: 9, health: 9 }] }]
+    }
+    try {
+      const kit = lookupCombatKit(id, 'Deathrattle: Summon a 1/1 Imp.')
+      expect(kit.extraDeathrattles).toBe(3)
+      expect(kit.triggers.find((row) => row.when === 'deathrattle')?.effects[0]).toMatchObject({
+        op: 'summon',
+        count: 9,
+        attack: 9,
+        health: 9
+      })
+      const golden = lookupCombatKit(`${id}_G`, 'Deathrattle: Summon a 1/1 Imp.')
+      expect(golden.extraDeathrattles).toBe(3)
+    } finally {
+      delete COMBAT_KITS[id]
+    }
+  })
+
+  it('looks up golden _G summons from the base card id', () => {
+    const input: CombatInput = {
+      friendly: side(1, [
+        minion(1, 1, { deathrattle: true, cardId: 'BONE_G' }),
+        minion(0, 1, {
+          cardId: 'TITUS',
+          kit: { triggers: [], extraDeathrattles: 1, cleave: false }
+        })
+      ]),
+      opponent: side(2, [minion(1, 1)])
+    }
+    const r = fightOnce(input, { BONE: { count: 2, attack: 1, health: 1 } }, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('fills dealt and taken damage min/max', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(10, 10)], 30, 4),
+      opponent: side(2, [], 8, 1)
+    }
+    const odds = simulateCombat(input, {}, 12, () => 0)
+    expect(odds.dealtMin).toBe(14)
+    expect(odds.dealtMax).toBe(14)
+    expect(odds.takenMin).toBe(0)
+    expect(odds.takenMax).toBe(0)
+  })
+
+  it('keeps a same-clause deathrattle buff after a summon', () => {
+    const kit = parseCardCombat('Deathrattle: Summon a 1/1 Imp and give your other minions +2/+2.')
+    const effects = kit.triggers.find((row) => row.when === 'deathrattle')?.effects ?? []
+    expect(effects.some((fx) => fx.op === 'summon' && fx.attack === 1 && fx.health === 1)).toBe(true)
+    expect(effects.some((fx) => fx.op === 'buff' && fx.attack === 2 && fx.health === 2)).toBe(true)
+  })
+
+  it('must hit taunt instead of a fatter body', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(5, 5)]),
+      opponent: side(2, [minion(5, 5), minion(0, 1, { taunt: true })])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    // Correct: first swing eats the 0-attack taunt, then the 5/5s trade — tie.
+    // If taunt is ignored, the 5/5s trade immediately and the taunt is leftover — loss.
+    expect(r.win).toBe('tie')
+  })
+
+  it('seeds the same freeze to the same percentages', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(3, 3), minion(2, 2)]),
+      opponent: side(2, [minion(3, 3), minion(2, 2)])
+    }
+    expect(simulateCombat(input, {}, 80)).toEqual(simulateCombat(input, {}, 80))
+  })
+
+  it('uses opponent gem size on their play-gem scripts', () => {
+    const gemmer = (id: string) =>
+      minion(1, 1, {
+        cardId: id,
+        kit: {
+          triggers: [{ when: 'startOfCombat', effects: [{ op: 'playGem', target: 'self' }] }],
+          extraDeathrattles: 0,
+          cleave: false
+        }
+      })
+    const input: CombatInput = {
+      friendly: side(1, [gemmer('G1')]),
+      opponent: side(2, [gemmer('G2')]),
+      gems: { attack: 1, health: 1 },
+      opponentGems: { attack: 20, health: 20 }
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('opponent')
+  })
+
+  it('covers a kit SoC so Upper Hand is not partial', () => {
+    const input = enrichCombatInput(
+      { friendly: side(1, [minion(1, 1, { cardId: 'BG28_573', name: 'Upper Hand' })]), opponent: side(2, [minion(1, 1)]) },
+      [
+        {
+          id: 'BG28_573',
+          name: 'Upper Hand',
+          text: 'Start of Combat: Set a random enemy minion\'s Health to 1.',
+          mechanics: ['Start of Combat']
+        }
+      ]
+    )
+    expect(combatInputHasGaps(input, [
+      {
+        id: 'BG28_573',
+        name: 'Upper Hand',
+        text: 'Start of Combat: Set a random enemy minion\'s Health to 1.',
+        mechanics: ['Start of Combat']
+      }
+    ])).toBe(false)
+  })
+
+  it('sets health from a start-of-combat kit', () => {
+    const input: CombatInput = {
+      friendly: side(1, [
+        minion(1, 5, {
+          kit: {
+            triggers: [{ when: 'startOfCombat', effects: [{ op: 'setHealth', health: 1, target: 'randomEnemy' }] }],
+            extraDeathrattles: 0,
+            cleave: false
+          }
+        })
+      ]),
+      opponent: side(2, [minion(1, 20)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('still marks Frenzy and unparsed deathrattles as partial after enrich', () => {
+    const frenzy = enrichCombatInput(
+      { friendly: side(1, [minion(1, 1, { cardId: 'FR', name: 'Frenzy Bot' })]), opponent: side(2, [minion(1, 1)]) },
+      [{ id: 'FR', name: 'Frenzy Bot', text: '', mechanics: ['Frenzy'] }]
+    )
+    expect(combatInputHasGaps(frenzy, [{ id: 'FR', name: 'Frenzy Bot', text: '', mechanics: ['Frenzy'] }])).toBe(true)
+    const dr = enrichCombatInput(
+      {
+        friendly: side(1, [minion(1, 1, { cardId: 'DR', name: 'DR Bot', deathrattle: true })]),
+        opponent: side(2, [minion(1, 1)])
+      },
+      [{ id: 'DR', name: 'DR Bot', text: '', mechanics: ['Deathrattle'] }]
+    )
+    expect(combatInputHasGaps(dr, [{ id: 'DR', name: 'DR Bot', text: '', mechanics: ['Deathrattle'] }])).toBe(true)
   })
 })
 

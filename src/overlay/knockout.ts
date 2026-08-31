@@ -18,7 +18,6 @@ export function knockoutDarkBackdrop(img: HTMLImageElement): string | null {
       (height - 1) * width * 4,
       ((height - 1) * width + (width - 1)) * 4
     ]
-    let a = 0
     let r = 0
     let g = 0
     let b = 0
@@ -49,5 +48,42 @@ export function knockoutDarkBackdrop(img: HTMLImageElement): string | null {
     return canvas.toDataURL('image/png')
   } catch {
     return null
+  }
+}
+
+/** True when the painting is empty, transparent, or a white name-plate leftover. */
+export function isMostlyBlankImage(img: HTMLImageElement): boolean {
+  try {
+    const width = img.naturalWidth
+    const height = img.naturalHeight
+    if (width < 4 || height < 4) return true
+    const canvas = document.createElement('canvas')
+    const sw = Math.min(48, width)
+    const sh = Math.min(48, height)
+    canvas.width = sw
+    canvas.height = sh
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })
+    if (!ctx) return false
+    ctx.drawImage(img, 0, 0, sw, sh)
+    const px = ctx.getImageData(0, 0, sw, sh).data
+    let blank = 0
+    let n = 0
+    for (let i = 0; i < px.length; i += 4) {
+      n += 1
+      if (px[i + 3] < 24) {
+        blank += 1
+        continue
+      }
+      const r = px[i]
+      const g = px[i + 1]
+      const b = px[i + 2]
+      const max = Math.max(r, g, b)
+      const min = Math.min(r, g, b)
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b
+      if (lum > 232 && max - min < 28) blank += 1
+    }
+    return n > 0 && blank / n > 0.72
+  } catch {
+    return false
   }
 }

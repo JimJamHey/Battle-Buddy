@@ -34,18 +34,18 @@ html[data-theme='classic'] {
   --bg-elevated: #1e1a14;
   --panel: rgba(18, 14, 10, 0.92);
   --panel-solid: #1e1a14;
-  --gold: #e2c07a;
+  --gold: #e8c87a;
   --mint: #d7b56a;
   --self: #f3e6c4;
   --hero-a: rgba(226, 192, 122, 0.16);
   --hero-b: rgba(168, 112, 58, 0.14);
   --overlay-tint: rgba(226, 192, 122, 0.18);
-  --overlay-surface: rgba(16, 12, 8, 0.92);
-  --overlay-row: rgba(12, 10, 7, 0.94);
-  --overlay-row-hover: rgba(226, 192, 122, 0.14);
+  --overlay-surface: rgba(18, 13, 8, 0.93);
+  --overlay-row: rgba(16, 12, 8, 0.96);
+  --overlay-row-hover: rgba(226, 192, 122, 0.16);
   --overlay-accent: rgba(226, 192, 122, 0.28);
-  --overlay-accent-line: rgba(215, 181, 106, 0.4);
-  --overlay-edge-a: #e2c07a;
+  --overlay-accent-line: rgba(215, 181, 106, 0.45);
+  --overlay-edge-a: #e8c87a;
   --overlay-edge-b: #a8703a;
 }
 
@@ -60,13 +60,13 @@ html[data-theme='cthulhu'] {
   --hero-a: rgba(103, 232, 200, 0.14);
   --hero-b: rgba(107, 76, 255, 0.16);
   --overlay-tint: rgba(103, 232, 200, 0.16);
-  --overlay-surface: rgba(4, 8, 10, 0.94);
-  --overlay-row: rgba(3, 7, 9, 0.95);
-  --overlay-row-hover: rgba(103, 232, 200, 0.12);
-  --overlay-accent: rgba(125, 255, 209, 0.2);
-  --overlay-accent-line: rgba(107, 76, 255, 0.42);
+  --overlay-surface: rgba(3, 8, 12, 0.94);
+  --overlay-row: rgba(4, 8, 12, 0.96);
+  --overlay-row-hover: rgba(103, 232, 200, 0.14);
+  --overlay-accent: rgba(125, 255, 209, 0.22);
+  --overlay-accent-line: rgba(124, 92, 255, 0.48);
   --overlay-edge-a: #7dffd1;
-  --overlay-edge-b: #6b4cff;
+  --overlay-edge-b: #7b5cff;
 }
 
 html[data-theme='buddy'] {
@@ -80,11 +80,11 @@ html[data-theme='buddy'] {
   --hero-a: rgba(240, 201, 106, 0.16);
   --hero-b: rgba(110, 224, 196, 0.12);
   --overlay-tint: rgba(240, 201, 106, 0.18);
-  --overlay-surface: rgba(8, 12, 18, 0.9);
-  --overlay-row: rgba(7, 9, 18, 0.94);
-  --overlay-row-hover: rgba(240, 201, 106, 0.12);
+  --overlay-surface: rgba(7, 12, 22, 0.92);
+  --overlay-row: rgba(6, 10, 20, 0.96);
+  --overlay-row-hover: rgba(240, 201, 106, 0.14);
   --overlay-accent: rgba(240, 201, 106, 0.24);
-  --overlay-accent-line: rgba(110, 224, 196, 0.35);
+  --overlay-accent-line: rgba(240, 201, 106, 0.42);
   --overlay-edge-a: #f0c96a;
   --overlay-edge-b: #6ee0c4;
 }
@@ -439,6 +439,16 @@ p {
   backdrop-filter: blur(18px) saturate(1.2);
 }
 
+.panel::before,
+.combat-bar::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  pointer-events: none;
+  z-index: 4;
+  display: none;
+}
+
 .panel::after,
 .combat-bar::after {
   content: '';
@@ -456,21 +466,39 @@ p {
 html[data-theme='classic'] .panel,
 html[data-theme='classic'] .combat-bar,
 html[data-theme='classic'] .pool-panel {
-  --radius: 12px;
-  border: 22px solid transparent;
-  border-image-source: url('./frames/classic-wrap-v.png');
-  border-image-slice: 16%;
-  border-image-width: 22px;
-  border-image-outset: 6px;
-  border-image-repeat: stretch;
+  --radius: 10px;
+  border: 5px solid #6a4520;
   background:
-    linear-gradient(180deg, rgba(255, 214, 140, 0.16), transparent 38%),
-    repeating-linear-gradient(-18deg, rgba(92, 58, 24, 0.2) 0 2px, transparent 2px 8px),
+    linear-gradient(180deg, rgba(255, 214, 140, 0.18), transparent 34%),
+    repeating-linear-gradient(-22deg, rgba(92, 58, 24, 0.18) 0 2px, transparent 2px 9px),
     var(--overlay-surface);
   box-shadow:
     0 22px 40px rgba(0, 0, 0, 0.55),
-    0 0 0 3px #4a3014,
-    0 0 0 5px #d4b06a;
+    0 0 0 1px #2a1608,
+    0 0 0 3px #c9a056,
+    0 0 0 5px #3d2410,
+    0 0 0 6px #ead08a,
+    inset 0 1px 0 rgba(255, 232, 180, 0.22);
+}
+
+html[data-theme='classic'] .panel::before,
+html[data-theme='classic'] .combat-bar::before {
+  display: block;
+  inset: -20px;
+  background:
+    url('./frames/classic-corner-tl.png') left top / 78px 78px no-repeat,
+    url('./frames/classic-corner-tr.png') right top / 78px 78px no-repeat,
+    url('./frames/classic-corner-bl.png') left bottom / 78px 78px no-repeat,
+    url('./frames/classic-corner-br.png') right bottom / 78px 78px no-repeat;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+}
+
+html[data-theme='classic'] .panel::after,
+html[data-theme='classic'] .combat-bar::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 226, 170, 0.38),
+    inset 0 0 0 3px rgba(42, 24, 8, 0.55),
+    inset 0 16px 26px rgba(40, 22, 8, 0.28);
 }
 
 html[data-theme='classic'] .chip.live,
@@ -481,35 +509,46 @@ html[data-theme='classic'] .pool-mode-toggle button.active {
 html[data-theme='cthulhu'] .panel,
 html[data-theme='cthulhu'] .combat-bar,
 html[data-theme='cthulhu'] .pool-panel {
-  --radius: 22px;
-  border: 28px solid transparent;
-  border-image-source: url('./frames/cthulhu-wrap-v.png');
-  border-image-slice: 18%;
-  border-image-width: 28px;
-  border-image-outset: 10px;
-  border-image-repeat: stretch;
+  --radius: 18px;
+  border: 2px solid rgba(125, 255, 209, 0.42);
   background:
     radial-gradient(120% 90% at 100% -10%, rgba(107, 76, 255, 0.34), transparent 52%),
     radial-gradient(80% 70% at 0% 110%, rgba(0, 90, 78, 0.46), transparent 48%),
     var(--overlay-surface);
   box-shadow:
     0 18px 44px rgba(0, 0, 0, 0.55),
-    0 0 28px rgba(103, 232, 200, 0.28),
-    0 0 0 2px rgba(107, 76, 255, 0.45);
+    0 0 22px rgba(103, 232, 200, 0.22),
+    0 0 0 1px rgba(107, 76, 255, 0.55),
+    inset 0 0 0 1px rgba(8, 20, 28, 0.85);
 }
 
-html[data-theme='cthulhu'] .combat-bar {
-  border-image-source: url('./frames/cthulhu-wrap-h.png');
-  border-image-slice: 20%;
-  border-image-width: 24px;
-  border-image-outset: 8px;
+html[data-theme='cthulhu'] .panel::before,
+html[data-theme='cthulhu'] .combat-bar::before {
+  display: block;
+  inset: -42px;
+  background:
+    url('./frames/cthulhu-tentacle-tl.png') left top / 128px 128px no-repeat,
+    url('./frames/cthulhu-tentacle-tr.png') right top / 128px 128px no-repeat,
+    url('./frames/cthulhu-tentacle-bl.png') left bottom / 128px 128px no-repeat,
+    url('./frames/cthulhu-tentacle-br.png') right bottom / 128px 128px no-repeat;
+  filter: drop-shadow(0 0 12px rgba(80, 255, 210, 0.35));
+}
+
+html[data-theme='cthulhu'] .pool-panel::before {
+  background:
+    url('./frames/cthulhu-tentacle-tl.png') left top / 128px 128px no-repeat,
+    url('./frames/cthulhu-tentacle-tr.png') right top / 128px 128px no-repeat,
+    url('./frames/cthulhu-tentacle-bl.png') left bottom / 128px 128px no-repeat,
+    url('./frames/cthulhu-tentacle-br.png') right bottom / 128px 128px no-repeat,
+    url('./frames/cthulhu-tentacle-side-l.png') left center / 54px 210px no-repeat,
+    url('./frames/cthulhu-tentacle-side-r.png') right center / 54px 210px no-repeat;
 }
 
 html[data-theme='cthulhu'] .panel::after,
 html[data-theme='cthulhu'] .combat-bar::after {
   box-shadow:
-    inset 0 0 0 1px rgba(125, 255, 209, 0.35),
-    inset 0 0 0 5px rgba(20, 8, 40, 0.55),
+    inset 0 0 0 1px rgba(125, 255, 209, 0.4),
+    inset 0 0 0 4px rgba(20, 8, 40, 0.55),
     inset 0 0 34px rgba(107, 76, 255, 0.22);
 }
 
@@ -517,19 +556,40 @@ html[data-theme='buddy'] .panel,
 html[data-theme='buddy'] .combat-bar,
 html[data-theme='buddy'] .pool-panel {
   --radius: 16px;
-  border: 20px solid transparent;
-  border-image-source: url('./frames/buddy-wrap-v.png');
-  border-image-slice: 15%;
-  border-image-width: 20px;
-  border-image-outset: 5px;
-  border-image-repeat: stretch;
+  border: 3px solid #e8c45c;
   background:
     linear-gradient(180deg, rgba(240, 201, 106, 0.16), transparent 40%),
+    radial-gradient(120% 70% at 50% -30%, rgba(240, 201, 106, 0.12), transparent 55%),
     var(--overlay-surface);
   box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.5),
-    0 0 0 3px #6a4a12,
-    0 0 0 6px #f4d78a;
+    0 0 0 2px #2a1c08,
+    0 0 0 5px #c9a227,
+    0 0 0 7px #f6e2a0,
+    0 0 0 10px #5a4010,
+    0 0 0 12px #e0b64a,
+    0 0 18px rgba(240, 201, 106, 0.16),
+    inset 0 1px 0 rgba(255, 236, 180, 0.28);
+}
+
+html[data-theme='buddy'] .panel::before,
+html[data-theme='buddy'] .combat-bar::before {
+  display: block;
+  inset: -16px;
+  background:
+    url('./frames/buddy-corner-tl.png') left top / 70px 70px no-repeat,
+    url('./frames/buddy-corner-tr.png') right top / 70px 70px no-repeat,
+    url('./frames/buddy-corner-bl.png') left bottom / 70px 70px no-repeat,
+    url('./frames/buddy-corner-br.png') right bottom / 70px 70px no-repeat;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+html[data-theme='buddy'] .panel::after,
+html[data-theme='buddy'] .combat-bar::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 232, 180, 0.35),
+    inset 0 0 0 4px rgba(12, 16, 28, 0.55),
+    inset 0 14px 24px rgba(0, 0, 0, 0.22);
 }
 
 .panel-head {
@@ -1479,6 +1539,7 @@ html[data-theme='buddy'] .pool-panel {
   padding: 4px 10px 4px 8px;
   gap: 8px;
   overflow: hidden;
+  isolation: isolate;
   background: var(--overlay-row);
   border-bottom: 1px solid var(--line);
   transition: background 160ms ease;
@@ -1548,10 +1609,18 @@ html[data-theme='buddy'] .pool-panel {
 
 .pool-slice {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(58%, 170px);
   overflow: hidden;
   pointer-events: none;
-  background: var(--overlay-row);
+  z-index: 0;
+  background: transparent;
+}
+
+.pool-slice:not(:has(img)) {
+  display: none;
 }
 
 .pool-slice::after {
@@ -1559,24 +1628,37 @@ html[data-theme='buddy'] .pool-panel {
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    to right,
-    color-mix(in srgb, var(--overlay-row) 97%, transparent) 0%,
-    color-mix(in srgb, var(--overlay-row) 88%, transparent) 22%,
+    90deg,
+    var(--overlay-row) 0%,
+    color-mix(in srgb, var(--overlay-row) 88%, transparent) 18%,
     color-mix(in srgb, var(--overlay-row) 42%, transparent) 52%,
-    color-mix(in srgb, var(--overlay-row) 12%, transparent) 74%,
+    color-mix(in srgb, var(--overlay-row) 8%, transparent) 78%,
+    transparent 100%
+  );
+}
+
+.pool-row:hover .pool-slice::after {
+  background: linear-gradient(
+    90deg,
+    var(--overlay-row-hover) 0%,
+    color-mix(in srgb, var(--overlay-row-hover) 82%, transparent) 22%,
+    color-mix(in srgb, var(--overlay-row) 28%, transparent) 58%,
     transparent 100%
   );
 }
 
 .pool-tile {
+  position: absolute;
+  top: 50%;
+  right: 0;
   width: 100%;
-  height: 100%;
+  height: 240%;
+  transform: translateY(-50%);
   object-fit: cover;
-  object-position: right center;
+  object-position: 50% 18%;
   display: block;
-  transform: scale(1.14);
-  transform-origin: right center;
-  background: var(--overlay-row);
+  background: transparent;
+  opacity: 0.9;
 }
 
 .pool-cost {
@@ -1958,4 +2040,16 @@ button.ghost.danger {
   border-color: var(--gold);
   background: linear-gradient(180deg, var(--overlay-tint), rgba(255, 255, 255, 0.04));
   box-shadow: inset 0 0 0 1px var(--overlay-accent-line);
+}
+
+.theme-toggles button[data-theme-id='classic'].active {
+  border-color: #d4b06a;
+}
+
+.theme-toggles button[data-theme-id='cthulhu'].active {
+  border-color: #67e8c8;
+}
+
+.theme-toggles button[data-theme-id='buddy'].active {
+  border-color: #f0c96a;
 }

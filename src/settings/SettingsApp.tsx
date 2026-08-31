@@ -204,6 +204,7 @@ export function SettingsApp() {
             <button
               key={theme.id}
               type="button"
+              data-theme-id={theme.id}
               aria-pressed={state.settings.theme === theme.id}
               className={state.settings.theme === theme.id ? 'active' : ''}
               onClick={() => patch({ theme: theme.id })}

@@ -292,6 +292,74 @@ describe('parser', () => {
     expect(p.getCombat()?.opponent.minions[0]?.attack).toBe(3)
   })
 
+  it('copies parser entity names onto nameless combat clones', () => {
+    const p = new BattlegroundsParser('TestPlayer')
+    for (const line of [
+      'D 12:00 GameState.DebugPrintPower() - CREATE_GAME',
+      'D 12:00 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS',
+      'D 12:00 GameState.DebugPrintGame() - PlayerID=1, PlayerName=TestPlayer#1234',
+      'D 12:00 GameState.DebugPrintPower() - Player EntityID=2 PlayerID=1 GameAccountId=[hi=1 lo=2]',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Updating [entityName=Leapfrogger id=80 zone=PLAY zonePos=1 cardId=BGS_PET player=1] CardID=BGS_PET'
+    ]) {
+      p.feed(line)
+    }
+    p.feed('D 12:10 GameState.DebugPrintPower() - CREATE_GAME')
+    for (const line of [
+      'D 12:10 PowerTaskList.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ATK value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=HEALTH value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CONTROLLER value=2',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ATK value=3',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=HEALTH value=2',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1'
+    ]) {
+      p.feed(line)
+    }
+    expect(p.getCombat()?.friendly.minions[0]?.name).toBe('Leapfrogger')
+  })
+
+  it('passes opponent blood gems into the combat snapshot', () => {
+    const p = new BattlegroundsParser('TestPlayer')
+    for (const line of [
+      'D 12:00 GameState.DebugPrintPower() - CREATE_GAME',
+      'D 12:00 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS',
+      'D 12:00 GameState.DebugPrintGame() - PlayerID=1, PlayerName=TestPlayer#1234',
+      'D 12:00 GameState.DebugPrintGame() - PlayerID=8, PlayerName=Rival#1',
+      'D 12:00 GameState.DebugPrintPower() - Player EntityID=2 PlayerID=1 GameAccountId=[hi=1 lo=2]',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Updating [entityName=Blood Gem Player Enchant (DNT) id=400 zone=PLAY zonePos=0 cardId=BG26_159pe player=8] CardID=BG26_159pe',
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=[entityName=Blood Gem Player Enchant (DNT) id=400 zone=PLAY zonePos=0 cardId=BG26_159pe player=8] tag=ATK value=4',
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=[entityName=Blood Gem Player Enchant (DNT) id=400 zone=PLAY zonePos=0 cardId=BG26_159pe player=8] tag=HEALTH value=5',
+      'D 12:10 GameState.DebugPrintPower() - TAG_CHANGE Entity=TestPlayer#1234 tag=BACON_CURRENT_COMBAT_PLAYER_ID value=8',
+      'D 12:10 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:10 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:10 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:10 GameState.DebugPrintPower() -     tag=ZONE value=PLAY',
+      'D 12:10 GameState.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:10 GameState.DebugPrintPower() -     tag=ATK value=4',
+      'D 12:10 GameState.DebugPrintPower() -     tag=HEALTH value=4',
+      'D 12:10 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:10 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:10 GameState.DebugPrintPower() -     tag=CARDTYPE value=MINION',
+      'D 12:10 GameState.DebugPrintPower() -     tag=ZONE value=PLAY',
+      'D 12:10 GameState.DebugPrintPower() -     tag=CONTROLLER value=18',
+      'D 12:10 GameState.DebugPrintPower() -     tag=ATK value=2',
+      'D 12:10 GameState.DebugPrintPower() -     tag=HEALTH value=2',
+      'D 12:10 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]) {
+      p.feed(line)
+    }
+    expect(p.getCombat()?.opponent.playerId).toBe(8)
+    expect(p.getCombat()?.opponentGems).toEqual({ attack: 4, health: 5 })
+  })
+
   it('keeps taunt, divine shield, reborn and golden on last-seen warbands', () => {
     const p = new BattlegroundsParser('TestPlayer')
     for (const line of [

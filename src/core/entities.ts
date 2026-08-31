@@ -1,4 +1,4 @@
-import { isTrinketCardId } from './cards'
+import { isTrinketCardId, poolBaseId } from './cards'
 import { isBgHeroCardId } from './heroes'
 import { parseCreating, parseEntityRef, parseNestedTag, parseTagChangeLine, parseUpdating, payloadOf } from './powerLog'
 import { cardTypeName, isTruthyTag, zoneName } from './tags'
@@ -175,7 +175,37 @@ export class BoardTracker {
       event = event ?? 'start'
     }
 
+    if (
+      this.inCombat &&
+      this.frozen &&
+      this.incompleteFreeze() &&
+      this.boardsLookReady(friendlyPlayerId)
+    ) {
+      this.freeze(friendlyPlayerId, playerName)
+      event = event ?? 'start'
+    }
+
     return event
+  }
+
+  applyNames(byEntity: Map<number, string>, byCardId?: Map<string, string>): void {
+    for (const e of this.entities.values()) {
+      if (e.name) continue
+      const fromId = byEntity.get(e.id)
+      if (fromId) {
+        e.name = fromId
+        continue
+      }
+      if (!e.cardId || !byCardId) continue
+      e.name = byCardId.get(e.cardId) ?? byCardId.get(poolBaseId(e.cardId)) ?? e.name
+    }
+    if (this.frozen) {
+      this.frozen = {
+        ...this.frozen,
+        friendly: this.fillSideNames(this.frozen.friendly, byCardId),
+        opponent: this.fillSideNames(this.frozen.opponent, byCardId)
+      }
+    }
   }
 
   private applyGameTag(
@@ -223,6 +253,25 @@ export class BoardTracker {
     const { self, opp } = this.combatSides(friendlyPlayerId)
     if (self == null || opp == null || self === opp) return false
     return this.minionsFor(self).length > 0 && this.minionsFor(opp).length > 0
+  }
+
+  private incompleteFreeze(): boolean {
+    if (!this.frozen) return false
+    return this.frozen.friendly.minions.length === 0 || this.frozen.opponent.minions.length === 0
+  }
+
+  private fillSideNames(side: CombatSide, byCardId?: Map<string, string>): CombatSide {
+    if (!byCardId) return side
+    const fill = (m: CombatMinion) => ({
+      ...m,
+      name: m.name || byCardId.get(m.cardId) || byCardId.get(poolBaseId(m.cardId)) || m.name
+    })
+    return {
+      ...side,
+      minions: side.minions.map(fill),
+      hand: side.hand?.map(fill),
+      trinkets: side.trinkets?.map(fill)
+    }
   }
 
   private freeze(friendlyPlayerId: number | null, playerName: (id: number) => string): void {
