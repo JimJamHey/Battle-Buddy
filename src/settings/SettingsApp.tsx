@@ -5,15 +5,6 @@ import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
 import { gamesToday } from '../core/session'
 import { UpdateBanner } from '../ui/UpdateBanner'
 import logoUrl from './logo.png'
-import themeClassic from './previews/theme-classic.png'
-import themeCthulhu from './previews/theme-cthulhu.png'
-import themeBuddy from './previews/theme-buddy.png'
-
-const THEME_PREVIEWS: Record<(typeof THEMES)[number]['id'], string> = {
-  classic: themeClassic,
-  cthulhu: themeCthulhu,
-  buddy: themeBuddy
-}
 
 export function SettingsApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
@@ -210,19 +201,16 @@ export function SettingsApp() {
           }}
         />
         <p className="hint" style={{ marginTop: 10 }}>Theme</p>
-        <div className="theme-picks" role="listbox" aria-label="Theme">
+        <div className="theme-toggles" role="group" aria-label="Theme">
           {THEMES.map((theme) => (
             <button
               key={theme.id}
               type="button"
-              role="option"
-              aria-selected={state.settings.theme === theme.id}
-              className={`theme-pick ${state.settings.theme === theme.id ? 'active' : ''}`}
+              aria-pressed={state.settings.theme === theme.id}
+              className={state.settings.theme === theme.id ? 'active' : ''}
               onClick={() => patch({ theme: theme.id })}
             >
-              <img className={`theme-swatch ${theme.id}`} src={THEME_PREVIEWS[theme.id]} alt="" />
-              <strong>{theme.name}</strong>
-              <span>{theme.hint}</span>
+              {theme.name}
             </button>
           ))}
         </div>

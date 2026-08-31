@@ -1,25 +1,24 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BgMinion, StrategyCompView } from '../core/types'
+import { CardArt } from './CardArt'
 import { CardHoverPreview, type HoverCard, warmHoverCard, useCardHover } from './CardHoverPreview'
 
-function CardName({
-  card,
-  catalog
-}: {
-  card: { id: string; name: string }
-  catalog: Map<string, BgMinion>
-}) {
-  const full = catalog.get(card.id)
-  const hoverCard: HoverCard = full ?? { id: card.id, name: card.name }
-  return (
-    <span
-      className="comp-card-hit"
-      data-card-id={card.id}
-      onPointerEnter={() => warmHoverCard(hoverCard)}
-    >
-      {card.name}
-    </span>
-  )
+function neededCards(comp: StrategyCompView) {
+  const seen = new Set<string>()
+  const rows: Array<{ id: string; name: string; techLevel: number; role?: string }> = []
+  for (const card of [...comp.core, ...comp.essential]) {
+    if (seen.has(card.id)) continue
+    seen.add(card.id)
+    rows.push(card)
+  }
+  return rows
+}
+
+function blurb(comp: StrategyCompView) {
+  const text = (comp.why || comp.notes || '').trim()
+  if (text) return text
+  const bits = [...comp.tribes, comp.mechanic].filter(Boolean)
+  return bits.length ? bits.join(' · ') : 'Core minions for this direction.'
 }
 
 export function CompsPanel({
@@ -36,18 +35,25 @@ export function CompsPanel({
   embedded?: boolean
 }) {
   const rootRef = useRef<HTMLElement>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
   const catalog = useMemo(() => new Map(minions.map((card) => [card.id, card])), [minions])
+  const open = comps.find((row) => row.id === openId) ?? null
+
+  useEffect(() => {
+    if (openId && !comps.some((row) => row.id === openId)) setOpenId(null)
+  }, [comps, openId])
+
   const cardById = useMemo(() => {
     const map = new Map<string, HoverCard>()
     for (const comp of comps) {
-      for (const card of [...comp.core, ...comp.essential, ...comp.phases.flatMap((p) => p.cards)]) {
+      for (const card of neededCards(comp)) {
         const full = catalog.get(card.id)
         map.set(card.id, full ?? { id: card.id, name: card.name, dbfId: 0 })
       }
     }
     return map
   }, [comps, catalog])
-  const hover = useCardHover(rootRef, cardById)
+  const hover = useCardHover(rootRef, cardById, '.comp-need .pool-row')
 
   const curated = comps.some((row) => row.status === 'curated')
   const inLobbyCount = comps.filter((row) => row.inLobby !== false).length
@@ -67,63 +73,69 @@ export function CompsPanel({
   return (
     <section
       ref={rootRef}
-      className={`panel comps-panel capture-mouse ${embedded ? 'comps-embedded' : 'comps-filled'}`}
+      className={`comps-panel capture-mouse ${embedded ? 'comps-embedded' : 'comps-filled'}`}
     >
-      <header className="panel-head">
-        <h2>Strategies</h2>
-        {comps.length || waitingForTribes ? <span className="chip">{chip}</span> : null}
-      </header>
-      {comps.length ? (
-        <ul className="comp-list">
-          {comps.map((comp) => (
-            <li
-              className={`comp-row ${comp.status} ${comp.inLobby === false ? 'unavailable' : ''}`}
-              key={comp.id}
-              title={comp.notes || undefined}
-            >
-              <div className="comp-title">
-                <strong>{comp.name}</strong>
-                <span>
+      {open ? (
+        <div className="comp-detail">
+          <header className="comp-detail-head">
+            <button type="button" className="comp-back" onClick={() => setOpenId(null)}>
+              Back
+            </button>
+            <h2>{open.name}</h2>
+          </header>
+          <p className="comp-blurb">{blurb(open)}</p>
+          <ul className="comp-need">
+            {neededCards(open).map((card) => {
+              const full = catalog.get(card.id)
+              const hoverCard: HoverCard = full ?? { id: card.id, name: card.name }
+              return (
+                <li
+                  className="pool-row"
+                  key={card.id}
+                  data-card-id={card.id}
+                  onPointerEnter={() => warmHoverCard(hoverCard)}
+                >
+                  <span className="comp-need-art" aria-hidden>
+                    <CardArt
+                      className="comp-need-face"
+                      cardId={card.id}
+                      name={card.name}
+                      dbfId={full?.dbfId}
+                      variant="face"
+                    />
+                  </span>
+                  <span className="pool-name">{card.name}</span>
+                  <span className="comp-row-meta">
+                    T{card.techLevel}
+                    {card.role ? ` · ${card.role}` : ''}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : comps.length ? (
+        <>
+          <div className="comp-list-meta">
+            <span className="chip">{chip}</span>
+          </div>
+          <div className="comp-list">
+            {comps.map((comp) => (
+              <button
+                type="button"
+                className={`pool-row ${comp.status} ${comp.inLobby === false ? 'unavailable' : ''}`}
+                key={comp.id}
+                onClick={() => setOpenId(comp.id)}
+              >
+                <span className="pool-name">{comp.name}</span>
+                <span className="comp-row-meta">
                   {comp.tribes.join(' · ')}
                   {comp.mechanic ? ` · ${comp.mechanic}` : ''}
-                  {comp.status === 'curated' ? ' · curated' : ''}
                 </span>
-              </div>
-              <p className="comp-core">
-                {comp.core.map((card, i) => (
-                  <span key={card.id}>
-                    {i > 0 ? ' · ' : null}
-                    <CardName card={card} catalog={catalog} />
-                  </span>
-                ))}
-              </p>
-              {comp.why ? <p className="comp-why">{comp.why}</p> : null}
-              {comp.essential.length ? (
-                <ul className="comp-essential">
-                  {comp.essential.map((card) => (
-                    <li key={card.id}>
-                      <CardName card={card} catalog={catalog} />
-                      <span>{card.role}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {comp.phases.length ? (
-                <ul className="comp-phases">
-                  {comp.phases.map((phase) => (
-                    <li key={phase.stage}>
-                      <span className={`comp-phase-label ${phase.stage}`}>
-                        {phase.stage === 'early' ? 'Early' : phase.stage === 'mid' ? 'Mid' : 'End'}
-                      </span>
-                      <span className="comp-phase-goal">{phase.goal}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {comp.commitWhen ? <p className="comp-when">{comp.commitWhen}</p> : null}
-            </li>
-          ))}
-        </ul>
+              </button>
+            ))}
+          </div>
+        </>
       ) : (
         <p className="hint">{empty}</p>
       )}

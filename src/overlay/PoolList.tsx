@@ -5,20 +5,6 @@ import { tribeSlug } from '../core/heroes'
 import { CardArt } from './CardArt'
 import { CardHoverPreview, warmHoverCard, useCardHover } from './CardHoverPreview'
 
-function PoolThumb({ card }: { card: BgMinion }) {
-  return (
-    <span className="pool-thumb" aria-hidden>
-      <CardArt
-        className="pool-thumb-art"
-        cardId={card.id}
-        name={card.name}
-        dbfId={card.dbfId}
-        variant="face"
-      />
-    </span>
-  )
-}
-
 export function PoolList({
   groups,
   cardUnavailable,
@@ -89,7 +75,6 @@ export function PoolList({
                     />
                   </span>
                   {showTierBubble ? <span className="pool-tier">{card.techLevel}</span> : null}
-                  <PoolThumb card={card} />
                   <span className="pool-name">{card.name}</span>
                   {card.kind === 'spell' ? <span className="pool-cost">{card.cost}</span> : null}
                 </div>
