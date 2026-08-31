@@ -1,9 +1,8 @@
 import { app } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import type { UpdateState } from '../core/types'
+import { GITHUB_REPO, testReleaseFeedUrl } from '../core/release'
 import { isNewerVersion, isPrerelease } from '../core/version'
-
-const REPO = { owner: 'JimJamHey', repo: 'Battle-Buddy' }
 
 export type UpdateListener = () => void
 
@@ -12,6 +11,13 @@ autoUpdater.autoInstallOnAppQuit = true
 
 function followPrerelease(version = app.getVersion()): boolean {
   return isPrerelease(version)
+}
+
+/** Rolling `test` releases use a non-semver tag; point electron-updater at latest.yml directly. */
+function configureUpdaterFeed(version = app.getVersion()): void {
+  if (followPrerelease(version)) {
+    autoUpdater.setFeedURL({ provider: 'generic', url: testReleaseFeedUrl() })
+  }
 }
 
 export class AppUpdater {
@@ -27,6 +33,7 @@ export class AppUpdater {
 
   constructor(private readonly onChange: UpdateListener) {
     autoUpdater.allowPrerelease = followPrerelease()
+    configureUpdaterFeed()
     autoUpdater.on('checking-for-update', () => {
       this.patch({ phase: 'checking', errorMessage: null })
     })
@@ -66,6 +73,7 @@ export class AppUpdater {
   async check(): Promise<void> {
     this.state.currentVersion = app.getVersion()
     autoUpdater.allowPrerelease = followPrerelease(this.state.currentVersion)
+    configureUpdaterFeed(this.state.currentVersion)
     if (!app.isPackaged && process.env.BATTLEBUDDY_PREVIEW_UPDATE === '1') {
       this.patch({
         phase: 'available',
@@ -98,12 +106,24 @@ export class AppUpdater {
       return
     }
     try {
-      await autoUpdater.downloadUpdate()
+      await this.downloadWithUpdater()
     } catch (err) {
       this.patch({
         phase: 'error',
         errorMessage: err instanceof Error ? err.message : 'Download failed'
       })
+    }
+  }
+
+  private async downloadWithUpdater(): Promise<void> {
+    try {
+      await autoUpdater.downloadUpdate()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      if (!msg.includes('check update first')) throw err
+      configureUpdaterFeed(app.getVersion())
+      await autoUpdater.checkForUpdates()
+      await autoUpdater.downloadUpdate()
     }
   }
 
@@ -127,11 +147,11 @@ export class AppUpdater {
       const allowPre = followPrerelease(app.getVersion())
       const fromTest = allowPre
         ? await this.readPublishedVersion(
-            `https://github.com/${REPO.owner}/${REPO.repo}/releases/download/test/latest.yml`
+            `https://github.com/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/releases/download/test/latest.yml`
           )
         : null
       const fromLatest = await this.readPublishedVersion(
-        `https://github.com/${REPO.owner}/${REPO.repo}/releases/latest/download/latest.yml`
+        `https://github.com/${GITHUB_REPO.owner}/${GITHUB_REPO.repo}/releases/latest/download/latest.yml`
       )
       const latest = [fromTest, fromLatest]
         .filter(Boolean)

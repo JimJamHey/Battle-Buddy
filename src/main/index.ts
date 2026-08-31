@@ -72,6 +72,7 @@ import { LogTailer } from './logTailer'
 import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
 import { loadSession, loadSettings, saveSession, saveSettings } from './persist'
 import { AppUpdater } from './updater'
+import { releasePageUrl } from '../core/release'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -1082,11 +1083,9 @@ function registerIpc(): void {
   })
   ipcMain.handle('open-release', async (e) => {
     if (!fromAppWindow(e.sender)) return
-    const version = updater.state.availableVersion
-    const url = version
-      ? `https://github.com/JimJamHey/Battle-Buddy/releases/tag/v${version}`
-      : 'https://github.com/JimJamHey/Battle-Buddy/releases/latest'
-    await shell.openExternal(url)
+    await shell.openExternal(
+      releasePageUrl(updater.state.currentVersion, updater.state.availableVersion)
+    )
   })
 }
 

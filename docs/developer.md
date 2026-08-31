@@ -46,8 +46,8 @@ Unsigned builds are fine for a small test group. To remove SmartScreen/Gatekeepe
 ## Updates (test channel)
 
 - Installed copies **check** the `test` release on launch (`src/main/updater.ts`).
+- Test builds use the rolling `test` tag (not semver) — updater uses a **generic feed** pointing at `releases/download/test/latest.yml`.
 - `autoDownload` is off — users click **Download**, then **Restart** (or install on quit).
-- While the repo is **private**, GitHub blocks anonymous access to release assets; auto-update may fail until the repo is public.
 - Preferred installer for updates: `BattleBuddy-Setup.exe` (NSIS).
 
 ## Notes
