@@ -43,11 +43,11 @@ export function acceptObservedRating(
   return true
 }
 
-function asDelta(n: number, attachedToRating: boolean): number | null {
+function asDelta(n: number, attachedToRating: boolean, allowSmallLone = false): number | null {
   if (!Number.isFinite(n) || n !== Math.round(n)) return null
   const abs = Math.abs(n)
   if (abs > 300) return null
-  if (!attachedToRating && abs > 0 && abs < 8) return null
+  if (!attachedToRating && abs > 0 && abs < (allowSmallLone ? 1 : 8)) return null
   return n
 }
 
@@ -59,7 +59,7 @@ const SIGN = '([+\\-])'
 
 export function parseRatingObservation(
   text: string,
-  opts?: { allowLoneDelta?: boolean }
+  opts?: { allowLoneDelta?: boolean; allowSmallLoneDelta?: boolean }
 ): RatingObservation {
   if (!text) return { rating: null, delta: null }
   const raw = text
@@ -77,10 +77,10 @@ export function parseRatingObservation(
     rating = asRating(Number(labeled[1].replace(/[^\d]/g, '')))
     const after = raw.slice((labeled.index ?? 0) + labeled[0].length)
     const near = after.match(new RegExp(`^\\s*${SIGN}\\s*(\\d{1,3})\\b`))
-    if (near) delta = asDelta(Number(near[1] + near[2]), true)
+    if (near) delta = asDelta(Number(near[1] + near[2]), true, opts?.allowSmallLoneDelta)
     if (delta == null) {
       const later = after.match(new RegExp(`${SIGN}\\s*(\\d{1,3})\\b`))
-      if (later) delta = asDelta(Number(later[1] + later[2]), true)
+      if (later) delta = asDelta(Number(later[1] + later[2]), true, opts?.allowSmallLoneDelta)
     }
   }
   if (rating == null && delta == null) {
@@ -93,14 +93,14 @@ export function parseRatingObservation(
       const n = Number((combo[1] ?? combo[6] ?? '').replace(/[^\d]/g, ''))
       const sign = combo[2] ?? combo[4]
       const mag = combo[3] ?? combo[5]
-      const d = asDelta(Number(`${sign}${mag}`), false)
+      const d = asDelta(Number(`${sign}${mag}`), false, opts?.allowSmallLoneDelta)
       rating = asRating(n)
       if (d != null && (rating == null || Math.abs((rating ?? n) - n) <= 300)) delta = d
     }
   }
   if (delta == null && opts?.allowLoneDelta) {
     const lone = raw.match(new RegExp(`(?:^|[^\\d])${SIGN}\\s*(\\d{2,3})\\b`))
-    if (lone) delta = asDelta(Number(lone[1] + lone[2]), false)
+    if (lone) delta = asDelta(Number(lone[1] + lone[2]), false, opts?.allowSmallLoneDelta)
   }
   return { rating, delta }
 }
@@ -110,8 +110,10 @@ export function mergeRatingObservations(parts: RatingObservation[]): RatingObser
   const paired = parts.find((part) => part.rating != null && part.delta != null)
   if (paired) return paired
   const rated = parts.find((part) => part.rating != null)
+  const deltaOnly = parts.find((part) => part.delta != null)
+  if (rated && deltaOnly?.delta != null) return { rating: rated.rating, delta: deltaOnly.delta }
   if (rated) return rated
-  return parts.find((part) => part.delta != null) ?? { rating: null, delta: null }
+  return deltaOnly ?? { rating: null, delta: null }
 }
 
 /** Overlay "Today −143" is the session total, not this game's delta. */
@@ -157,6 +159,12 @@ export function ratingCaptureRects(client: CaptureRect): CaptureRect[] {
 /** Center of the client — Battlegrounds results / rating tick after a game. */
 export function resultCaptureRects(client: CaptureRect): CaptureRect[] {
   return [
+    {
+      x: client.x + Math.round(client.width * 0.38),
+      y: client.y + Math.round(client.height * 0.52),
+      width: Math.max(220, Math.round(client.width * 0.24)),
+      height: Math.max(72, Math.round(client.height * 0.12))
+    },
     {
       x: client.x + Math.round(client.width * 0.34),
       y: client.y + Math.round(client.height * 0.44),

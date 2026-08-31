@@ -12,7 +12,6 @@ import { CardArt } from './CardArt'
 import { CombatBar } from './CombatBar'
 import { DraggablePanel } from './DraggablePanel'
 import { PoolBrowser } from './PoolBrowser'
-import { CompsPanel } from './CompsPanel'
 import { SessionRail } from './SessionRail'
 import { SeenBoardCard } from './SeenBoard'
 import { useClickThrough } from './useClickThrough'
@@ -155,11 +154,6 @@ export function OverlayApp() {
               ))}
             </div>
           ) : null}
-          <CompsPanel
-            comps={state.strategies ?? []}
-            live={live}
-            waitingForTribes={live && !tribesComplete}
-          />
         </DraggablePanel>
       ) : null}
 
@@ -185,6 +179,10 @@ export function OverlayApp() {
             tavernTier={live ? state.match.tavernTier : 0}
             selectedTier={state.selectedTier}
             onTier={(tier) => window.battleBuddy.setTier(tier)}
+            comps={state.strategies ?? []}
+            compsLive={live}
+            waitingForTribes={live && !tribesComplete}
+            minions={state.minions}
           />
         ) : (
           <section className="panel pool-panel">

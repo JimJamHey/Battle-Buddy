@@ -1,14 +1,54 @@
-import type { StrategyCompView } from '../core/types'
+import { useMemo, useRef } from 'react'
+import type { BgMinion, StrategyCompView } from '../core/types'
+import { CardHoverPreview, type HoverCard, warmHoverCard, useCardHover } from './CardHoverPreview'
+
+function CardName({
+  card,
+  catalog
+}: {
+  card: { id: string; name: string }
+  catalog: Map<string, BgMinion>
+}) {
+  const full = catalog.get(card.id)
+  const hoverCard: HoverCard = full ?? { id: card.id, name: card.name }
+  return (
+    <span
+      className="comp-card-hit"
+      data-card-id={card.id}
+      onPointerEnter={() => warmHoverCard(hoverCard)}
+    >
+      {card.name}
+    </span>
+  )
+}
 
 export function CompsPanel({
   comps,
   live,
-  waitingForTribes
+  waitingForTribes,
+  minions,
+  embedded = false
 }: {
   comps: StrategyCompView[]
   live: boolean
   waitingForTribes?: boolean
+  minions: BgMinion[]
+  embedded?: boolean
 }) {
+  const rootRef = useRef<HTMLElement>(null)
+  const catalog = useMemo(() => new Map(minions.map((card) => [card.id, card])), [minions])
+  const cardById = useMemo(() => {
+    const map = new Map<string, HoverCard>()
+    for (const comp of comps) {
+      for (const card of [...comp.core, ...comp.essential, ...comp.phases.flatMap((p) => p.cards)]) {
+        const full = catalog.get(card.id)
+        map.set(card.id, full ?? { id: card.id, name: card.name, dbfId: full?.dbfId })
+      }
+    }
+    return map
+  }, [comps, catalog])
+  const hover = useCardHover(rootRef, cardById)
+
   const curated = comps.some((row) => row.status === 'curated')
   const chip = waitingForTribes ? 'Waiting' : curated ? 'Curated' : 'Live pool'
   const empty = waitingForTribes
@@ -18,7 +58,10 @@ export function CompsPanel({
       : 'Join a match to filter comps by lobby tribes.'
 
   return (
-    <section className="panel comps-panel capture-mouse">
+    <section
+      ref={rootRef}
+      className={`panel comps-panel capture-mouse ${embedded ? 'comps-embedded' : ''}`}
+    >
       <header className="panel-head">
         <h2>Comps</h2>
         {comps.length || waitingForTribes ? <span className="chip">{chip}</span> : null}
@@ -35,13 +78,20 @@ export function CompsPanel({
                   {comp.status === 'curated' ? ' · curated' : ''}
                 </span>
               </div>
-              <p className="comp-core">{comp.core.map((card) => card.name).join(' · ')}</p>
+              <p className="comp-core">
+                {comp.core.map((card, i) => (
+                  <span key={card.id}>
+                    {i > 0 ? ' · ' : null}
+                    <CardName card={card} catalog={catalog} />
+                  </span>
+                ))}
+              </p>
               {comp.why ? <p className="comp-why">{comp.why}</p> : null}
               {comp.essential.length ? (
                 <ul className="comp-essential">
                   {comp.essential.map((card) => (
                     <li key={card.id}>
-                      <strong>{card.name}</strong>
+                      <CardName card={card} catalog={catalog} />
                       <span>{card.role}</span>
                     </li>
                   ))}
@@ -66,6 +116,7 @@ export function CompsPanel({
       ) : (
         <p className="hint">{empty}</p>
       )}
+      <CardHoverPreview hover={hover} />
     </section>
   )
 }

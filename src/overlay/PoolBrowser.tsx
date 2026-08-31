@@ -13,6 +13,8 @@ import {
 import { tribeSlug } from '../core/heroes'
 import { baconPhaseLabel } from '../core/parser'
 import { PoolList } from './PoolList'
+import { CompsPanel } from './CompsPanel'
+import type { BgMinion, StrategyCompView } from '../core/types'
 
 export function PoolBrowser({
   groups,
@@ -25,7 +27,11 @@ export function PoolBrowser({
   inCombat,
   tavernTier,
   selectedTier,
-  onTier
+  onTier,
+  comps = [],
+  compsLive = false,
+  waitingForTribes = false,
+  minions = []
 }: {
   groups: PoolGroup[]
   availableTribes?: string[]
@@ -38,6 +44,10 @@ export function PoolBrowser({
   tavernTier: number
   selectedTier: number
   onTier: (tier: number) => void
+  comps?: StrategyCompView[]
+  compsLive?: boolean
+  waitingForTribes?: boolean
+  minions?: BgMinion[]
 }) {
   const [tribe, setTribe] = useState<string | null>(null)
   const [mechanic, setMechanic] = useState<string | null>(null)
@@ -147,6 +157,13 @@ export function PoolBrowser({
         groups={visible}
         showTierBubble={showPoolTierBubbles(Boolean(tribe), selectedTier)}
         cardUnavailable={(card) => !cardAvailableInLobby(card, availableTribes, buddyAvailable, tribesComplete)}
+      />
+      <CompsPanel
+        comps={comps}
+        live={compsLive}
+        waitingForTribes={waitingForTribes}
+        minions={minions}
+        embedded
       />
     </section>
   )

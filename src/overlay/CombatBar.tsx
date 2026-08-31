@@ -1,5 +1,5 @@
 import type { CombatOdds } from '../core/types'
-import { formatDamageRange, formatPct } from '../ui/format'
+import { formatPct } from '../ui/format'
 
 export function CombatBar({
   combat,
@@ -12,12 +12,9 @@ export function CombatBar({
   return (
     <div className="combat-bar" aria-live="polite">
       <div className="combat-side">
-        <span className="combat-stat lethal" title="Chance you win and deal lethal damage">
+        <span className="combat-stat lethal" title="Chance you win and eliminate the opponent">
           LETHAL <strong>{formatPct(combat.lethal)}%</strong>
         </span>
-        {combat.dealtMax > 0 ? (
-          <span className="combat-dmg">You deal {formatDamageRange(combat.dealtMin, combat.dealtMax)}</span>
-        ) : null}
       </div>
       <div className="combat-center">
         <span className="combat-stat win">
@@ -34,12 +31,12 @@ export function CombatBar({
         </span>
       </div>
       <div className="combat-side right">
-        <span className="combat-stat died" title="Chance you lose and take lethal damage">
-          DEATH <strong>{formatPct(combat.died)}%</strong>
+        <span
+          className="combat-stat died"
+          title="Chance you lose and take lethal damage — sent back to the lobby"
+        >
+          ELIM <strong>{formatPct(combat.died)}%</strong>
         </span>
-        {combat.takenMax > 0 ? (
-          <span className="combat-dmg">You take {formatDamageRange(combat.takenMin, combat.takenMax)}</span>
-        ) : null}
       </div>
     </div>
   )

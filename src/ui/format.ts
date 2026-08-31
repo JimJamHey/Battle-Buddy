@@ -40,9 +40,18 @@ export function placeClass(place: number): string {
 export function selfRating(
   state: Pick<OverlaySnapshot, 'lobbyMmr' | 'session' | 'selfPublicMmr' | 'settings'>
 ): number | null {
-  const live = state.settings?.currentMmr ?? null
-  if (live != null) return live
   const last = state.session.games[state.session.games.length - 1]
+  const live = state.settings?.currentMmr ?? null
+  if (
+    last?.mmrAfter != null &&
+    last.mmrBefore != null &&
+    live != null &&
+    live === last.mmrBefore &&
+    last.mmrAfter !== live
+  ) {
+    return last.mmrAfter
+  }
+  if (live != null) return live
   if (last?.mmrAfter != null) return last.mmrAfter
   if (state.selfPublicMmr != null) return state.selfPublicMmr
   const self = state.lobbyMmr.find((row) => row.isSelf)

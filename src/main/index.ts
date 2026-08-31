@@ -212,12 +212,29 @@ function noteObservedRating(
   opts?: { settled?: boolean }
 ): void {
   let rating = observation.rating
+  let delta = observation.delta
+  if (awaitingPostGameMmr && rating == null && delta != null) {
+    const before = session.games.at(-1)?.mmrBefore
+    if (before != null) {
+      const derived = before + delta
+      if (
+        acceptObservedRating(derived, {
+          previous: settings.currentMmr ?? before,
+          battleTag: settings.battleTag,
+          resync: true
+        })
+      ) {
+        rating = derived
+      }
+    }
+  }
+  observation = { rating, delta }
   if (
     rating != null &&
     !acceptObservedRating(rating, {
       previous: settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null,
       battleTag: settings.battleTag,
-      resync: !match.gameActive && !awaitingPostGameMmr
+      resync: !match.gameActive || awaitingPostGameMmr
     })
   ) {
     rating = null
@@ -642,7 +659,7 @@ function beginPostGameMmr(): void {
   if (logCatchup) return
   awaitingPostGameMmr = true
   postGameAt = Date.now()
-  pollMmrAfterGame(24)
+  pollMmrAfterGame(40)
   void pollPlayRating(true)
 }
 

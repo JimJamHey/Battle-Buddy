@@ -89,7 +89,7 @@ describe('format helpers', () => {
         },
         settings: { ...DEFAULT_SETTINGS, currentMmr: 5248 }
       })
-    ).toBe(5248)
+    ).toBe(5163)
     expect(
       selfRating({
         selfPublicMmr: null,

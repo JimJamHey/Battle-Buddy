@@ -40,9 +40,9 @@ describe('parsePlayRating', () => {
     expect(
       mergeRatingObservations([
         { rating: 5073, delta: null },
-        { rating: null, delta: -143 }
+        { rating: null, delta: -44 }
       ])
-    ).toEqual({ rating: 5073, delta: null })
+    ).toEqual({ rating: 5073, delta: -44 })
     expect(
       isSessionTotalDelta(-143, { startMmr: 5216, games: [{ mmrBefore: 5073 }] })
     ).toBe(true)

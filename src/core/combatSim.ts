@@ -679,19 +679,11 @@ export function simulateCombat(
   let tie = 0
   let loss = 0
   let died = 0
-  let dealtMin = Infinity
-  let dealtMax = 0
-  let takenMin = Infinity
-  let takenMax = 0
   const oppHp = Math.max(1, input.opponent.heroHealth + input.opponent.heroArmor)
   const selfHp = Math.max(1, input.friendly.heroHealth + input.friendly.heroArmor)
 
   for (let i = 0; i < samples; i++) {
     const r = fightOnce(input, summons, rng, undefined, named)
-    dealtMin = Math.min(dealtMin, r.damageToOpponent)
-    dealtMax = Math.max(dealtMax, r.damageToOpponent)
-    takenMin = Math.min(takenMin, r.damageToFriendly)
-    takenMax = Math.max(takenMax, r.damageToFriendly)
     if (r.win === 'tie') {
       tie++
       continue
@@ -701,8 +693,8 @@ export function simulateCombat(
       if (r.damageToOpponent >= oppHp) lethal++
     } else {
       loss++
-      if (r.damageToFriendly >= selfHp) died++
     }
+    if (r.damageToFriendly >= selfHp) died++
   }
 
   const pct = (n: number) => Math.round((n / samples) * 1000) / 10
@@ -713,10 +705,10 @@ export function simulateCombat(
     tie: pct(tie),
     loss: pct(loss),
     died: pct(died),
-    dealtMin: Number.isFinite(dealtMin) ? dealtMin : 0,
-    dealtMax,
-    takenMin: Number.isFinite(takenMin) ? takenMin : 0,
-    takenMax
+    dealtMin: 0,
+    dealtMax: 0,
+    takenMin: 0,
+    takenMax: 0
   }
 }
 

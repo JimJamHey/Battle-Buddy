@@ -58,9 +58,10 @@ async function ocrRegion(region: CaptureRect, allowLoneDelta = false): Promise<R
   const width = Math.round(region.width)
   const height = Math.round(region.height)
   if (width < 40 || height < 40) return { rating: null, delta: null }
+  const parseOpts = { allowLoneDelta, allowSmallLoneDelta: allowLoneDelta }
   if (process.platform === 'darwin') {
     const text = await macOcrRegion(region.x, region.y, width, height)
-    return parseRatingObservation(text, { allowLoneDelta })
+    return parseRatingObservation(text, parseOpts)
   }
   if (process.platform !== 'win32') return { rating: null, delta: null }
   const pixels = captureGameClientBgra(region.x, region.y, width, height)
@@ -69,7 +70,7 @@ async function ocrRegion(region: CaptureRect, allowLoneDelta = false): Promise<R
   const imagePath = join(tmpdir(), `battle-buddy-rating-${process.pid}-${Date.now()}.bmp`)
   await writeFile(imagePath, bmp)
   try {
-    return parseRatingObservation(await ocrImage(imagePath), { allowLoneDelta })
+    return parseRatingObservation(await ocrImage(imagePath), parseOpts)
   } finally {
     await unlink(imagePath).catch(() => undefined)
   }
