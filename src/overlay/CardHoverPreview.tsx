@@ -118,8 +118,8 @@ export function CardHoverPreview({ hover }: { hover: Hover | null }) {
 
 function hoverPosition(row: HTMLElement): Pick<Hover, 'left' | 'top' | 'placeRight'> {
   const rect = row.getBoundingClientRect()
-  const previewH = Math.min(window.innerHeight * 0.82, 560)
-  const previewW = Math.min(560, window.innerWidth * 0.5)
+  const previewH = Math.min(window.innerHeight * 0.82, 430)
+  const previewW = Math.min(580, window.innerWidth * 0.52)
   const placeRight = rect.left < previewW + 20
   const left = placeRight ? rect.right : rect.left
   const top = Math.min(

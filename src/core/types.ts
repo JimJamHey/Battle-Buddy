@@ -121,6 +121,9 @@ export interface SeenMinion {
   reborn?: boolean
   venomous?: boolean
   golden?: boolean
+  windfury?: boolean
+  stealth?: boolean
+  deathrattle?: boolean
 }
 
 export interface SeenBoard {
@@ -128,6 +131,14 @@ export interface SeenBoard {
   name: string
   turn: number
   minions: SeenMinion[]
+  hand?: SeenMinion[]
+}
+
+export interface OpponentCombatShot {
+  playerId: number
+  name: string
+  turn: number
+  image: string
 }
 
 export interface MatchFinish {
@@ -276,13 +287,27 @@ export const EMPTY_COMBAT: CombatOdds = {
   partial: false
 }
 
+export interface BootstrapStatus {
+  phase: 'loading' | 'ready'
+  message: string
+  progress: number
+}
+
+export const LOADING_BOOTSTRAP: BootstrapStatus = {
+  phase: 'loading',
+  message: 'Starting…',
+  progress: 0
+}
+
 export interface OverlaySnapshot {
+  bootstrap: BootstrapStatus
   settings: AppSettings
   status: TrackerStatus
   match: MatchState
   session: SessionState
   lobbyMmr: LobbyMmrRow[]
   lastBoards: SeenBoard[]
+  lastOpponentShot: OpponentCombatShot | null
   selfPublicMmr: number | null
   minions: BgMinion[]
   selectedTier: number

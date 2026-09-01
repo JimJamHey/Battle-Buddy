@@ -112,6 +112,9 @@ export class LogTailer {
           if (!line) continue
           this.onPowerLine(line)
           lines++
+          if (lines % 50 === 0) {
+            await new Promise<void>((resolve) => setTimeout(resolve, 0))
+          }
         }
         offset += length
       }

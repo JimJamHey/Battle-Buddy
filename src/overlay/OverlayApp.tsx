@@ -11,6 +11,7 @@ import { UpdateBanner } from '../ui/UpdateBanner'
 import { CardArt } from './CardArt'
 import { CombatBar } from './CombatBar'
 import { DraggablePanel } from './DraggablePanel'
+import { LastSeenOpponent } from './LastSeen'
 import { PoolBrowser } from './PoolBrowser'
 import { SessionRail } from './SessionRail'
 import { SeenBoardCard } from './SeenBoard'
@@ -67,6 +68,7 @@ export function OverlayApp() {
   )
   const showCombat = (live && Boolean(state.match.heroName || state.match.heroCardId || state.match.inCombat)) || unlocked
   const showSession = state.settings.showSessionOnOverlay || live
+  const showLastShot = live && !state.match.inCombat && Boolean(state.lastOpponentShot?.image)
   const interact = (inside: boolean) => {
     if (unlocked) {
       window.battleBuddy.setClickThrough(false)
@@ -124,6 +126,9 @@ export function OverlayApp() {
           ) : (
             <div className="combat-bar placeholder">Combat odds — drag to place</div>
           )}
+          {showLastShot && state.lastOpponentShot ? (
+            <LastSeenOpponent shot={state.lastOpponentShot} />
+          ) : null}
         </DraggablePanel>
       ) : null}
 

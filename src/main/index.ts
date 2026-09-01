@@ -57,18 +57,24 @@ import {
   type OverlaySnapshot,
   type SeenBoard,
   type SeenMinion,
+  type OpponentCombatShot,
   type SessionState,
+  type StrategyCompView,
   type TrackerStatus,
+  type BootstrapStatus,
   EMPTY_COMBAT,
   EMPTY_MATCH,
+  LOADING_BOOTSTRAP,
   baseCardId,
   isWarbandMinion,
-  seenFromCombat
+  seenFromCombat,
+  opponentCombatCaptureRect
 } from '../core/index'
 import { createGameHost, pinOverlayToGame, followGameWindow, isOverlayForeground, ensureGameOverlayFriendly } from '../platform/index'
 import { detectBattleNetRegion } from '../platform/battleNet'
-import { loadCardCatalog } from './cards'
+import { loadCardCatalog, readCachedCardCatalog } from './cards'
 import { appIcon } from './icon'
+import { captureOpponentBoardDataUrl } from './combatShot'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
 import { LogTailer } from './logTailer'
 import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
@@ -93,6 +99,7 @@ let combat: CombatOdds = { ...EMPTY_COMBAT }
 let lastCombatKey = ''
 let simGen = 0
 let lastBoards: SeenBoard[] = []
+let lastOpponentShot: OpponentCombatShot | null = null
 let lastFriendlyBoard: SeenMinion[] = []
 let matchStartMmr: number | null = null
 let recordedThisMatch = false
@@ -100,6 +107,8 @@ let playedAsSelf = false
 let logCatchup = false
 let playRatingBusy = false
 let lastPlayRatingAt = 0
+let combatShotTimer: NodeJS.Timeout | null = null
+let combatShotGen = 0
 let mmrPollTimer: NodeJS.Timeout | null = null
 let awaitingPostGameMmr = false
 let postGameAt = 0
@@ -118,14 +127,61 @@ let lastBoundsKey = ''
 let lastSizeKey = ''
 let lastPinAt = 0
 let overlayTickBusy = false
+let appStartedAt = 0
+let bootstrap: BootstrapStatus = { ...LOADING_BOOTSTRAP }
+const STARTUP_GRACE_MS = 12_000
+const LOG_ATTACH_DELAY_MS = 10_000
 let hsWasFound = false
 let displayMode: OverlayDisplayMode = 'unknown'
 let lastBroadcastMode: OverlayDisplayMode = 'unknown'
+let lastDisplayCheck = 0
 let leaderboardRefreshing = false
 let lastInstallCheck = 0
-let lastLogAttach = 0
 let cachedInstallPath: string | null = null
+let logsAttached = false
+let logsAttachTimer: NodeJS.Timeout | null = null
+let overlayTickTimer: NodeJS.Timeout | null = null
+let cachedStrategies: StrategyCompView[] = []
+let strategiesKey = ''
 let updater: AppUpdater
+
+function setBootstrap(patch: Partial<BootstrapStatus>): void {
+  bootstrap = { ...bootstrap, ...patch }
+  scheduleBroadcast()
+}
+
+function strategiesForSnapshot(): StrategyCompView[] {
+  if (bootstrap.phase !== 'ready' || !minions.length) return []
+  const tribes = match.gameActive ? match.availableTribes : []
+  const key = `${minions.length}|${tribes.join(',')}|${match.gameActive}`
+  if (key === strategiesKey) return cachedStrategies
+  strategiesKey = key
+  cachedStrategies = strategyCatalog(minions, tribes, curatedStrategies).map((row) => ({
+    id: row.id,
+    name: row.name,
+    tribes: row.tribes,
+    mechanic: row.mechanic,
+    status: row.status,
+    inLobby: row.inLobby,
+    core: row.core,
+    essential: row.essential,
+    why: row.why,
+    notes: row.notes
+  }))
+  return cachedStrategies
+}
+
+function applyCardCatalog(catalog: {
+  minions: BgMinion[]
+  heroes: Record<string, string>
+  summons: Record<string, { attack: number; health: number; count: number }>
+}): void {
+  minions = catalog.minions
+  heroNames = catalog.heroes
+  summons = catalog.summons
+  strategiesKey = ''
+  scheduleBroadcast()
+}
 
 function userData(): string {
   return app.getPath('userData')
@@ -345,6 +401,7 @@ function snapshot(): OverlaySnapshot {
     lastCombatKey = ''
   }
   return {
+    bootstrap,
     settings,
     status: st,
     match: {
@@ -358,6 +415,7 @@ function snapshot(): OverlaySnapshot {
     session,
     lobbyMmr: lobbyMmr(),
     lastBoards,
+    lastOpponentShot,
     selfPublicMmr: selfPublicRating(),
     minions,
     selectedTier,
@@ -372,22 +430,7 @@ function snapshot(): OverlaySnapshot {
       errorMessage: null
     },
     combat: match.gameActive ? combat : { ...EMPTY_COMBAT },
-    strategies: strategyCatalog(
-      minions,
-      match.gameActive ? match.availableTribes : [],
-      curatedStrategies
-    ).map((row) => ({
-      id: row.id,
-      name: row.name,
-      tribes: row.tribes,
-      mechanic: row.mechanic,
-      status: row.status,
-      inLobby: row.inLobby,
-      core: row.core,
-      essential: row.essential,
-      why: row.why,
-      notes: row.notes
-    }))
+    strategies: strategiesForSnapshot()
   }
 }
 
@@ -504,7 +547,13 @@ function bindTailer(): LogTailer {
       if (match.gameActive && !wasActive) {
         selectedTier = 0
         lastBoards = []
+        lastOpponentShot = null
         lastFriendlyBoard = []
+        combatShotGen += 1
+        if (combatShotTimer) {
+          clearTimeout(combatShotTimer)
+          combatShotTimer = null
+        }
         matchStartMmr = displayMmr()
         recordedThisMatch = false
         playedAsSelf = !match.spectating
@@ -524,6 +573,7 @@ function bindTailer(): LogTailer {
           rememberBoard(boards.opponent, match.turn)
           lastFriendlyBoard = toSeenMinions(boards.friendly.minions)
           runCombatSim(boards)
+          scheduleOpponentCombatShot(boards.opponent, match.turn)
         }
       }
       if (result.combatEvent === 'end' || !match.inCombat) {
@@ -538,7 +588,7 @@ function bindTailer(): LogTailer {
         combat = { ...EMPTY_COMBAT }
         lastCombatKey = ''
       }
-      scheduleBroadcast()
+      if (!logCatchup) scheduleBroadcast()
     },
     (line) => {
       if (logCatchup) return
@@ -560,6 +610,48 @@ function bindTailer(): LogTailer {
       }
     }
   )
+}
+
+async function tryAttachLogs(): Promise<void> {
+  if (logsAttached || bootstrap.phase !== 'ready') return
+  if (Date.now() - appStartedAt < LOG_ATTACH_DELAY_MS) return
+  const install = await resolveInstall()
+  if (install && install !== settings.hearthstonePath && existsSync(install)) {
+    settings = { ...settings, hearthstonePath: install }
+    void saveSettings(userData(), settings)
+  }
+  if (!install) return
+  await attachLogs(install)
+  if (tailer && !tailer.stopped) {
+    logsAttached = true
+    if (logsAttachTimer) {
+      clearInterval(logsAttachTimer)
+      logsAttachTimer = null
+    }
+  }
+}
+
+function scheduleLogAttach(): void {
+  if (logsAttachTimer) return
+  const attempt = () => void tryAttachLogs()
+  setTimeout(attempt, LOG_ATTACH_DELAY_MS)
+  logsAttachTimer = setInterval(attempt, 5000)
+}
+
+function startOverlayTick(): void {
+  if (overlayTickTimer) return
+  const interval = process.platform === 'darwin' ? 250 : 200
+  overlayTickTimer = setInterval(() => {
+    void tickOverlay()
+  }, interval)
+  void tickOverlay()
+}
+
+function ensureOverlayWindow(): void {
+  if (overlayWindow && !overlayWindow.isDestroyed()) return
+  overlayWindow = createOverlayWindow()
+  applyClickThrough(true)
+  startOverlayTick()
 }
 
 let attachLogsChain = Promise.resolve()
@@ -611,6 +703,10 @@ function toSeenMinions(
     venomous?: boolean
     poisonous?: boolean
     golden?: boolean
+    windfury?: boolean
+    megaWindfury?: boolean
+    stealth?: boolean
+    deathrattle?: boolean
   }[]
 ): SeenMinion[] {
   return minions.map(seenFromCombat)
@@ -703,14 +799,21 @@ function leaveMatchToMenu(toHub: boolean): void {
   combat = { ...EMPTY_COMBAT }
   lastCombatKey = ''
   lastBoards = []
+  lastOpponentShot = null
   lastFriendlyBoard = []
+  combatShotGen += 1
+  if (combatShotTimer) {
+    clearTimeout(combatShotTimer)
+    combatShotTimer = null
+  }
   if (wasActive) selectedTier = 0
   scheduleBroadcast()
 }
 
 function rememberBoard(side: CombatInput['opponent'], turn: number): void {
   const minions = side.minions.map(seenFromCombat).filter(isWarbandMinion).slice(0, 7)
-  if (!minions.length) return
+  const hand = (side.hand ?? []).map(seenFromCombat).filter(isWarbandMinion).slice(0, 10)
+  if (!minions.length && !hand.length) return
   const nameKey = normalizeName(side.name)
   lastBoards = [
     ...lastBoards.filter(
@@ -720,9 +823,40 @@ function rememberBoard(side: CombatInput['opponent'], turn: number): void {
       playerId: side.playerId,
       name: side.name,
       turn,
-      minions
+      minions,
+      hand
     }
   ]
+}
+
+function scheduleOpponentCombatShot(side: CombatInput['opponent'], turn: number): void {
+  if (logCatchup) return
+  lastOpponentShot = null
+  const gen = ++combatShotGen
+  if (combatShotTimer) clearTimeout(combatShotTimer)
+  combatShotTimer = setTimeout(() => {
+    combatShotTimer = null
+    void grabOpponentCombatShot(gen, side, turn)
+  }, 1000)
+}
+
+async function grabOpponentCombatShot(
+  gen: number,
+  side: CombatInput['opponent'],
+  turn: number
+): Promise<void> {
+  if (gen !== combatShotGen || !match.inCombat) return
+  const client = await host.getClientBounds()
+  if (!client || gen !== combatShotGen || !match.inCombat) return
+  const image = captureOpponentBoardDataUrl(opponentCombatCaptureRect(client))
+  if (!image || gen !== combatShotGen) return
+  lastOpponentShot = {
+    playerId: side.playerId,
+    name: side.name,
+    turn,
+    image
+  }
+  scheduleBroadcast()
 }
 
 function runCombatSim(input: CombatInput): void {
@@ -774,10 +908,14 @@ async function maybeRefreshLeaderboard(force: boolean): Promise<void> {
   const fetchedAt = await cacheTimestamp(userData())
   if (!force && boardRows.length && Date.now() - fetchedAt < 20 * 60 * 1000) return
   leaderboardRefreshing = true
+  let lastProgressBroadcast = 0
   try {
     const rows = await refreshLeaderboard(userData(), settings.region, (partial) => {
       boardRows = partial
       applyLatestMmr()
+      const now = Date.now()
+      if (now - lastProgressBroadcast < 750) return
+      lastProgressBroadcast = now
       scheduleBroadcast()
     })
     if (rows.length) boardRows = rows
@@ -820,6 +958,7 @@ async function tickOverlay(): Promise<void> {
 }
 
 async function tickOverlayBody(): Promise<void> {
+  if (bootstrap.phase !== 'ready') return
   const hwnd = await host.findHearthstone()
   hsFound = hwnd != null
   if (hsWasFound && !hsFound) void ensureWindowedOptions()
@@ -830,27 +969,19 @@ async function tickOverlayBody(): Promise<void> {
   } else if (!hsFocused && overlayWindow && !overlayWindow.isDestroyed()) {
     hsFocused = overlayWindow.isFocused()
   }
-  void pollPlayRating(false)
-  const now = Date.now()
-  if (now - lastLogAttach > 800) {
-    lastLogAttach = now
-    void (async () => {
-      const install = await resolveInstall()
-      if (install && install !== settings.hearthstonePath && existsSync(install)) {
-        settings = { ...settings, hearthstonePath: install }
-        void saveSettings(userData(), settings)
-      }
-      if (install) await attachLogs(install)
-    })()
-  }
+  if (match.gameActive || awaitingPostGameMmr) void pollPlayRating(false)
 
   const win = overlayWindow
   if (!win || win.isDestroyed()) return
 
-  displayMode = ensureGameOverlayFriendly(settings.overlayEnabled && settings.keepFullscreenOverlay)
-  if (displayMode !== lastBroadcastMode) {
-    lastBroadcastMode = displayMode
-    scheduleBroadcast()
+  const now = Date.now()
+  if (now - lastDisplayCheck > 2000) {
+    lastDisplayCheck = now
+    displayMode = ensureGameOverlayFriendly(settings.overlayEnabled && settings.keepFullscreenOverlay)
+    if (displayMode !== lastBroadcastMode) {
+      lastBroadcastMode = displayMode
+      scheduleBroadcast()
+    }
   }
 
   const visible = settings.overlayEnabled && hsFound && (!settings.hideWhenUnfocused || hsFocused)
@@ -869,21 +1000,24 @@ async function tickOverlayBody(): Promise<void> {
   const bounds = dipBounds(win, raw)
   const key = `${bounds.x},${bounds.y},${bounds.width},${bounds.height}`
   const sizeKey = `${bounds.width}x${bounds.height}`
+  const moved = key !== lastBoundsKey || sizeKey !== lastSizeKey
   if (process.platform === 'win32') {
-    followGameWindow(win.getNativeWindowHandle(), raw, clickThrough)
+    if (moved) {
+      followGameWindow(win.getNativeWindowHandle(), raw, clickThrough)
+      lastBoundsKey = key
+    }
     if (sizeKey !== lastSizeKey) {
       lastSizeKey = sizeKey
       win.setContentSize(bounds.width, bounds.height)
     }
-    lastBoundsKey = key
-  } else if (key !== lastBoundsKey) {
+  } else if (moved) {
     lastBoundsKey = key
     win.setBounds(bounds)
     syncClickThrough()
   }
   if (!win.isVisible()) win.showInactive()
   const nowPin = Date.now()
-  if (nowPin - lastPinAt > 200) {
+  if (moved || nowPin - lastPinAt > 2500) {
     lastPinAt = nowPin
     win.setAlwaysOnTop(true, 'screen-saver', 1)
     syncClickThrough()
@@ -1118,52 +1252,62 @@ if (process.platform === 'win32') {
 }
 
 app.whenReady().then(async () => {
+  appStartedAt = Date.now()
   nativeTheme.themeSource = 'dark'
   app.setAppUserModelId('com.battlebuddy.app')
   updater = new AppUpdater(() => scheduleBroadcast())
+
+  setBootstrap({ message: 'Loading settings…', progress: 12 })
   settings = await loadSettings(userData())
-  if (!settings.regionManual) {
-    const detected = await detectBattleNetRegion()
-    if (detected && detected !== settings.region) {
-      settings = { ...settings, region: detected }
-      await saveSettings(userData(), settings)
-    }
-  }
   session = bindCurrentMmr(await loadSession(userData()), settings.currentMmr)
   void saveSession(userData(), session)
   parser.setSelfBattleTag(settings.battleTag)
-  boardRows = await loadLeaderboardCache(userData(), settings.region)
-  const selfTag = normalizeName(leaderboardAccountId(settings.battleTag))
-  const haveSelf = selfTag ? indexLeaderboard(boardRows).has(selfTag) : boardRows.length > 0
 
   registerIpc()
-  await ensureLogConfig()
-  await ensureWindowedOptions()
   createTray()
   settingsWindow = createSettingsWindow()
-  overlayWindow = createOverlayWindow()
-  applyClickThrough(true)
   registerShortcuts()
-  void loadCardCatalog(userData())
-    .then((catalog) => {
-      minions = catalog.minions
-      heroNames = catalog.heroes
-      summons = catalog.summons
-      scheduleBroadcast()
-    })
-    .catch((err: unknown) => {
-      lastError = err instanceof Error ? err.message : String(err)
-      scheduleBroadcast()
-    })
-  void maybeRefreshLeaderboard(boardRows.length === 0 || !haveSelf)
-  void updater.check()
 
-  const interval = process.platform === 'darwin' ? 250 : 100
-  setInterval(() => {
-    void tickOverlay()
-  }, interval)
-  void tickOverlay()
-  void pollPlayRating(true)
+  setBootstrap({ message: 'Loading leaderboard…', progress: 38 })
+  await new Promise<void>((resolve) => setImmediate(resolve))
+  boardRows = await loadLeaderboardCache(userData(), settings.region)
+
+  setBootstrap({ message: 'Loading card catalog…', progress: 62 })
+  await new Promise<void>((resolve) => setImmediate(resolve))
+  try {
+    applyCardCatalog(await readCachedCardCatalog(userData()))
+  } catch (err: unknown) {
+    lastError = err instanceof Error ? err.message : String(err)
+  }
+
+  setBootstrap({ phase: 'ready', message: 'Ready', progress: 100 })
+  scheduleBroadcast()
+
+  setTimeout(() => ensureOverlayWindow(), 400)
+
+  if (!settings.regionManual) {
+    void detectBattleNetRegion().then((detected) => {
+      if (detected && detected !== settings.region) {
+        settings = { ...settings, region: detected }
+        void saveSettings(userData(), settings)
+        scheduleBroadcast()
+      }
+    })
+  }
+  void ensureLogConfig()
+  void ensureWindowedOptions()
+  scheduleLogAttach()
+
+  void loadCardCatalog(userData(), applyCardCatalog).catch((err: unknown) => {
+    if (!minions.length) lastError = err instanceof Error ? err.message : String(err)
+    scheduleBroadcast()
+  })
+
+  const selfTag = normalizeName(leaderboardAccountId(settings.battleTag))
+  const haveSelf = selfTag ? indexLeaderboard(boardRows).has(selfTag) : boardRows.length > 0
+  const needLeaderboard = boardRows.length === 0 || !haveSelf
+  setTimeout(() => void maybeRefreshLeaderboard(needLeaderboard), STARTUP_GRACE_MS)
+  setTimeout(() => void updater.check(), STARTUP_GRACE_MS)
 })
 
 app.on('window-all-closed', () => {
@@ -1172,6 +1316,8 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
+  if (overlayTickTimer) clearInterval(overlayTickTimer)
+  if (logsAttachTimer) clearInterval(logsAttachTimer)
   void tailer?.stop()
   void cleanupOcrTemps()
 })

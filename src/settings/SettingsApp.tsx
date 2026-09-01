@@ -25,9 +25,11 @@ export function SettingsApp() {
     document.body.style.background = ''
   }, [state?.settings.theme])
 
-  if (!state) {
+  if (!state || state.bootstrap.phase === 'loading') {
+    const progress = state?.bootstrap.progress ?? 8
+    const message = state?.bootstrap.message ?? 'Starting…'
     return (
-      <div className="settings-root">
+      <div className="settings-root settings-loading">
         <header className="settings-hero">
           <div className="settings-hero-brand">
             <img className="settings-logo" src={logoUrl} alt="" />
@@ -37,6 +39,12 @@ export function SettingsApp() {
             </div>
           </div>
         </header>
+        <div className="bootstrap-panel card">
+          <p className="bootstrap-message">{message}</p>
+          <div className="bootstrap-progress-track" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+            <div className="bootstrap-progress-bar" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
       </div>
     )
   }

@@ -242,6 +242,10 @@ p {
 
 .combat-float {
   z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .combat-bar {
@@ -1163,145 +1167,180 @@ html[data-theme='buddy'] .combat-bar::after {
   flex-wrap: nowrap;
   justify-content: center;
   align-items: flex-end;
-  gap: 6px;
+  gap: 4px;
   margin-top: 12px;
 }
 
-.warband-minion {
-  position: relative;
-  width: 78px;
-  height: 118px;
-  flex-shrink: 0;
+.last-seen .warband {
+  margin-top: 0;
 }
 
-.warband-shell,
-.warband-rim {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+.warband.is-hand {
+  gap: 0;
+}
+
+.warband.is-hand .live-card + .live-card {
+  margin-left: -20px;
+}
+
+.live-card {
+  position: relative;
+  container-type: inline-size;
+  width: 92px;
+  flex: 0 0 92px;
+  aspect-ratio: 512 / 672;
   pointer-events: none;
 }
 
-.warband-face {
-  position: absolute;
-  left: 50%;
-  top: 8px;
-  width: 72px;
-  height: 86px;
-  transform: translateX(-50%);
-  border-radius: 50% / 46%;
-  overflow: hidden;
-  background: #12141c;
-  box-shadow: 0 0 0 2px #6a5840, 0 8px 14px rgba(0, 0, 0, 0.5);
-}
-
-.warband-art {
+.live-card-art {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center 18%;
+  object-fit: contain;
+  object-position: center center;
+  background: transparent;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
 }
 
-.warband-art.missing {
-  background: rgba(255, 255, 255, 0.08);
+.live-card-art.missing {
+  background: rgba(12, 14, 22, 0.7);
+  border-radius: 8px;
 }
 
-.warband-minion.is-golden .warband-face {
-  box-shadow:
-    0 0 0 2px #f0c45c,
-    0 0 0 4px #8a5a18,
-    0 0 16px rgba(240, 196, 92, 0.45);
+.live-card.is-golden .live-card-art {
+  filter:
+    drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 10px rgba(251, 191, 36, 0.4));
 }
 
-.warband-minion.is-taunt .warband-face {
-  border-radius: 42% / 40%;
-  box-shadow:
-    0 0 0 3px #9aa3b0,
-    0 0 0 7px #d5dbe4,
-    0 8px 14px rgba(0, 0, 0, 0.5);
+.live-card.is-stealth .live-card-art {
+  opacity: 0.78;
+  filter: saturate(0.4) drop-shadow(0 10px 14px rgba(0, 0, 0, 0.55));
 }
 
-.warband-minion.is-taunt.is-golden .warband-face {
-  box-shadow:
-    0 0 0 3px #f0c45c,
-    0 0 0 7px #d5dbe4,
-    0 0 16px rgba(240, 196, 92, 0.35);
-}
-
-.warband-minion.is-divine .warband-face {
-  box-shadow:
-    0 0 0 3px #7ee7ff,
-    0 0 16px 4px rgba(80, 220, 255, 0.7);
-}
-
-.warband-minion.is-taunt.is-divine .warband-face {
-  box-shadow:
-    0 0 0 3px #7ee7ff,
-    0 0 0 7px #d5dbe4,
-    0 0 16px 4px rgba(80, 220, 255, 0.55);
-}
-
-.warband-taunt {
-  fill: #d5dbe4;
-  opacity: 0.9;
-}
-
-.warband-reborn {
-  fill: rgba(110, 190, 255, 0.55);
-}
-
-.warband-gold-glow {
-  fill: rgba(240, 196, 92, 0.28);
-}
-
-.warband-divine {
-  fill: none;
-  stroke: #7ee7ff;
-  stroke-width: 3;
-}
-
-.warband-ring-outer {
-  fill: none;
-  stroke: #6a5840;
-  stroke-width: 3;
-}
-
-.warband-ring-inner {
-  fill: none;
-  stroke: rgba(8, 10, 18, 0.8);
-  stroke-width: 2;
-}
-
-.warband-gem {
+.live-card.is-taunt::before {
+  content: '';
   position: absolute;
-  bottom: 0;
-  min-width: 22px;
-  text-align: center;
-  font-size: 18px;
+  left: 7%;
+  right: 7%;
+  top: 6%;
+  bottom: 8%;
+  border-radius: 18% / 14%;
+  box-shadow:
+    0 0 0 2px #9aa3b0,
+    0 0 0 5px #d5dbe4;
+  pointer-events: none;
+}
+
+.live-card.is-divine::after {
+  content: '';
+  position: absolute;
+  left: 18%;
+  top: 9%;
+  width: 64%;
+  height: 46%;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 2px #7ee7ff,
+    0 0 10px 3px rgba(80, 220, 255, 0.55);
+  pointer-events: none;
+}
+
+.live-card-flags {
+  position: absolute;
+  top: 7%;
+  right: 10%;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 2;
+}
+
+.live-card-flag {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7);
+}
+
+.live-card-flag.taunt { background: #d5dbe4; }
+.live-card-flag.divine { background: #7ee7ff; }
+.live-card-flag.reborn { background: #7dd3fc; }
+.live-card-flag.venomous { background: #86efac; }
+.live-card-flag.windfury { background: #c4b5fd; }
+.live-card-flag.stealth { background: #94a3b8; }
+.live-card-flag.deathrattle { background: #fbbf24; }
+
+.live-card-gem {
+  position: absolute;
+  bottom: 7.2%;
+  width: 20%;
+  height: 13%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18cqi;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   line-height: 1;
+  color: #fff7e6;
   text-shadow:
+    0 0 3px #000,
+    1px 0 0 #000,
+    -1px 0 0 #000,
     0 1px 0 #000,
-    0 0 6px #000;
+    0 -1px 0 #000,
+    0 0 8px #000;
   pointer-events: none;
   z-index: 3;
 }
 
-.warband-gem.atk {
-  left: 4px;
-  color: #ffe38a;
+.live-card-gem.atk {
+  left: 10.5%;
 }
 
-.warband-gem.hp {
-  right: 4px;
-  color: #ffb4b8;
+.live-card-gem.hp {
+  right: 10.5%;
 }
 
-.warband-minion.is-boosted .warband-gem {
+.live-card-gem.boosted {
   color: #7dffc4;
+}
+
+.live-card-gem.damaged {
+  color: #ff8a8a;
+}
+
+.last-seen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  border-radius: 14px;
+  background: rgba(8, 10, 16, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px) saturate(1.2);
+}
+
+.last-seen-kicker {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #67e8f9;
+}
+
+.last-seen-shot {
+  display: block;
+  width: min(720px, 64vw);
+  height: auto;
+  max-height: 28vh;
+  object-fit: contain;
+  object-position: center top;
+  pointer-events: none;
 }
 
 .pool {
@@ -1768,6 +1807,9 @@ html[data-theme='buddy'] .combat-bar::after {
 
 .card-preview-slot {
   position: relative;
+  width: min(280px, 26vw);
+  flex: 0 0 min(280px, 26vw);
+  aspect-ratio: 512 / 672;
   background: transparent;
   transform-style: preserve-3d;
   backface-visibility: hidden;
@@ -1781,11 +1823,11 @@ html[data-theme='buddy'] .combat-bar::after {
 
 .card-preview-art {
   display: block;
-  width: min(300px, 28vw);
-  max-height: 82vh;
-  height: auto;
-  background: transparent;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  object-position: center center;
+  background: transparent;
   filter: drop-shadow(0 18px 26px rgba(0, 0, 0, 0.55));
 }
 
@@ -1910,6 +1952,30 @@ html[data-theme='buddy'] .combat-bar::after {
   align-items: flex-start;
   gap: 16px;
   margin-bottom: 18px;
+}
+
+.settings-loading .bootstrap-panel {
+  margin-top: 8px;
+}
+
+.bootstrap-message {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.bootstrap-progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.bootstrap-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), #7dd3fc);
+  transition: width 0.25s ease;
 }
 
 .settings-hero-brand {

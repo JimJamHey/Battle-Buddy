@@ -17,17 +17,38 @@ export interface CardCatalog {
   summons: Record<string, DeathrattleSummon>
 }
 
-export async function loadCardCatalog(userData: string): Promise<CardCatalog> {
+export async function readCachedCardCatalog(userData: string): Promise<CardCatalog> {
   const cachePath = join(userData, 'cards-cache.json')
-  let cached: CardCatalog = { minions: [], heroes: {}, summons: {} }
   try {
     const raw = JSON.parse(await readFile(cachePath, 'utf8')) as CardCatalog | BgMinion[]
-    if (Array.isArray(raw)) cached = { minions: raw, heroes: {}, summons: {} }
-    else cached = { minions: raw.minions ?? [], heroes: raw.heroes ?? {}, summons: raw.summons ?? {} }
+    if (Array.isArray(raw)) return { minions: raw, heroes: {}, summons: {} }
+    return {
+      minions: raw.minions ?? [],
+      heroes: raw.heroes ?? {},
+      summons: raw.summons ?? {}
+    }
   } catch {
-    cached = { minions: [], heroes: {}, summons: {} }
+    return { minions: [], heroes: {}, summons: {} }
   }
+}
 
+export async function loadCardCatalog(
+  userData: string,
+  onRefresh?: (catalog: CardCatalog) => void
+): Promise<CardCatalog> {
+  const cachePath = join(userData, 'cards-cache.json')
+  const cached = await readCachedCardCatalog(userData)
+
+  if (cached.minions.length) {
+    void refreshCardCatalog(cachePath, cached).then((next) => {
+      if (next.minions.length) onRefresh?.(next)
+    })
+    return cached
+  }
+  return refreshCardCatalog(cachePath, cached)
+}
+
+async function refreshCardCatalog(cachePath: string, fallback: CardCatalog): Promise<CardCatalog> {
   try {
     const res = await fetch(CARDS_URL, {
       headers: { 'user-agent': 'BattleBuddy/0.1' }
@@ -43,8 +64,8 @@ export async function loadCardCatalog(userData: string): Promise<CardCatalog> {
       return { minions, heroes, summons }
     }
   } catch (err) {
-    if (cached.minions.length) return cached
+    if (fallback.minions.length) return fallback
     throw err
   }
-  return cached
+  return fallback
 }

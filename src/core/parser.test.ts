@@ -292,6 +292,64 @@ describe('parser', () => {
     expect(p.getCombat()?.opponent.minions[0]?.attack).toBe(3)
   })
 
+  it('freezes opponent hand minions with live stats and keywords', () => {
+    const p = new BattlegroundsParser('TestPlayer')
+    for (const line of [
+      'D 12:00 GameState.DebugPrintPower() - CREATE_GAME',
+      'D 12:00 GameState.DebugPrintGame() - GameType=GT_BATTLEGROUNDS',
+      'D 12:00 GameState.DebugPrintGame() - PlayerID=1, PlayerName=TestPlayer#1234',
+      'D 12:00 GameState.DebugPrintPower() - Player EntityID=2 PlayerID=1 GameAccountId=[hi=1 lo=2]'
+    ]) {
+      p.feed(line)
+    }
+    p.feed('D 12:10 GameState.DebugPrintPower() - CREATE_GAME')
+    for (const line of [
+      'D 12:10 PowerTaskList.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ATK value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=HEALTH value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CONTROLLER value=2',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ATK value=3',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=HEALTH value=2',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() - FULL_ENTITY - Creating ID=30 CardID=BGS_HAND',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE value=3',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=CONTROLLER value=2',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ATK value=6',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=HEALTH value=8',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=TAUNT value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=DIVINE_SHIELD value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=REBORN value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=VENOMOUS value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=WINDFURY value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() -     tag=PREMIUM value=1',
+      'D 12:10 PowerTaskList.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1'
+    ]) {
+      p.feed(line)
+    }
+    expect(p.getCombat()?.opponent.hand).toEqual([
+      expect.objectContaining({
+        cardId: 'BGS_HAND',
+        attack: 6,
+        health: 8,
+        taunt: true,
+        divineShield: true,
+        reborn: true,
+        venomous: true,
+        windfury: true,
+        golden: true
+      })
+    ])
+  })
+
   it('copies parser entity names onto nameless combat clones', () => {
     const p = new BattlegroundsParser('TestPlayer')
     for (const line of [

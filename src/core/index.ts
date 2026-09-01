@@ -1,4 +1,5 @@
 export { BattlegroundsParser, baconShopTurn, baconPhaseLabel, isPlaceholderName, isWarbandMinion, seenFromCombat, isCombatSpectatorCreateGame, isEndGameDisconnect, normalizeName, parseLoadingScreenScene, parsePowerLogTime, sceneFromMode } from './parser'
+export { pickLastSeenBoard, printedStats, liveTone, catalogForSeen, isGainedKeyword } from './liveStats'
 export {
   parseDeathrattleSummon,
   parseStartOfCombat,
@@ -23,6 +24,7 @@ export { indexLeaderboard, leaderboardAccountId, leaderboardUrl, matchLobby, row
 export { applyGameMmr, applyRatingObservation, averageFinish, bindCurrentMmr, dedupeGames, emptySession, ensureToday, gamesToday, gameMmrIsSettled, hydrateGameMmr, recordFinish, MAX_RECENT_GAMES } from './session'
 export { PoolTracker } from './poolTrack'
 export { parsePlayRating, parseRatingObservation, mergeRatingObservations, isSessionTotalDelta, acceptObservedRating, battleTagDiscriminator, ratingCaptureRect, ratingCaptureRects, resultCaptureRects } from './playRating'
+export { opponentCombatCaptureRect } from './combatCapture'
 export {
   strategyCandidates,
   snapshotFromCatalog,

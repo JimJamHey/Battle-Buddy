@@ -85,6 +85,10 @@ export function seenFromCombat(minion: {
   venomous?: boolean
   poisonous?: boolean
   golden?: boolean
+  windfury?: boolean
+  megaWindfury?: boolean
+  stealth?: boolean
+  deathrattle?: boolean
 }): SeenMinion {
   return {
     cardId: minion.cardId,
@@ -95,7 +99,10 @@ export function seenFromCombat(minion: {
     divineShield: Boolean(minion.divineShield),
     reborn: Boolean(minion.reborn),
     venomous: Boolean(minion.venomous || minion.poisonous),
-    golden: Boolean(minion.golden) || /_G$/i.test(minion.cardId)
+    golden: Boolean(minion.golden) || /_G$/i.test(minion.cardId),
+    ...(minion.windfury || minion.megaWindfury ? { windfury: true } : {}),
+    ...(minion.stealth ? { stealth: true } : {}),
+    ...(minion.deathrattle ? { deathrattle: true } : {})
   }
 }
 
