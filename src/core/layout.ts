@@ -2,27 +2,26 @@ import {
   DEFAULT_OVERLAY_LAYOUT,
   DEFAULT_PANEL_WIDTH,
   type OverlayLayout,
-  type OverlayPoolLayout,
+  type OverlaySizedPanel,
   type OverlayPos
 } from './types'
 
 export { DEFAULT_PANEL_WIDTH }
 
-const MIN_PANEL_WIDTH = 14
-const MAX_PANEL_WIDTH = 28
+const MIN_PANEL_WIDTH = 12
+const MAX_PANEL_WIDTH = 36
 
-export function clampPoolWidth(width: number): number {
+export function clampPanelWidth(width: number): number {
   if (!Number.isFinite(width)) return DEFAULT_PANEL_WIDTH
   return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, Math.round(width * 10) / 10))
 }
 
-/**
- * Side panels scale with viewport via clamp(); user preference is the vw middle term.
- * Bounds live in CSS (--overlay-panel-min/max) so every resolution gets fluid sizing.
- */
+/** @deprecated use clampPanelWidth */
+export const clampPoolWidth = clampPanelWidth
+
+/** User-resized width in vw; floor/ceiling applied in CSS on .float-panel.sized */
 export function panelWidthStyle(widthPct: number): string {
-  const vw = clampPoolWidth(widthPct)
-  return `clamp(var(--overlay-panel-min), ${vw}vw, var(--overlay-panel-max))`
+  return `${clampPanelWidth(widthPct)}vw`
 }
 
 export function poolWidthStyle(widthPct: number): string {
@@ -33,14 +32,21 @@ export function mergeOverlayLayout(
   base: OverlayLayout = DEFAULT_OVERLAY_LAYOUT,
   patch?: Partial<OverlayLayout> | null
 ): OverlayLayout {
+  const railW = patch?.rail?.w ?? base.rail?.w ?? DEFAULT_OVERLAY_LAYOUT.rail.w
+  const poolW = patch?.pool?.w ?? base.pool?.w ?? DEFAULT_OVERLAY_LAYOUT.pool.w
   return {
-    rail: { ...DEFAULT_OVERLAY_LAYOUT.rail, ...base.rail, ...patch?.rail },
+    rail: {
+      ...DEFAULT_OVERLAY_LAYOUT.rail,
+      ...base.rail,
+      ...patch?.rail,
+      w: clampPanelWidth(railW)
+    },
     combat: { ...DEFAULT_OVERLAY_LAYOUT.combat, ...base.combat, ...patch?.combat },
     pool: {
       ...DEFAULT_OVERLAY_LAYOUT.pool,
       ...base.pool,
       ...patch?.pool,
-      w: clampPoolWidth(patch?.pool?.w ?? base.pool?.w ?? DEFAULT_OVERLAY_LAYOUT.pool.w)
+      w: clampPanelWidth(poolW)
     }
   }
 }
@@ -54,10 +60,13 @@ export function clampOverlayPos(pos: OverlayPos, panelWidthPct = 0): OverlayPos 
   }
 }
 
-export function clampPoolLayout(pool: OverlayPoolLayout): OverlayPoolLayout {
-  const w = clampPoolWidth(pool.w)
-  return { ...clampOverlayPos(pool, w), w }
+export function clampSizedPanel(panel: OverlaySizedPanel): OverlaySizedPanel {
+  const w = clampPanelWidth(panel.w)
+  return { ...clampOverlayPos(panel, w), w }
 }
+
+/** @deprecated use clampSizedPanel */
+export const clampPoolLayout = clampSizedPanel
 
 /** Older builds parked the pool along the bottom; move those to the HDT right-hand list. */
 export function migrateOverlayLayout(layout: OverlayLayout): OverlayLayout {
@@ -65,8 +74,12 @@ export function migrateOverlayLayout(layout: OverlayLayout): OverlayLayout {
   if (merged.pool.x < 55 && merged.pool.y > 35) {
     merged = { ...merged, pool: { ...DEFAULT_OVERLAY_LAYOUT.pool, w: merged.pool.w } }
   }
-  if (merged.pool.w >= 24) {
+  // Legacy default width only — do not reset user-chosen sizes.
+  if (merged.pool.w === 26) {
     merged = { ...merged, pool: { ...merged.pool, w: DEFAULT_PANEL_WIDTH } }
+  }
+  if (merged.rail.w === 26) {
+    merged = { ...merged, rail: { ...merged.rail, w: DEFAULT_PANEL_WIDTH } }
   }
   if (merged.pool.x > 78) {
     merged = { ...merged, pool: { ...merged.pool, x: DEFAULT_OVERLAY_LAYOUT.pool.x } }

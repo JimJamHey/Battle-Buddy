@@ -137,6 +137,7 @@ export function DraggablePanel({
     if (!unlocked || !resizable) return
     onInteract(true)
     resize.current = { ox: event.clientX, ow: widthRef.current }
+    event.currentTarget.setPointerCapture(event.pointerId)
     event.preventDefault()
     event.stopPropagation()
   }

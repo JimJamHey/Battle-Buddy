@@ -14,7 +14,7 @@ describe('sanitizeSettings', () => {
     })
     expect(next.overlayOpacity).toBe(100)
     expect(next.region).toBe('US')
-    expect(next.overlayLayout.rail).toEqual({ x: 0, y: 88 })
+    expect(next.overlayLayout.rail).toEqual({ x: 0, y: 88, w: 20 })
     expect(next.battleTag.length).toBeLessThanOrEqual(64)
     expect(next.showLobbyOnOverlay).toBe(false)
     expect(next.currentMmr).toBe(30000)

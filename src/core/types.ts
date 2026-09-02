@@ -10,15 +10,18 @@ export interface OverlayPos {
   y: number
 }
 
-/** Pool panel width as a percent of the overlay viewport (18–38). */
-export interface OverlayPoolLayout extends OverlayPos {
+/** Side panel width as a percent of the overlay viewport (12–36). */
+export interface OverlaySizedPanel extends OverlayPos {
   w: number
 }
 
+/** @deprecated use OverlaySizedPanel */
+export type OverlayPoolLayout = OverlaySizedPanel
+
 export interface OverlayLayout {
-  rail: OverlayPos
+  rail: OverlaySizedPanel
   combat: OverlayPos
-  pool: OverlayPoolLayout
+  pool: OverlaySizedPanel
 }
 
 export const DEFAULT_PANEL_WIDTH = 20
@@ -26,7 +29,7 @@ export const DEFAULT_PANEL_WIDTH = 20
 export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
-  rail: { x: 0.55, y: 5.5 },
+  rail: { x: 0.55, y: 5.5, w: DEFAULT_PANEL_WIDTH },
   combat: { x: 27, y: 1.4 },
   pool: { x: 74, y: 3.2, w: DEFAULT_PANEL_WIDTH }
 }

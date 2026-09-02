@@ -12,7 +12,7 @@ import { DEFAULT_OVERLAY_LAYOUT } from './types'
 describe('overlay layout', () => {
   it('keeps other panels when only one is patched', () => {
     const moved = mergeOverlayLayout(DEFAULT_OVERLAY_LAYOUT, { rail: { x: 2, y: 10 } })
-    expect(moved.rail).toEqual({ x: 2, y: 10 })
+    expect(moved.rail).toEqual({ x: 2, y: 10, w: 20 })
     expect(moved.combat).toEqual(DEFAULT_OVERLAY_LAYOUT.combat)
     expect(moved.pool).toEqual(DEFAULT_OVERLAY_LAYOUT.pool)
   })
@@ -52,12 +52,23 @@ describe('overlay layout', () => {
     expect(next.pool.w).toBe(20)
   })
 
-  it('clamps pool width into a usable range', () => {
-    expect(clampPoolWidth(12)).toBe(14)
-    expect(clampPoolWidth(44)).toBe(28)
+  it('preserves user-chosen widths that are not the legacy default', () => {
+    const next = migrateOverlayLayout({
+      ...DEFAULT_OVERLAY_LAYOUT,
+      pool: { x: 74, y: 3.2, w: 28 },
+      rail: { x: 0.55, y: 5.5, w: 24 }
+    })
+    expect(next.pool.w).toBe(28)
+    expect(next.rail.w).toBe(24)
   })
 
-  it('uses fluid clamp bounds for panel width', () => {
-    expect(panelWidthStyle(20)).toBe('clamp(var(--overlay-panel-min), 20vw, var(--overlay-panel-max))')
+  it('clamps pool width into a usable range', () => {
+    expect(clampPoolWidth(12)).toBe(12)
+    expect(clampPoolWidth(44)).toBe(36)
+  })
+
+  it('uses vw for panel width so resize is visible', () => {
+    expect(panelWidthStyle(20)).toBe('20vw')
+    expect(panelWidthStyle(28)).toBe('28vw')
   })
 })

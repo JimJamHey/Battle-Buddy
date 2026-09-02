@@ -55,8 +55,10 @@ export { resolveLogsDirectory } from './logPaths'
 export { shouldPollRating, ratingPollMode, ratingPollIntervalMs, type RatingPollMode } from './ratingPoll'
 export {
   clampOverlayPos,
-  clampPoolLayout,
+  clampPanelWidth,
   clampPoolWidth,
+  clampSizedPanel,
+  clampPoolLayout,
   DEFAULT_PANEL_WIDTH,
   mergeOverlayLayout,
   migrateOverlayLayout,
