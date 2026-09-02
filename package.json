@@ -15,9 +15,7 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "dist": "electron-vite build && electron-builder",
-    "dist:win": "electron-vite build && electron-builder --win",
     "dist:mac": "npm run build:mac-host && electron-vite build && electron-builder --mac",
-    "publish:win": "electron-vite build && electron-builder --win nsis --publish always",
     "publish:mac": "npm run build:mac-host && electron-vite build && electron-builder --mac --publish always",
     "build:mac-host": "mkdir -p resources && swiftc -swift-version 5 -O -target $(uname -m)-apple-macos14.0 -o resources/mac-host src/platform/macHost.swift -framework AppKit -framework Vision -framework CoreGraphics -framework ScreenCaptureKit",
     "curate": "tsx scripts/curate-strategies.ts",
@@ -60,13 +58,6 @@
     "asarUnpack": [
       "**/node_modules/koffi/**"
     ],
-    "win": {
-      "artifactName": "BattleBuddy-windows.${ext}",
-      "target": [
-        "nsis",
-        "zip"
-      ]
-    },
     "mac": {
       "artifactName": "BattleBuddy.${ext}",
       "hardenedRuntime": true,
@@ -89,14 +80,6 @@
         "zip"
       ],
       "category": "public.app-category.games"
-    },
-    "nsis": {
-      "artifactName": "BattleBuddy-Setup.exe",
-      "oneClick": true,
-      "perMachine": false,
-      "include": "build/installer.nsh",
-      "shortcutName": "BattleBuddy",
-      "uninstallDisplayName": "BattleBuddy"
     },
     "publish": {
       "provider": "github",
