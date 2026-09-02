@@ -90,7 +90,14 @@ export function SettingsApp() {
           {state.status.hearthstoneFocused ? ' · focused' : ''}
         </p>
         <p className="hint">Install: {state.status.installPath || '—'}</p>
-        <p className="hint">App data: {state.status.appDataPath}</p>
+        <p className="hint">
+          App data folder: <code className="path-code">{state.status.appDataPath}</code>
+        </p>
+        <p className="hint">
+          On Windows this is usually{' '}
+          <code className="path-code">%AppData%\battle-buddy</code> (lowercase, with a hyphen — not
+          BattleBuddy).
+        </p>
         <p className="hint">Logs: {state.status.logsDirectory || '—'}</p>
         <p className="hint">
           Live tracking: {state.status.logsLive ? 'yes' : 'no'}
@@ -102,6 +109,9 @@ export function SettingsApp() {
         <div className="row" style={{ marginTop: 10 }}>
           <button className="ghost" type="button" onClick={() => void window.battleBuddy.openAppData()}>
             Open app data folder
+          </button>
+          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openRatingOcrFolder()}>
+            Open OCR debug folder
           </button>
           <button className="ghost" type="button" onClick={() => void window.battleBuddy.openLogs()}>
             Open Hearthstone logs
@@ -261,6 +271,9 @@ export function SettingsApp() {
           <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshRating()}>
             Read rating from screen
           </button>
+          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openRatingOcrFolder()}>
+            Open OCR debug folder
+          </button>
         </div>
         {state.status.ratingOcr.at ? (
           <p className="hint">
@@ -269,13 +282,18 @@ export function SettingsApp() {
               ? state.status.ratingOcr.rating.toLocaleString('en-US')
               : 'no number found'}
             {state.status.ratingOcr.error ? ` (${state.status.ratingOcr.error})` : ''}
-            {state.status.ratingOcr.debugCropPath
-              ? ` · debug image in ${state.status.appDataPath}\\rating-ocr`
-              : ''}
           </p>
         ) : (
           <p className="hint">Open the Battlegrounds Play screen, then use Read rating from screen.</p>
         )}
+        <p className="hint">
+          OCR debug screenshot:{' '}
+          <code className="path-code">
+            {state.status.appDataPath}\rating-ocr\rating-ocr-debug.bmp
+          </code>
+          . The <code className="path-code">rating-ocr</code> folder is created the first time you read
+          the rating.
+        </p>
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
           <input id="path" type="text" value={state.settings.hearthstonePath} readOnly />

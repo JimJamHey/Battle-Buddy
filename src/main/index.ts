@@ -1400,6 +1400,12 @@ function registerIpc(): void {
     if (!fromAppWindow(e.sender)) return
     await shell.openPath(userData())
   })
+  ipcMain.handle('open-rating-ocr-folder', async (e) => {
+    if (!fromAppWindow(e.sender)) return
+    const dir = join(userData(), 'rating-ocr')
+    await mkdir(dir, { recursive: true })
+    await shell.openPath(dir)
+  })
   ipcMain.handle('refresh-rating', async (e) => {
     if (!fromAppWindow(e.sender)) return snapshot()
     lastPlayRatingAt = 0

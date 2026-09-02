@@ -191,13 +191,60 @@ p {
   max-width: 32vw;
 }
 
-.float-panel.sized.docked {
+.panel-dock {
+  position: absolute;
+  z-index: 2;
+  overflow: visible;
+}
+
+.panel-dock.docked {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  width: var(--panel-width-vw, 14vw);
+  min-width: 10rem;
+  max-width: 32vw;
 }
 
-.float-panel.pool.sized > .pool-panel {
+.panel-dock.anchor-right.docked {
+  right: 0;
+  left: auto;
+}
+
+.panel-dock.anchor-left.docked {
+  left: 0;
+}
+
+.panel-dock.has-resize-edge .float-panel.sized {
+  width: 100%;
+  max-width: none;
+}
+
+.float-panel.sized.docked {
+  position: relative;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+}
+
+.overlay-root.menu-safe .panel-dock.pool-dock.docked {
+  top: 5%;
+  bottom: 17%;
+}
+
+.overlay-root.menu-safe .panel-dock.rail-dock.docked {
+  bottom: 9%;
+}
+
+.float-panel.pool.sized > .pool-panel,
+.panel-dock.pool-dock .float-panel.pool > .pool-panel {
   flex: 1 1 auto;
   min-height: 0;
   max-height: none;
@@ -277,37 +324,52 @@ p {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 16px;
+  width: 10px;
   cursor: ew-resize;
   z-index: 120;
   touch-action: none;
   pointer-events: auto;
-  background: linear-gradient(
-    90deg,
-    rgba(224, 192, 122, 0.12),
-    rgba(224, 192, 122, 0.45)
-  );
+}
+
+.resize-edge-outside {
+  width: 8px;
+  background: transparent;
+}
+
+.resize-edge-outside::after {
+  content: '';
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(224, 192, 122, 0.35);
+  transition: background 140ms ease, width 140ms ease, opacity 140ms ease;
+  opacity: 0.55;
 }
 
 .resize-edge-right {
-  right: 0;
-  border-right: 4px solid rgba(224, 192, 122, 0.9);
-  border-radius: 0 8px 8px 0;
+  right: -8px;
+}
+
+.resize-edge-right::after {
+  right: 3px;
 }
 
 .resize-edge-left {
-  left: 0;
-  border-left: 4px solid rgba(224, 192, 122, 0.9);
-  border-radius: 8px 0 0 8px;
+  left: -8px;
 }
 
-.resize-edge:hover,
-.float-panel:hover .resize-edge {
-  background: linear-gradient(
-    90deg,
-    rgba(224, 192, 122, 0.18),
-    rgba(224, 192, 122, 0.55)
-  );
+.resize-edge-left::after {
+  left: 3px;
+}
+
+.resize-edge-outside:hover::after,
+.panel-dock:hover .resize-edge-outside::after,
+.resize-edge-outside:active::after {
+  opacity: 1;
+  width: 3px;
+  background: rgba(224, 192, 122, 0.85);
 }
 
 .layout-hint {
@@ -1747,7 +1809,7 @@ html[data-theme='buddy'] .combat-bar::after {
   display: flex;
   align-items: center;
   min-height: var(--overlay-row-min);
-  padding: 0 10px 0 8px;
+  padding: 0 calc(var(--pool-art-width, 52px) + 8px) 0 8px;
   gap: 8px;
   overflow: hidden;
   isolation: isolate;
@@ -1820,8 +1882,11 @@ html[data-theme='buddy'] .combat-bar::after {
 
 .pool-slice {
   position: absolute;
-  inset: 0;
-  width: 100%;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  width: var(--pool-art-width, 52px);
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
@@ -1839,9 +1904,8 @@ html[data-theme='buddy'] .combat-bar::after {
   background: linear-gradient(
     90deg,
     var(--overlay-row) 0%,
-    color-mix(in srgb, var(--overlay-row) 82%, transparent) 34%,
-    color-mix(in srgb, var(--overlay-row) 18%, transparent) 58%,
-    transparent 78%
+    color-mix(in srgb, var(--overlay-row) 40%, transparent) 55%,
+    transparent 100%
   );
 }
 
@@ -1849,8 +1913,8 @@ html[data-theme='buddy'] .combat-bar::after {
   background: linear-gradient(
     90deg,
     var(--overlay-row-hover) 0%,
-    color-mix(in srgb, var(--overlay-row-hover) 70%, transparent) 36%,
-    transparent 72%
+    color-mix(in srgb, var(--overlay-row-hover) 35%, transparent) 60%,
+    transparent 100%
   );
 }
 
@@ -1859,7 +1923,7 @@ html[data-theme='buddy'] .combat-bar::after {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: right center;
   display: block;
   background: transparent;
@@ -2240,6 +2304,13 @@ button.ghost.danger {
   font-size: 12px;
   color: var(--muted);
   line-height: 1.45;
+}
+
+.path-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
+  color: #e8eef6;
+  word-break: break-all;
 }
 
 .settings-root .update-banner {

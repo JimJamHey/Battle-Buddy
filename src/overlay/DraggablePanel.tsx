@@ -16,6 +16,7 @@ export function DraggablePanel({
   pos,
   unlocked,
   className,
+  dockClassName,
   width,
   panelWidthPct = 0,
   anchor = 'free',
@@ -33,6 +34,7 @@ export function DraggablePanel({
   pos: OverlayPos
   unlocked: boolean
   className?: string
+  dockClassName?: string
   width?: string
   panelWidthPct?: number
   anchor?: PanelAnchor
@@ -48,6 +50,7 @@ export function DraggablePanel({
   children: ReactNode
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null)
+  const dockRef = useRef<HTMLDivElement | null>(null)
   const drag = useRef<{ ox: number; oy: number; px: number; py: number } | null>(null)
   const resize = useRef<{ ox: number; ow: number } | null>(null)
   const posRef = useRef(pos)
@@ -74,7 +77,8 @@ export function DraggablePanel({
   useEffect(() => {
     const clampForPanel = (next: OverlayPos): OverlayPos => {
       const root = panelRef.current?.closest('.overlay-root')
-      const widthPct = measuredPanelWidthPct(panelRef.current, root ?? null, widthRef.current)
+      const sized = dockRef.current ?? panelRef.current
+      const widthPct = measuredPanelWidthPct(sized, root ?? null, widthRef.current)
       return clampOverlayPos(next, widthPct)
     }
 
@@ -172,34 +176,38 @@ export function DraggablePanel({
         ? { left: '0', top: docked ? '0.5%' : `${pos.y}%`, bottom: docked ? '0.5%' : undefined, ...widthVars }
         : { left: `${pos.x}%`, top: `${pos.y}%`, width }
 
-  const resizeHandle =
+  const innerResize =
     canResize &&
-    (resizeEdge === 'inner' ? (
+    resizeEdge === 'inner' &&
+    docked && (
       <div
-        className={`resize-edge interactive capture-mouse no-drag ${anchor === 'right' ? 'resize-edge-left' : 'resize-edge-right'}`}
+        className={`resize-edge resize-edge-outside interactive capture-mouse no-drag ${anchor === 'right' ? 'resize-edge-left' : 'resize-edge-right'}`}
         role="separator"
         aria-label="Drag to resize panel width"
-        title="Drag to resize width"
+        title="Drag inner edge to resize width"
         onPointerDown={startResize}
         onPointerEnter={() => onInteract(true)}
         onPointerLeave={() => {
           if (!resize.current) onInteract(false)
         }}
       />
-    ) : (
+    )
+
+  const cornerResize =
+    canResize &&
+    resizeEdge !== 'inner' && (
       <div
         className={`resize-grip interactive capture-mouse no-drag ${resizeWhenLocked ? 'resize-grip-persistent' : ''} ${anchor === 'right' ? 'resize-grip-left' : ''}`}
         role="button"
         aria-label="Resize panel"
         onPointerDown={startResize}
       />
-    ))
+    )
 
-  return (
+  const panel = (
     <div
       ref={panelRef}
       className={`float-panel ${canDrag || canResize ? 'interactive capture-mouse' : ''} ${canDrag ? 'unlocked' : ''} ${docked ? `anchor-${anchor} docked` : ''} ${className ?? ''}`}
-      style={panelStyle}
       onPointerDown={startDrag}
     >
       {canDrag ? (
@@ -215,7 +223,26 @@ export function DraggablePanel({
         </div>
       ) : null}
       {children}
-      {resizeHandle || null}
+      {cornerResize || null}
+    </div>
+  )
+
+  if (!docked) {
+    return (
+      <div className="panel-dock panel-dock-free" style={panelStyle}>
+        {panel}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      ref={dockRef}
+      className={`panel-dock anchor-${anchor} docked ${dockClassName ?? ''} ${canResize && resizeEdge === 'inner' ? 'has-resize-edge' : ''}`}
+      style={panelStyle}
+    >
+      {innerResize || null}
+      {panel}
     </div>
   )
 }

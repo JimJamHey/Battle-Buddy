@@ -119,9 +119,11 @@ export function OverlayApp() {
     })
   }
 
+  const menuSafe = !live
+
   return (
     <div
-      className={`overlay-root ${unlocked ? 'unlocked' : ''}`}
+      className={`overlay-root ${unlocked ? 'unlocked' : ''} ${menuSafe ? 'menu-safe' : ''}`}
       style={{ opacity: state.settings.overlayOpacity / 100 }}
     >
       <div className="toast-stack">
@@ -163,6 +165,7 @@ export function OverlayApp() {
       {showSession || unlocked ? (
         <DraggablePanel
           className="rail sized"
+          dockClassName="rail-dock"
           pos={layout.rail}
           anchor="left"
           draggable={false}
@@ -201,6 +204,7 @@ export function OverlayApp() {
 
       <DraggablePanel
         className="pool sized"
+        dockClassName="pool-dock"
         pos={layout.pool}
         anchor="right"
         draggable={false}
