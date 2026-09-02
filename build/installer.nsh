@@ -1,0 +1,28 @@
+; Write Hearthstone log.config during Setup so the next (or first) HS launch
+; already prints Power.log. Keys must match src/core/logConfig.ts.
+; options.txt is key=value (not INI). Create it only when missing; BattleBuddy
+; patches an existing file after Hearthstone exits.
+!macro customInstall
+  SetShellVarContext current
+  CreateDirectory "$LOCALAPPDATA\Blizzard\Hearthstone"
+  IfFileExists "$LOCALAPPDATA\Blizzard\Hearthstone\options.txt" skip_options 0
+    FileOpen $0 "$LOCALAPPDATA\Blizzard\Hearthstone\options.txt" w
+    FileWrite $0 "graphicsfullscreen=False$\r$\n"
+    FileClose $0
+  skip_options:
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "LogLevel" "1"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "FilePrinting" "true"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "ConsolePrinting" "false"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "ScreenPrinting" "false"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "Power" "Verbose" "true"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "LoadingScreen" "LogLevel" "1"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "LoadingScreen" "FilePrinting" "true"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "LoadingScreen" "ConsolePrinting" "false"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "LoadingScreen" "ScreenPrinting" "false"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "LoadingScreen" "Verbose" "false"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "GameNet" "LogLevel" "1"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "GameNet" "FilePrinting" "true"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "GameNet" "ConsolePrinting" "false"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "GameNet" "ScreenPrinting" "false"
+  WriteINIStr "$LOCALAPPDATA\Blizzard\Hearthstone\log.config" "GameNet" "Verbose" "false"
+!macroend
