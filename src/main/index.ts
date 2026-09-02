@@ -418,17 +418,23 @@ function noteRatingOcrCapture(
   }
 }
 
-async function withOverlayHiddenForOcr<T>(hide: boolean, fn: () => Promise<T>): Promise<T> {
+async function withOverlayHiddenForOcr<T>(
+  hideOverlay: boolean,
+  hidePool: boolean,
+  fn: () => Promise<T>
+): Promise<T> {
   const win = overlayWindow
   const wasVisible = Boolean(win && !win.isDestroyed() && win.isVisible())
   try {
-    if (hide && wasVisible && win && !win.isDestroyed()) win.hide()
-    if (win && !win.isDestroyed()) win.webContents.send('ocr-capture', true)
-    await new Promise((resolve) => setTimeout(resolve, 120))
+    if (hideOverlay && wasVisible && win && !win.isDestroyed()) win.hide()
+    else if (hidePool && win && !win.isDestroyed()) {
+      win.webContents.send('ocr-capture', true)
+      await new Promise((resolve) => setTimeout(resolve, 48))
+    }
     return await fn()
   } finally {
-    if (win && !win.isDestroyed()) win.webContents.send('ocr-capture', false)
-    if (hide && wasVisible && win && !win.isDestroyed()) win.showInactive()
+    if (hidePool && win && !win.isDestroyed()) win.webContents.send('ocr-capture', false)
+    if (hideOverlay && wasVisible && win && !win.isDestroyed()) win.showInactive()
   }
 }
 
@@ -447,6 +453,8 @@ async function pollPlayRating(force = false): Promise<void> {
   const now = Date.now()
   const minGap = ratingPollIntervalMs(mode)
   if (!force && now - lastPlayRatingAt < minGap) return
+  // Background menu polling hid the pool every few seconds and caused visible flicker.
+  if (mode === 'idle' && !force) return
   lastPlayRatingAt = now
   const bounds = await host.getClientBounds()
   if (!bounds) {
@@ -460,8 +468,9 @@ async function pollPlayRating(force = false): Promise<void> {
   }
   playRatingBusy = true
   const hideOverlay = shouldHideOverlayForRating(mode)
+  const hidePool = mode === 'idle' && force
   try {
-    const capture = await withOverlayHiddenForOcr(hideOverlay, () =>
+    const capture = await withOverlayHiddenForOcr(hideOverlay, hidePool, () =>
       readRatingObservation(bounds, {
         includeResults: wantResults,
         debugDir: join(userData(), 'rating-ocr')

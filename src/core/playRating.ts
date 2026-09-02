@@ -134,35 +134,32 @@ export function isSessionTotalDelta(
   return delta === before - start
 }
 
-/** Upper-right Battlegrounds Play widget, where "Rating NNNN" sits. */
-export function ratingCaptureRect(client: CaptureRect): CaptureRect {
+/** Tight crop on the white rating digits inside the dark plaque (Play screen). */
+export function ratingNumberPlaqueRect(client: CaptureRect): CaptureRect {
+  const w = client.width
+  const h = client.height
   return {
-    x: client.x + Math.round(client.width * 0.62),
-    y: client.y + Math.round(client.height * 0.04),
-    width: Math.max(150, Math.round(client.width * 0.26)),
-    height: Math.max(80, Math.round(client.height * 0.22))
+    x: client.x + Math.round(w * 0.738),
+    y: client.y + Math.round(h * 0.112),
+    width: Math.max(96, Math.round(w * 0.105)),
+    height: Math.max(44, Math.round(h * 0.058))
+  }
+}
+
+/** Upper-right Play widget: pink Rating label, number plaque, Full Stats button. */
+export function ratingCaptureRect(client: CaptureRect): CaptureRect {
+  const w = client.width
+  const h = client.height
+  return {
+    x: client.x + Math.round(w * 0.72),
+    y: client.y + Math.round(h * 0.085),
+    width: Math.max(130, Math.round(w * 0.14)),
+    height: Math.max(100, Math.round(h * 0.13))
   }
 }
 
 export function ratingCaptureRects(client: CaptureRect): CaptureRect[] {
-  const primary = ratingCaptureRect(client)
-  const w = client.width
-  const h = client.height
-  return [
-    primary,
-    {
-      x: client.x + Math.round(w * 0.68),
-      y: client.y + Math.round(h * 0.06),
-      width: Math.max(120, Math.round(w * 0.18)),
-      height: Math.max(70, Math.round(h * 0.14))
-    },
-    {
-      x: client.x + Math.round(w * 0.5),
-      y: client.y + Math.round(h * 0.03),
-      width: Math.max(180, Math.round(w * 0.38)),
-      height: Math.max(110, Math.round(h * 0.34))
-    }
-  ]
+  return [ratingNumberPlaqueRect(client), ratingCaptureRect(client)]
 }
 
 /** Center plaque on the Battlegrounds results screen — avoid gold and the quest bar. */

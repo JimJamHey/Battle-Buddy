@@ -69,11 +69,11 @@ export function PoolList({
                   {card.kind === 'spell' ? <span className="pool-cost">{card.cost}</span> : null}
                   <span className="pool-art" aria-hidden>
                     <CardArt
-                      className="pool-tile"
+                      className="pool-face"
                       cardId={card.id}
                       name={card.name}
                       dbfId={card.dbfId}
-                      variant="tile"
+                      variant="face"
                       hideIfMissing
                     />
                   </span>

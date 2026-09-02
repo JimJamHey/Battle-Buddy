@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { encodeBmp32, parsePlayRating, parseRatingObservation, parseResultsPlacement, acceptObservedRating, ratingCaptureRect, resultCaptureRects, mergeRatingObservations, isSessionTotalDelta } from './playRating'
+import { encodeBmp32, parsePlayRating, parseRatingObservation, parseResultsPlacement, acceptObservedRating, ratingCaptureRect, ratingNumberPlaqueRect, resultCaptureRects, mergeRatingObservations, isSessionTotalDelta } from './playRating'
 
 describe('parsePlayRating', () => {
   it('reads the Play-screen Rating label and ignores gold and other numbers', () => {
@@ -69,12 +69,20 @@ describe('parsePlayRating', () => {
 })
 
 describe('ratingCaptureRect', () => {
-  it('crops the upper-right Play widget where Rating is drawn', () => {
-    const region = ratingCaptureRect({ x: 100, y: 40, width: 1920, height: 1080 })
-    expect(region.x).toBe(100 + Math.round(1920 * 0.62))
-    expect(region.y).toBe(40 + Math.round(1080 * 0.04))
-    expect(region.width).toBeGreaterThan(200)
-    expect(region.y).toBeLessThan(40 + Math.round(1080 * 0.12))
+  it('crops the rating number plaque on the Play screen', () => {
+    const client = { x: 100, y: 40, width: 1920, height: 1080 }
+    const plaque = ratingNumberPlaqueRect(client)
+    expect(plaque.x).toBe(100 + Math.round(1920 * 0.738))
+    expect(plaque.y).toBe(40 + Math.round(1080 * 0.112))
+    expect(plaque.width).toBeGreaterThan(90)
+    expect(plaque.height).toBeGreaterThan(40)
+    expect(plaque.x + plaque.width).toBeLessThan(100 + Math.round(1920 * 0.86))
+
+    const region = ratingCaptureRect(client)
+    expect(region.x).toBe(100 + Math.round(1920 * 0.72))
+    expect(region.y).toBe(40 + Math.round(1080 * 0.085))
+    expect(region.width).toBeGreaterThan(120)
+    expect(region.y).toBeLessThan(40 + Math.round(1080 * 0.14))
     expect(region.x + region.width).toBeLessThanOrEqual(100 + 1920)
   })
 

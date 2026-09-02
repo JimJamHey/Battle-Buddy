@@ -91,15 +91,6 @@ export function SettingsApp() {
         </p>
         <p className="hint">Install: {state.status.installPath || '—'}</p>
         <p className="hint">
-          App data folder: <code className="path-code">{state.status.appDataPath}</code>
-        </p>
-        <p className="hint">
-          On Windows this is usually{' '}
-          <code className="path-code">%AppData%\battle-buddy</code> (lowercase, with a hyphen — not
-          BattleBuddy).
-        </p>
-        <p className="hint">Logs: {state.status.logsDirectory || '—'}</p>
-        <p className="hint">
           Live tracking: {state.status.logsLive ? 'yes' : 'no'}
           {state.status.needsHearthstoneRestart ? ' — restart Hearthstone' : ''}
         </p>
@@ -107,15 +98,6 @@ export function SettingsApp() {
         {state.status.banner ? <p className="status-bad">{state.status.banner}</p> : null}
         {state.status.lastError ? <p className="status-bad">{state.status.lastError}</p> : null}
         <div className="row" style={{ marginTop: 10 }}>
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openAppData()}>
-            Open app data folder
-          </button>
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openRatingOcrFolder()}>
-            Open OCR debug folder
-          </button>
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openLogs()}>
-            Open Hearthstone logs
-          </button>
           <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshLeaderboard()}>
             Refresh leaderboard
           </button>
@@ -188,9 +170,8 @@ export function SettingsApp() {
           />
         </label>
         <p className="hint">
-          Session stats stay on the left and the minion pool on the right. Drag the thick gold
-          strip on the inner edge of each panel to change width. Unlock layout to reposition the
-          combat bar (Ctrl+Shift+L).
+          Session stats on the left, minion pool on the right. Drag the inner edge of a panel to
+          resize it. Unlock layout to reposition the combat bar (Ctrl+Shift+L).
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>
@@ -250,8 +231,8 @@ export function SettingsApp() {
           onBlur={() => commitTag(tagDraft)}
         />
         <p className="hint">
-          Used to match your games on the leaderboard. Rating is read from the Battlegrounds Play screen
-          after each game.
+          Used to match your games on the leaderboard. Your rating is read from the number under the
+          pink Rating label on the Battlegrounds Play screen.
         </p>
         <label htmlFor="current-mmr">Current rating (optional)</label>
         <input
@@ -271,29 +252,17 @@ export function SettingsApp() {
           <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshRating()}>
             Read rating from screen
           </button>
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openRatingOcrFolder()}>
-            Open OCR debug folder
-          </button>
         </div>
         {state.status.ratingOcr.at ? (
           <p className="hint">
-            Last screen read:{' '}
+            Last read:{' '}
             {state.status.ratingOcr.rating != null
               ? state.status.ratingOcr.rating.toLocaleString('en-US')
               : 'no number found'}
-            {state.status.ratingOcr.error ? ` (${state.status.ratingOcr.error})` : ''}
           </p>
         ) : (
           <p className="hint">Open the Battlegrounds Play screen, then use Read rating from screen.</p>
         )}
-        <p className="hint">
-          OCR debug screenshot:{' '}
-          <code className="path-code">
-            {state.status.appDataPath}\rating-ocr\rating-ocr-debug.bmp
-          </code>
-          . The <code className="path-code">rating-ocr</code> folder is created the first time you read
-          the rating.
-        </p>
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
           <input id="path" type="text" value={state.settings.hearthstonePath} readOnly />

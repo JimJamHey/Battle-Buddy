@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { DEFAULT_OVERLAY_LAYOUT, OVERLAY_SAFE_BOTTOM_LIVE, OVERLAY_SAFE_BOTTOM_MENU, OVERLAY_SAFE_TOP_POOL, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
+import { DEFAULT_OVERLAY_LAYOUT, OVERLAY_SAFE_BOTTOM_PX, OVERLAY_SAFE_TOP_POOL_PX, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
 import {
   clampLeftDockedPanel,
   clampPanelWidth,
@@ -127,9 +127,8 @@ export function OverlayApp() {
       className={`overlay-root ${unlocked ? 'unlocked' : ''} ${live ? 'live-match' : 'menu-idle'} ${ocrCapture ? 'ocr-capture' : ''}`}
       style={{
         opacity: state.settings.overlayOpacity / 100,
-        ['--overlay-safe-bottom' as string]: `${OVERLAY_SAFE_BOTTOM_MENU}%`,
-        ['--overlay-safe-bottom-live' as string]: `${OVERLAY_SAFE_BOTTOM_LIVE}%`,
-        ['--overlay-safe-top-pool' as string]: `${OVERLAY_SAFE_TOP_POOL}%`
+        ['--overlay-safe-bottom' as string]: `${OVERLAY_SAFE_BOTTOM_PX}px`,
+        ['--overlay-safe-top-pool' as string]: `${OVERLAY_SAFE_TOP_POOL_PX}px`
       }}
     >
       <div className="toast-stack">

@@ -236,7 +236,7 @@ p {
 
 .panel-dock.rail-dock.docked,
 .panel-dock.pool-dock.docked {
-  bottom: var(--overlay-safe-bottom, 18%);
+  bottom: var(--overlay-safe-bottom, 100px);
 }
 
 .panel-dock.rail-dock.docked {
@@ -244,16 +244,13 @@ p {
 }
 
 .panel-dock.pool-dock.docked {
-  top: var(--overlay-safe-top-pool, 7%);
-}
-
-.overlay-root.live-match .panel-dock.rail-dock.docked,
-.overlay-root.live-match .panel-dock.pool-dock.docked {
-  bottom: var(--overlay-safe-bottom-live, 15%);
+  top: var(--overlay-safe-top-pool, 56px);
 }
 
 .overlay-root.ocr-capture .panel-dock.pool-dock {
-  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
 }
 
 .panel-dock.rail-dock {
@@ -1907,20 +1904,17 @@ html[data-theme='buddy'] .combat-bar::after {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  width: 46px;
-  align-self: stretch;
-  min-height: var(--overlay-row-min);
+  width: 40px;
+  height: 48px;
+  margin-left: 2px;
   overflow: hidden;
-  border-radius: 0 4px 4px 0;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
-.pool-slice {
-  display: none;
-}
-
+.pool-face,
 .pool-tile {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1935,7 +1929,6 @@ html[data-theme='buddy'] .combat-bar::after {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  margin-left: auto;
   min-width: 24px;
   height: 24px;
   border-radius: 50%;
