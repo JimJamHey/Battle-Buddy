@@ -6,6 +6,8 @@ import {
   type OverlayPos
 } from './types'
 
+export { DEFAULT_PANEL_WIDTH }
+
 const MIN_PANEL_WIDTH = 14
 const MAX_PANEL_WIDTH = 28
 

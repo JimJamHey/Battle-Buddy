@@ -57,6 +57,7 @@ export {
   clampOverlayPos,
   clampPoolLayout,
   clampPoolWidth,
+  DEFAULT_PANEL_WIDTH,
   mergeOverlayLayout,
   migrateOverlayLayout,
   panelWidthStyle,

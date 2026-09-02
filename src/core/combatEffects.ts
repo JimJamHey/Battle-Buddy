@@ -70,6 +70,7 @@ export interface CombatEffect {
   tribe?: string
   name?: string
   requiresSpace?: boolean
+  select?: HandSelect
 }
 
 export interface CombatTriggerSet {

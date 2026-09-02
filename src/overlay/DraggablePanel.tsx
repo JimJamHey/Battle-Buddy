@@ -58,7 +58,7 @@ export function DraggablePanel({
   useEffect(() => {
     const clampForPanel = (next: OverlayPos): OverlayPos => {
       const root = panelRef.current?.closest('.overlay-root')
-      const widthPct = measuredPanelWidthPct(panelRef.current, root, widthRef.current)
+      const widthPct = measuredPanelWidthPct(panelRef.current, root ?? null, widthRef.current)
       return clampOverlayPos(next, widthPct)
     }
 
