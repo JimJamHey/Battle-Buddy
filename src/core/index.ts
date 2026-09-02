@@ -25,8 +25,8 @@ export { indexLeaderboard, leaderboardAccountId, leaderboardUrl, matchLobby, row
 export { applyGameMmr, applyRatingObservation, averageFinish, bindCurrentMmr, dedupeGames, emptySession, ensureToday, gamesToday, gameMmrIsSettled, hydrateGameMmr, recordFinish, MAX_RECENT_GAMES } from './session'
 export { PoolTracker } from './poolTrack'
 export { parsePlayRating, parseRatingObservation, mergeRatingObservations, isSessionTotalDelta, acceptObservedRating, battleTagDiscriminator, ratingCaptureRect, ratingCaptureRects, resultCaptureRects } from './playRating'
-export { opponentCombatCaptureRect, friendlyHandCaptureRect } from './combatCapture'
-export { combatInputNeedsHandOcr, matchCatalogCardsFromText, mergeHandOcr } from './combatHand'
+export { opponentCombatCaptureRect, friendlyHandCaptureRect, opponentHandCaptureRect } from './combatCapture'
+export { combatInputNeedsHandOcr, combatInputNeedsHandStatOcr, matchCatalogCardsFromText, mergeHandOcr, parseStatsNearCardName } from './combatHand'
 export {
   COMBAT_TRIGGERS,
   COMBAT_KEYWORDS,

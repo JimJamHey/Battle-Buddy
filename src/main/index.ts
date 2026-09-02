@@ -40,6 +40,7 @@ import {
   enrichCombatInput,
   combatInputHasGaps,
   combatInputNeedsHandOcr,
+  combatInputNeedsHandStatOcr,
   mergeHandOcr,
   COMBAT_QUICK_SAMPLES,
   COMBAT_FULL_SAMPLES,
@@ -887,13 +888,16 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
         if (!match.inCombat) return
         boards = parser.getCombat()
         if (!boards) return
+        const statNeeds = combatInputNeedsHandStatOcr(probe, minions)
         if (needs.friendly) {
           if (hands.friendly.length) boards = mergeHandOcr(boards, { friendly: hands.friendly })
           else ocrPartial = true
+          if (statNeeds.friendly && hands.statsUncertain.friendly) ocrPartial = true
         }
         if (needs.opponent) {
           if (hands.opponent.length) boards = mergeHandOcr(boards, { opponent: hands.opponent })
           else ocrPartial = true
+          if (statNeeds.opponent && hands.statsUncertain.opponent) ocrPartial = true
         }
       }
     }
