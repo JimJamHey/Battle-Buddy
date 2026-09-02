@@ -12,3 +12,13 @@ export function opponentCombatCaptureRect(client: CaptureRect): CaptureRect {
     height: Math.max(140, Math.round(client.height * 0.3))
   }
 }
+
+/** Friendly hand strip during combat (16:9). Used when Power.log omits HAND entities. */
+export function friendlyHandCaptureRect(client: CaptureRect): CaptureRect {
+  return {
+    x: client.x + Math.round(client.width * 0.16),
+    y: client.y + Math.round(client.height * 0.7),
+    width: Math.max(220, Math.round(client.width * 0.68)),
+    height: Math.max(72, Math.round(client.height * 0.16))
+  }
+}

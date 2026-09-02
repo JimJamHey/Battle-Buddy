@@ -49,6 +49,8 @@ export type CombatTarget =
   | 'leftMost'
   | 'tribe'
 
+export type HandSelect = 'random' | 'highestAttack' | 'leftmost'
+
 export interface CombatEffect {
   op: CombatOp
   count?: number
@@ -58,6 +60,7 @@ export interface CombatEffect {
   target?: CombatTarget
   tribe?: string
   name?: string
+  select?: HandSelect
 }
 
 export interface CombatTriggerSet {
@@ -209,6 +212,20 @@ function parseDamage(clause: string): CombatEffect | null {
   }
 }
 
+function parseSummonFromHand(clause: string): CombatEffect {
+  const tribe = tribeIn(clause)
+  let select: HandSelect = 'random'
+  if (/highest-?attack/i.test(clause)) select = 'highestAttack'
+  else if (/left-?most/i.test(clause)) select = 'leftmost'
+  const countMatch = clause.match(/summon(?:s)?\s+(\d+|a|an|one|two|three|four|five|six)/i)
+  return {
+    op: 'summonFromHand',
+    count: countMatch ? countWord(countMatch[1]) : 1,
+    tribe,
+    select
+  }
+}
+
 function parseClause(clause: string): CombatEffect[] {
   const text = clause.trim()
   if (!text) return []
@@ -237,7 +254,7 @@ function parseClause(clause: string): CombatEffect[] {
   if (/give a different friendly \w+ reborn/i.test(text)) {
     return [{ op: 'giveKeyword', target: 'otherFriendly', keywords: ['reborn'], tribe: tribeIn(text) }]
   }
-  if (/summon(?:s)? .* from your hand/i.test(text)) return [{ op: 'summonFromHand', count: 1 }]
+  if (/summon(?:s)? .* from your hand/i.test(text)) return [parseSummonFromHand(text)]
   const summon = parseSummon(text)
   const damage = parseDamage(text)
   const buff = parseBuff(text)

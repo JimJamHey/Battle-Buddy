@@ -39,6 +39,8 @@ import {
   simulateCombat,
   enrichCombatInput,
   combatInputHasGaps,
+  combatInputNeedsHandOcr,
+  mergeHandOcr,
   COMBAT_QUICK_SAMPLES,
   COMBAT_FULL_SAMPLES,
   strategyCatalog,
@@ -75,6 +77,7 @@ import { detectBattleNetRegion } from '../platform/battleNet'
 import { loadCardCatalog, readCachedCardCatalog } from './cards'
 import { appIcon } from './icon'
 import { captureOpponentBoardDataUrl } from './combatShot'
+import { readCombatHandsFromScreen } from './combatOcr'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
 import { LogTailer } from './logTailer'
 import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
@@ -567,14 +570,11 @@ function bindTailer(): LogTailer {
           void saveSettings(userData(), settings)
         }
       }
-      if (result.combatEvent === 'start' && match.inCombat) {
-        const boards = parser.getCombat()
-        if (boards) {
-          rememberBoard(boards.opponent, match.turn)
-          lastFriendlyBoard = toSeenMinions(boards.friendly.minions)
-          runCombatSim(boards)
-          scheduleOpponentCombatShot(boards.opponent, match.turn)
-        }
+      if (
+        (result.combatEvent === 'start' || result.combatEvent === 'update') &&
+        match.inCombat
+      ) {
+        void handleCombatSnapshot(result.combatEvent === 'start' && parser.isCombatSnapshotLocked())
       }
       if (result.combatEvent === 'end' || !match.inCombat) {
         if (combat.active || combat.simulating) {
@@ -859,9 +859,39 @@ async function grabOpponentCombatShot(
   scheduleBroadcast()
 }
 
-function runCombatSim(input: CombatInput): void {
+async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
+  let boards = parser.getCombat()
+  if (!boards) return
+  let ocrPartial = false
+  if (finalSnapshot) {
+    const probe = enrichCombatInput(boards, minions)
+    const needs = combatInputNeedsHandOcr(probe, minions)
+    if (needs.friendly || needs.opponent) {
+      const client = await host.getClientBounds()
+      if (client) {
+        const hands = await readCombatHandsFromScreen(client, minions)
+        if (needs.friendly) {
+          if (hands.friendly.length) boards = mergeHandOcr(boards, { friendly: hands.friendly })
+          else ocrPartial = true
+        }
+        if (needs.opponent) {
+          if (hands.opponent.length) boards = mergeHandOcr(boards, { opponent: hands.opponent })
+          else ocrPartial = true
+        }
+      } else {
+        ocrPartial = true
+      }
+    }
+  }
+  rememberBoard(boards.opponent, match.turn)
+  lastFriendlyBoard = toSeenMinions(boards.friendly.minions)
+  runCombatSim(boards, ocrPartial)
+  if (finalSnapshot) scheduleOpponentCombatShot(boards.opponent, match.turn)
+}
+
+function runCombatSim(input: CombatInput, ocrPartial = false): void {
   const enriched = enrichCombatInput(input, minions)
-  const partial = combatInputHasGaps(enriched, minions)
+  const partial = combatInputHasGaps(enriched, minions) || ocrPartial
   const key = JSON.stringify(enriched)
   if (key === lastCombatKey) return
   lastCombatKey = key

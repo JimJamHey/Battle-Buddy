@@ -4,7 +4,7 @@ import { parseCreating, parseEntityRef, parseNestedTag, parseTagChangeLine, pars
 import { cardTypeName, isTruthyTag, zoneName } from './tags'
 import type { CombatInput, CombatMinion, CombatSide } from './combatSim'
 
-export type CombatEvent = 'start' | 'end' | null
+export type CombatEvent = 'start' | 'update' | 'end' | null
 
 export interface TrackedEntity {
   id: number
@@ -69,6 +69,7 @@ export class BoardTracker {
   private opponentLobbyId: number | null = null
   private opponentName: string | null = null
   private pending = false
+  private snapshotLocked = false
   private detectedHandPlayer: number | null = null
 
   reset(): void {
@@ -80,7 +81,12 @@ export class BoardTracker {
     this.opponentLobbyId = null
     this.opponentName = null
     this.pending = false
+    this.snapshotLocked = false
     this.detectedHandPlayer = null
+  }
+
+  isSnapshotLocked(): boolean {
+    return this.snapshotLocked
   }
 
   getDetectedHandPlayer(): number | null {
@@ -163,26 +169,15 @@ export class BoardTracker {
       this.noteHand(this.ensure(this.lastId))
     }
 
-    if (/BLOCK_START\s+BlockType=ATTACK/i.test(payload) && this.inCombat && this.pending) {
+    if (/BLOCK_START\s+BlockType=ATTACK/i.test(payload) && this.inCombat) {
+      this.snapshotLocked = true
       this.freeze(friendlyPlayerId, playerName)
       this.pending = false
-      event = event ?? 'start'
+      return 'start'
     }
 
-    if (this.pending && this.inCombat && this.boardsLookReady(friendlyPlayerId)) {
-      this.freeze(friendlyPlayerId, playerName)
-      this.pending = false
-      event = event ?? 'start'
-    }
-
-    if (
-      this.inCombat &&
-      this.frozen &&
-      this.incompleteFreeze() &&
-      this.boardsLookReady(friendlyPlayerId)
-    ) {
-      this.freeze(friendlyPlayerId, playerName)
-      event = event ?? 'start'
+    if (this.inCombat && (this.pending || this.canUpgradeSnapshot())) {
+      event = this.refreshFreezeIfChanged(friendlyPlayerId, playerName) ?? event
     }
 
     return event
@@ -229,6 +224,7 @@ export class BoardTracker {
       } else if (!on && this.inCombat && fromTaskList) {
         this.inCombat = false
         this.pending = false
+        this.snapshotLocked = false
         this.frozen = null
         this.opponentPlayerId = null
         this.opponentLobbyId = null
@@ -239,12 +235,8 @@ export class BoardTracker {
     if (tag === 'STEP' && /COMBAT/i.test(value) && !this.inCombat) {
       this.inCombat = true
       this.pending = true
+      this.snapshotLocked = false
       this.frozen = null
-    }
-    if (this.pending && this.inCombat && this.boardsLookReady(friendlyPlayerId)) {
-      this.freeze(friendlyPlayerId, playerName)
-      this.pending = false
-      return 'start'
     }
     return null
   }
@@ -258,6 +250,40 @@ export class BoardTracker {
   private incompleteFreeze(): boolean {
     if (!this.frozen) return false
     return this.frozen.friendly.minions.length === 0 || this.frozen.opponent.minions.length === 0
+  }
+
+  /** After the first attack block, only upgrade when a board was still empty at lock time. */
+  private canUpgradeSnapshot(): boolean {
+    if (!this.frozen) return false
+    if (!this.snapshotLocked) return true
+    return this.incompleteFreeze()
+  }
+
+  private snapshotKey(input: CombatInput): string {
+    return JSON.stringify(input)
+  }
+
+  private refreshFreezeIfChanged(
+    friendlyPlayerId: number | null,
+    playerName: (id: number) => string
+  ): CombatEvent | null {
+    if (!this.boardsLookReady(friendlyPlayerId)) return null
+    const { self, opp } = this.combatSides(friendlyPlayerId)
+    if (self == null || opp == null || self === opp) return null
+    const displayId = this.opponentLobbyId ?? this.opponentPlayerId ?? opp
+    const named = this.opponentName && !/^(lady deathwhisper|kel'?thuzad|bob)$/i.test(this.opponentName)
+      ? this.opponentName
+      : null
+    const name = named || playerName(displayId)
+    const next: CombatInput = {
+      friendly: this.side(self, playerName(friendlyPlayerId ?? self)),
+      opponent: { ...this.side(opp, name), playerId: displayId }
+    }
+    const key = this.snapshotKey(next)
+    if (this.frozen && this.snapshotKey(this.frozen) === key) return null
+    const first = !this.frozen
+    this.frozen = next
+    return first ? 'start' : 'update'
   }
 
   private fillSideNames(side: CombatSide, byCardId?: Map<string, string>): CombatSide {

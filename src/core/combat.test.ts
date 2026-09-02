@@ -192,6 +192,44 @@ describe('combat sim', () => {
     expect(r.win).toBe('friendly')
   })
 
+  it('summons the highest-attack murloc from hand at start of combat', () => {
+    const forager = minion(4, 5, {
+      cardId: 'BG27_556',
+      name: 'Diremuck Forager',
+      tribes: ['Murloc'],
+      kit: {
+        triggers: [
+          {
+            when: 'startOfCombat',
+            effects: [{ op: 'summonFromHand', count: 1, tribe: 'Murloc', select: 'highestAttack' }]
+          }
+        ],
+        extraDeathrattles: 0,
+        cleave: false
+      }
+    })
+    const input: CombatInput = {
+      friendly: {
+        ...side(1, [forager, minion(1, 1)]),
+        hand: [
+          minion(3, 3, { name: 'Small Murloc', tribes: ['Murloc'] }),
+          minion(8, 2, { name: 'Big Murloc', tribes: ['Murloc'] })
+        ]
+      },
+      opponent: side(2, [minion(1, 1)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('parses highest-attack murloc hand summon text', () => {
+    const kit = parseCardCombat(
+      'Start of Combat: When you have space, summon the highest-Attack Murloc from your hand for this combat only.'
+    )
+    const fx = kit.triggers.find((row) => row.when === 'startOfCombat')?.effects[0]
+    expect(fx).toMatchObject({ op: 'summonFromHand', tribe: 'Murloc', select: 'highestAttack' })
+  })
+
   it('runs trinket start-of-combat damage', () => {
     const input: CombatInput = {
       friendly: {
@@ -374,10 +412,54 @@ describe('board tracker', () => {
     ]
     let event = null
     for (const line of late) event = t.feed(line, 1, name) ?? event
-    expect(event).toBe('start')
+    expect(event).toBe('update')
     expect(t.getFrozen()?.opponent.minions).toHaveLength(1)
     expect(t.getFrozen()?.opponent.minions[0]?.attack).toBe(2)
     expect(t.getFrozen()?.friendly.minions[0]?.attack).toBe(8)
+  })
+
+  it('emits update when hand minions arrive after the first board freeze', () => {
+    const t = new BoardTracker()
+    const name = (id: number) => (id === 1 ? 'Me' : 'Them')
+    const boardLines = [
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    let event = null
+    for (const line of boardLines) event = t.feed(line, 1, name) ?? event
+    expect(event).toBe('start')
+    expect(t.getFrozen()?.friendly.hand).toEqual([])
+    const handLines = [
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=30 CardID=BGS_HAND',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=3',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=9',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    event = null
+    for (const line of handLines) event = t.feed(line, 1, name) ?? event
+    expect(event).toBe('update')
+    expect(t.getFrozen()?.friendly.hand?.[0]?.attack).toBe(9)
+    expect(t.isSnapshotLocked()).toBe(false)
+    expect(t.feed('D 12:00 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=10', 1, name)).toBe(
+      'start'
+    )
+    expect(t.isSnapshotLocked()).toBe(true)
   })
 
   it('does not freeze a combat board against yourself', () => {

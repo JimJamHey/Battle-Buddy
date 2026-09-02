@@ -54,26 +54,31 @@ async function ocrImage(path: string): Promise<string> {
   return stdout || ''
 }
 
-async function ocrRegion(region: CaptureRect, allowLoneDelta = false): Promise<RatingObservation> {
+/** OCR any screen region into plain text (Windows / macOS). */
+export async function ocrCaptureText(region: CaptureRect): Promise<string> {
   const width = Math.round(region.width)
   const height = Math.round(region.height)
-  if (width < 40 || height < 40) return { rating: null, delta: null }
-  const parseOpts = { allowLoneDelta, allowSmallLoneDelta: allowLoneDelta }
+  if (width < 40 || height < 40) return ''
   if (process.platform === 'darwin') {
-    const text = await macOcrRegion(region.x, region.y, width, height)
-    return parseRatingObservation(text, parseOpts)
+    return macOcrRegion(region.x, region.y, width, height)
   }
-  if (process.platform !== 'win32') return { rating: null, delta: null }
+  if (process.platform !== 'win32') return ''
   const pixels = captureGameClientBgra(region.x, region.y, width, height)
-  if (!pixels) return { rating: null, delta: null }
+  if (!pixels) return ''
   const bmp = encodeBmp32(width, height, pixels)
-  const imagePath = join(tmpdir(), `battle-buddy-rating-${process.pid}-${Date.now()}.bmp`)
+  const imagePath = join(tmpdir(), `battle-buddy-ocr-${process.pid}-${Date.now()}.bmp`)
   await writeFile(imagePath, bmp)
   try {
-    return parseRatingObservation(await ocrImage(imagePath), parseOpts)
+    return await ocrImage(imagePath)
   } finally {
     await unlink(imagePath).catch(() => undefined)
   }
+}
+
+async function ocrRegion(region: CaptureRect, allowLoneDelta = false): Promise<RatingObservation> {
+  const parseOpts = { allowLoneDelta, allowSmallLoneDelta: allowLoneDelta }
+  const text = await ocrCaptureText(region)
+  return parseRatingObservation(text, parseOpts)
 }
 
 export async function readRatingObservation(

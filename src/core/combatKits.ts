@@ -41,6 +41,23 @@ export const COMBAT_KITS: Record<string, KitEntry> = {
     triggers: [
       { when: 'startOfCombat', effects: [{ op: 'setHealth', health: 1, target: 'randomEnemy' }] }
     ]
+  },
+  // Diremuck Forager — highest-Attack Murloc from hand at start of combat.
+  BG27_556: {
+    triggers: [
+      {
+        when: 'startOfCombat',
+        effects: [{ op: 'summonFromHand', count: 1, tribe: 'Murloc', select: 'highestAttack' }]
+      }
+    ]
+  },
+  BG27_556_G: {
+    triggers: [
+      {
+        when: 'startOfCombat',
+        effects: [{ op: 'summonFromHand', count: 1, tribe: 'Murloc', select: 'highestAttack' }]
+      }
+    ]
   }
 }
 

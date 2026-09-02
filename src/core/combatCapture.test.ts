@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { opponentCombatCaptureRect } from './combatCapture'
+import { friendlyHandCaptureRect, opponentCombatCaptureRect } from './combatCapture'
 
 describe('opponentCombatCaptureRect', () => {
   it('crops the upper combat board and stays above your minions', () => {

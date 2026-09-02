@@ -362,6 +362,18 @@ function insertSummons(
   board.splice(at, 0, ...tokens.slice(0, room))
 }
 
+function pickFromHand(hand: SimMinion[], fx: CombatEffect, rng: () => number): SimMinion | null {
+  let pool = hand.filter((m) => !fx.tribe || hasTribe(m, fx.tribe))
+  if (!pool.length) return null
+  if (fx.select === 'highestAttack') {
+    const max = Math.max(...pool.map((m) => m.attack))
+    pool = pool.filter((m) => m.attack === max)
+    return pool[0] ?? null
+  }
+  if (fx.select === 'leftmost') return pool[0] ?? null
+  return pool[Math.floor(rng() * pool.length)] ?? null
+}
+
 function runEffects(
   source: SimMinion,
   own: SimMinion[],
@@ -383,8 +395,12 @@ function runEffects(
       const n = Math.max(1, fx.count ?? 1)
       const tokens: SimMinion[] = []
       for (let i = 0; i < n && hand.length; i++) {
-        const pick = hand.splice(Math.floor(rng() * hand.length), 1)[0]
-        if (pick) tokens.push(pick)
+        if (BOARD_CAP - own.length - tokens.length <= 0) break
+        const pick = pickFromHand(hand, fx, rng)
+        if (!pick) break
+        const idx = hand.indexOf(pick)
+        if (idx >= 0) hand.splice(idx, 1)
+        tokens.push(pick)
       }
       insertSummons(own, insertAt ?? own.length, tokens, ctx, side)
       continue
