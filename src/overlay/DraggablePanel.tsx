@@ -2,6 +2,14 @@ import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNo
 import { clampOverlayPos } from '../core/layout'
 import type { OverlayPos } from '../core/types'
 
+function measuredPanelWidthPct(panel: HTMLElement | null, root: Element | null, fallbackVw: number): number {
+  if (!panel || !root) return fallbackVw
+  const rootRect = root.getBoundingClientRect()
+  const panelRect = panel.getBoundingClientRect()
+  if (rootRect.width <= 0) return fallbackVw
+  return (panelRect.width / rootRect.width) * 100
+}
+
 export function DraggablePanel({
   pos,
   unlocked,
@@ -48,6 +56,12 @@ export function DraggablePanel({
   onInteractRef.current = onInteract
 
   useEffect(() => {
+    const clampForPanel = (next: OverlayPos): OverlayPos => {
+      const root = panelRef.current?.closest('.overlay-root')
+      const widthPct = measuredPanelWidthPct(panelRef.current, root, widthRef.current)
+      return clampOverlayPos(next, widthPct)
+    }
+
     const move = (event: PointerEvent) => {
       const root = panelRef.current?.closest('.overlay-root')
       if (!root) return
@@ -59,13 +73,10 @@ export function DraggablePanel({
       }
       if (!drag.current) return
       onMoveRef.current(
-        clampOverlayPos(
-          {
-            x: drag.current.px + ((event.clientX - drag.current.ox) / rect.width) * 100,
-            y: drag.current.py + ((event.clientY - drag.current.oy) / rect.height) * 100
-          },
-          widthRef.current
-        )
+        clampForPanel({
+          x: drag.current.px + ((event.clientX - drag.current.ox) / rect.width) * 100,
+          y: drag.current.py + ((event.clientY - drag.current.oy) / rect.height) * 100
+        })
       )
     }
     const up = (event: PointerEvent) => {
@@ -89,13 +100,10 @@ export function DraggablePanel({
         return
       }
       const rect = root.getBoundingClientRect()
-      const next = clampOverlayPos(
-        {
-          x: start.px + ((event.clientX - start.ox) / rect.width) * 100,
-          y: start.py + ((event.clientY - start.oy) / rect.height) * 100
-        },
-        widthRef.current
-      )
+      const next = clampForPanel({
+        x: start.px + ((event.clientX - start.ox) / rect.width) * 100,
+        y: start.py + ((event.clientY - start.oy) / rect.height) * 100
+      })
       onMoveRef.current(next)
       onMoveEndRef.current?.(next)
       onInteractRef.current(false)

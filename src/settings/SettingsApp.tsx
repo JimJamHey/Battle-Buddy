@@ -187,8 +187,8 @@ export function SettingsApp() {
             : state.status.displayMode === 'borderless'
               ? 'Borderless fullscreen — overlay follows the game window.'
               : 'Windowed — overlay follows the Hearthstone window in any size.'}
-          {' '}Unlock layout to drag panels or resize the pool from the bottom-right corner. Panels scale
-          down on 1080p screens.
+          {' '}Unlock layout to drag panels or resize the pool from the bottom-right corner. Panel sizes
+          scale with your display automatically.
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>

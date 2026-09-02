@@ -8,20 +8,19 @@ import {
 
 const MIN_PANEL_WIDTH = 14
 const MAX_PANEL_WIDTH = 28
-export const PANEL_MAX_WIDTH_PX = 300
 
 export function clampPoolWidth(width: number): number {
   if (!Number.isFinite(width)) return DEFAULT_PANEL_WIDTH
   return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, Math.round(width * 10) / 10))
 }
 
-/** Side panels: vw preference capped so 1080p does not sprawl past ~300px. */
-export function panelWidthStyle(widthPct: number, maxPx = PANEL_MAX_WIDTH_PX): string {
+/**
+ * Side panels scale with viewport via clamp(); user preference is the vw middle term.
+ * Bounds live in CSS (--overlay-panel-min/max) so every resolution gets fluid sizing.
+ */
+export function panelWidthStyle(widthPct: number): string {
   const vw = clampPoolWidth(widthPct)
-  if (maxPx === PANEL_MAX_WIDTH_PX) {
-    return `min(${vw}vw, var(--overlay-panel-max, ${maxPx}px))`
-  }
-  return `min(${vw}vw, ${maxPx}px)`
+  return `clamp(var(--overlay-panel-min), ${vw}vw, var(--overlay-panel-max))`
 }
 
 export function poolWidthStyle(widthPct: number): string {
@@ -44,19 +43,14 @@ export function mergeOverlayLayout(
   }
 }
 
-export function clampOverlayPos(pos: OverlayPos, panelWidthPct = 0, maxPanelPx = PANEL_MAX_WIDTH_PX): OverlayPos {
-  const vwRoom = Math.max(0, 100 - Math.max(0, panelWidthPct))
-  const pxRoom =
-    maxPanelPx > 0 ? Math.max(0, 100 - (maxPanelPx / Math.max(1, PANEL_REFERENCE_WIDTH_PX)) * 100) : vwRoom
-  const maxX = Math.min(vwRoom, pxRoom)
+/** Clamp panel origin; pass measured width % when available (see DraggablePanel). */
+export function clampOverlayPos(pos: OverlayPos, panelWidthPct = 0): OverlayPos {
+  const maxX = Math.max(0, 100 - Math.max(0, panelWidthPct))
   return {
     x: Math.min(maxX, Math.max(0, pos.x)),
     y: Math.min(88, Math.max(0, pos.y))
   }
 }
-
-/** Reference width for converting the panel px cap into a % clamp (1920×1080). */
-export const PANEL_REFERENCE_WIDTH_PX = 1920
 
 export function clampPoolLayout(pool: OverlayPoolLayout): OverlayPoolLayout {
   const w = clampPoolWidth(pool.w)

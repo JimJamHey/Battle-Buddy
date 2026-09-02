@@ -44,7 +44,7 @@ describe('overlay layout', () => {
     expect(next.pool.w).toBe(18)
   })
 
-  it('shrinks legacy wide pool defaults for 1080p-friendly sizing', () => {
+  it('shrinks legacy wide pool defaults', () => {
     const next = migrateOverlayLayout({
       ...DEFAULT_OVERLAY_LAYOUT,
       pool: { x: 71.5, y: 3.2, w: 26 }
@@ -57,7 +57,7 @@ describe('overlay layout', () => {
     expect(clampPoolWidth(44)).toBe(28)
   })
 
-  it('caps panel width in CSS for 1080p screens', () => {
-    expect(panelWidthStyle(20)).toBe('min(20vw, var(--overlay-panel-max, 300px))')
+  it('uses fluid clamp bounds for panel width', () => {
+    expect(panelWidthStyle(20)).toBe('clamp(var(--overlay-panel-min), 20vw, var(--overlay-panel-max))')
   })
 })

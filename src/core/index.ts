@@ -46,9 +46,7 @@ export {
   mergeOverlayLayout,
   migrateOverlayLayout,
   panelWidthStyle,
-  poolWidthStyle,
-  PANEL_MAX_WIDTH_PX,
-  PANEL_REFERENCE_WIDTH_PX
+  poolWidthStyle
 } from './layout'
 export { isNewerVersion, isPrerelease } from './version'
 export { curatedStrategies } from './curated'
