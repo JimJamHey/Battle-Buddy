@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { DEFAULT_OVERLAY_LAYOUT, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
+import { DEFAULT_OVERLAY_LAYOUT, OVERLAY_SAFE_BOTTOM_LIVE, OVERLAY_SAFE_BOTTOM_MENU, OVERLAY_SAFE_TOP_POOL, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
 import {
   clampLeftDockedPanel,
   clampPanelWidth,
@@ -29,6 +29,9 @@ export function OverlayApp() {
   const [layout, setLayout] = useState<OverlayLayout>(DEFAULT_OVERLAY_LAYOUT)
   const dragging = useRef(false)
   const [hoverGame, setHoverGame] = useState<number | null>(null)
+  const [ocrCapture, setOcrCapture] = useState(false)
+
+  useEffect(() => window.battleBuddy.onOcrCapture(setOcrCapture), [])
 
   useEffect(() => {
     void window.battleBuddy.getState().then(setState)
@@ -119,12 +122,15 @@ export function OverlayApp() {
     })
   }
 
-  const menuSafe = !live
-
   return (
     <div
-      className={`overlay-root ${unlocked ? 'unlocked' : ''} ${menuSafe ? 'menu-safe' : ''}`}
-      style={{ opacity: state.settings.overlayOpacity / 100 }}
+      className={`overlay-root ${unlocked ? 'unlocked' : ''} ${live ? 'live-match' : 'menu-idle'} ${ocrCapture ? 'ocr-capture' : ''}`}
+      style={{
+        opacity: state.settings.overlayOpacity / 100,
+        ['--overlay-safe-bottom' as string]: `${OVERLAY_SAFE_BOTTOM_MENU}%`,
+        ['--overlay-safe-bottom-live' as string]: `${OVERLAY_SAFE_BOTTOM_LIVE}%`,
+        ['--overlay-safe-top-pool' as string]: `${OVERLAY_SAFE_TOP_POOL}%`
+      }}
     >
       <div className="toast-stack">
         <UpdateBanner update={state.update} compact />

@@ -28,6 +28,12 @@ export const DEFAULT_PANEL_WIDTH = 14
 /** @deprecated use DEFAULT_PANEL_WIDTH */
 export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 
+/** Bottom inset (vh %) so side panels clear friends, gold, reroll, Play, and Back. */
+export const OVERLAY_SAFE_BOTTOM_MENU = 18
+export const OVERLAY_SAFE_BOTTOM_LIVE = 15
+/** Top inset for the pool panel turn/combat header. */
+export const OVERLAY_SAFE_TOP_POOL = 7
+
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
   rail: { x: 0, y: 5.5, w: DEFAULT_PANEL_WIDTH },
   combat: { x: 27, y: 1.4 },

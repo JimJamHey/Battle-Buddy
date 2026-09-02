@@ -39,8 +39,15 @@ export function ratingPollMode(input: {
   return 'idle'
 }
 
-export function ratingMenuSynced(currentMmr: number | null, ocrRating: number | null): boolean {
-  return currentMmr != null && ocrRating != null && currentMmr === ocrRating
+/** Menu polling stops only after a recent OCR read matches settings. */
+export function ratingMenuSynced(
+  currentMmr: number | null,
+  ocrRating: number | null,
+  ocrAt: number | null = null
+): boolean {
+  if (currentMmr == null || ocrRating == null || ocrAt == null) return false
+  if (currentMmr !== ocrRating) return false
+  return Date.now() - ocrAt < 10 * 60 * 1000
 }
 
 export function ratingPollIntervalMs(mode: RatingPollMode): number {

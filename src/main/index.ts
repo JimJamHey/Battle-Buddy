@@ -399,7 +399,7 @@ function ratingPollContext() {
     playedAsSelf,
     lastGameSettled: last ? gameMmrIsSettled(last) : true,
     hasLastGame: Boolean(last),
-    menuRatingSynced: ratingMenuSynced(settings.currentMmr, ratingOcr.rating)
+    menuRatingSynced: ratingMenuSynced(settings.currentMmr, ratingOcr.rating, ratingOcr.at)
   }
 }
 
@@ -423,8 +423,11 @@ async function withOverlayHiddenForOcr<T>(hide: boolean, fn: () => Promise<T>): 
   const wasVisible = Boolean(win && !win.isDestroyed() && win.isVisible())
   try {
     if (hide && wasVisible && win && !win.isDestroyed()) win.hide()
+    if (win && !win.isDestroyed()) win.webContents.send('ocr-capture', true)
+    await new Promise((resolve) => setTimeout(resolve, 120))
     return await fn()
   } finally {
+    if (win && !win.isDestroyed()) win.webContents.send('ocr-capture', false)
     if (hide && wasVisible && win && !win.isDestroyed()) win.showInactive()
   }
 }

@@ -94,23 +94,39 @@ async function saveDebugCrop(
   debugDir: string | undefined,
   width: number,
   height: number,
-  pixels: Buffer | null
+  pixels: Buffer | null,
+  name = 'rating-ocr-debug.bmp'
 ): Promise<string | null> {
-  if (!debugDir || !pixels) return null
+  if (!debugDir) return null
   try {
     await mkdir(debugDir, { recursive: true })
-    const path = join(debugDir, 'rating-ocr-debug.bmp')
-    await writeFile(path, encodeBmp32(width, height, pixels))
+    const path = join(debugDir, name)
+    if (pixels) {
+      await writeFile(path, encodeBmp32(width, height, pixels))
+      return path
+    }
+    await writeFile(path, encodeBmp32(1, 1, Buffer.from([0, 0, 0, 255])))
     return path
   } catch {
     return null
   }
 }
 
+async function saveDebugText(debugDir: string | undefined, text: string): Promise<void> {
+  if (!debugDir) return
+  try {
+    await mkdir(debugDir, { recursive: true })
+    await writeFile(join(debugDir, 'rating-ocr-last.txt'), text, 'utf8')
+  } catch {
+    // ignore
+  }
+}
+
 async function ocrRatingRegion(
   region: CaptureRect,
   allowLoneDelta = false,
-  debugDir?: string
+  debugDir?: string,
+  debugIndex = 0
 ): Promise<RatingOcrCapture> {
   const width = Math.round(region.width)
   const height = Math.round(region.height)
@@ -140,8 +156,9 @@ async function ocrRatingRegion(
     }
   }
   const pixels = captureGameClientBgra(region.x, region.y, width, height)
+  const debugName = debugIndex === 0 ? 'rating-ocr-debug.bmp' : `rating-ocr-crop-${debugIndex + 1}.bmp`
   if (!pixels) {
-    const debugCropPath = await saveDebugCrop(debugDir, width, height, null)
+    const debugCropPath = await saveDebugCrop(debugDir, width, height, null, debugName)
     return {
       observation: { rating: null, delta: null },
       rawText: '',
@@ -149,16 +166,13 @@ async function ocrRatingRegion(
       debugCropPath
     }
   }
+  const debugCropPath = await saveDebugCrop(debugDir, width, height, pixels, debugName)
   const bmp = encodeBmp32(width, height, pixels)
   const imagePath = join(tmpdir(), `battle-buddy-rating-${process.pid}-${Date.now()}.bmp`)
   await writeFile(imagePath, bmp)
   try {
     const rawText = await ocrImage(imagePath)
     const observation = parseRatingObservation(rawText, parseOpts)
-    const debugCropPath =
-      observation.rating == null && observation.delta == null
-        ? await saveDebugCrop(debugDir, width, height, pixels)
-        : null
     return {
       observation,
       rawText,
@@ -166,7 +180,6 @@ async function ocrRatingRegion(
       debugCropPath
     }
   } catch (err) {
-    const debugCropPath = await saveDebugCrop(debugDir, width, height, pixels)
     return {
       observation: { rating: null, delta: null },
       rawText: '',
@@ -200,7 +213,7 @@ export async function readRatingObservation(
   let debugCropPath: string | null = null
   for (const [i, region] of regions.entries()) {
     const plaque = includeResults && i < 3
-    const captured = await ocrRatingRegion(region, plaque, opts?.debugDir)
+    const captured = await ocrRatingRegion(region, plaque, opts?.debugDir, i)
     if (captured.rawText) rawText = [rawText, captured.rawText].filter(Boolean).join('\n')
     if (captured.error && !error) error = captured.error
     if (captured.debugCropPath) debugCropPath = captured.debugCropPath
@@ -211,11 +224,38 @@ export async function readRatingObservation(
         observed.placement != null
           ? observed
           : { ...observed, placement: mergeRatingObservations(parts).placement }
+      if (opts?.debugDir) {
+        await saveDebugText(
+          opts.debugDir,
+          [
+            `rating: ${merged.rating ?? '—'}`,
+            `delta: ${merged.delta ?? '—'}`,
+            `error: ${error ?? '—'}`,
+            '',
+            'raw:',
+            rawText || '(empty)'
+          ].join('\n')
+        )
+      }
       return { observation: merged, rawText, error, debugCropPath }
     }
   }
+  const observation = mergeRatingObservations(parts)
+  if (opts?.debugDir) {
+    await saveDebugText(
+      opts.debugDir,
+      [
+        `rating: ${observation.rating ?? '—'}`,
+        `delta: ${observation.delta ?? '—'}`,
+        `error: ${error ?? '—'}`,
+        '',
+        'raw:',
+        rawText || '(empty)'
+      ].join('\n')
+    )
+  }
   return {
-    observation: mergeRatingObservations(parts),
+    observation,
     rawText,
     error,
     debugCropPath

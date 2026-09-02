@@ -234,13 +234,30 @@ p {
   max-width: none;
 }
 
-.overlay-root.menu-safe .panel-dock.pool-dock.docked {
-  top: 5%;
-  bottom: 17%;
+.panel-dock.rail-dock.docked,
+.panel-dock.pool-dock.docked {
+  bottom: var(--overlay-safe-bottom, 18%);
 }
 
-.overlay-root.menu-safe .panel-dock.rail-dock.docked {
-  bottom: 9%;
+.panel-dock.rail-dock.docked {
+  top: 0.5%;
+}
+
+.panel-dock.pool-dock.docked {
+  top: var(--overlay-safe-top-pool, 7%);
+}
+
+.overlay-root.live-match .panel-dock.rail-dock.docked,
+.overlay-root.live-match .panel-dock.pool-dock.docked {
+  bottom: var(--overlay-safe-bottom-live, 15%);
+}
+
+.overlay-root.ocr-capture .panel-dock.pool-dock {
+  visibility: hidden;
+}
+
+.panel-dock.rail-dock {
+  overflow: hidden;
 }
 
 .float-panel.pool.sized > .pool-panel,
@@ -252,10 +269,14 @@ p {
   flex-direction: column;
 }
 
-.float-panel.rail.sized > .session-panel {
+.float-panel.rail.sized > .session-panel,
+.panel-dock.rail-dock .float-panel.rail > .session-panel {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  max-width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .drag-grip {
@@ -1004,6 +1025,7 @@ html[data-theme='buddy'] .combat-bar::after {
 
 .session-panel {
   max-width: 100%;
+  min-width: 0;
 }
 
 .comps-panel {
@@ -1159,7 +1181,8 @@ html[data-theme='buddy'] .combat-bar::after {
   margin-top: 4px;
   padding-top: 10px;
   border-top: 1px solid var(--line);
-  max-height: 260px;
+  flex: 1 1 auto;
+  min-height: 0;
   max-width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
@@ -1809,8 +1832,8 @@ html[data-theme='buddy'] .combat-bar::after {
   display: flex;
   align-items: center;
   min-height: var(--overlay-row-min);
-  padding: 0 calc(var(--pool-art-width, 52px) + 8px) 0 8px;
-  gap: 8px;
+  padding: 0 4px 0 8px;
+  gap: 6px;
   overflow: hidden;
   isolation: isolate;
   background: var(--overlay-row);
@@ -1880,42 +1903,19 @@ html[data-theme='buddy'] .combat-bar::after {
   text-overflow: ellipsis;
 }
 
-.pool-slice {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: auto;
-  width: var(--pool-art-width, 52px);
+.pool-art {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 46px;
+  align-self: stretch;
+  min-height: var(--overlay-row-min);
   overflow: hidden;
-  pointer-events: none;
-  z-index: 0;
-  background: transparent;
+  border-radius: 0 4px 4px 0;
 }
 
-.pool-slice:not(:has(img)) {
+.pool-slice {
   display: none;
-}
-
-.pool-slice::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    var(--overlay-row) 0%,
-    color-mix(in srgb, var(--overlay-row) 40%, transparent) 55%,
-    transparent 100%
-  );
-}
-
-.pool-row:hover .pool-slice::after {
-  background: linear-gradient(
-    90deg,
-    var(--overlay-row-hover) 0%,
-    color-mix(in srgb, var(--overlay-row-hover) 35%, transparent) 60%,
-    transparent 100%
-  );
 }
 
 .pool-tile {
@@ -1923,8 +1923,8 @@ html[data-theme='buddy'] .combat-bar::after {
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: right center;
+  object-fit: cover;
+  object-position: center top;
   display: block;
   background: transparent;
   opacity: 1;

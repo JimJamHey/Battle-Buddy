@@ -171,9 +171,9 @@ export function DraggablePanel({
 
   const panelStyle: CSSProperties =
     anchor === 'right'
-      ? { right: '0', left: 'auto', top: docked ? '0.5%' : `${pos.y}%`, bottom: docked ? '0.5%' : undefined, ...widthVars }
+      ? { right: '0', left: 'auto', ...(docked ? {} : { top: `${pos.y}%` }), ...widthVars }
       : anchor === 'left'
-        ? { left: '0', top: docked ? '0.5%' : `${pos.y}%`, bottom: docked ? '0.5%' : undefined, ...widthVars }
+        ? { left: '0', ...(docked ? {} : { top: `${pos.y}%` }), ...widthVars }
         : { left: `${pos.x}%`, top: `${pos.y}%`, width }
 
   const innerResize =

@@ -38,8 +38,10 @@ describe('ratingPoll', () => {
 
   it('stops menu polling after the rating is synced', () => {
     expect(shouldPollRating({ ...base, menuRatingSynced: true })).toBe(false)
-    expect(ratingMenuSynced(5837, 5837)).toBe(true)
-    expect(ratingMenuSynced(5248, 5837)).toBe(false)
+    const now = Date.now()
+    expect(ratingMenuSynced(5837, 5837, now)).toBe(true)
+    expect(ratingMenuSynced(5837, 5837, null)).toBe(false)
+    expect(ratingMenuSynced(5248, 5837, now)).toBe(false)
   })
 
   it('skips mid-match shop screens', () => {
