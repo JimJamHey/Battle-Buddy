@@ -186,9 +186,29 @@ p {
 }
 
 .float-panel.sized {
-  width: min(var(--panel-width-vw, 14vw), var(--overlay-panel-cap, 15.5rem));
-  max-width: 17vw;
-  min-width: 9.5rem;
+  width: var(--panel-width-vw, 14vw);
+  min-width: 10rem;
+  max-width: 32vw;
+}
+
+.float-panel.sized.docked {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.float-panel.pool.sized > .pool-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.float-panel.rail.sized > .session-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .drag-grip {
@@ -257,26 +277,27 @@ p {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 12px;
+  width: 16px;
   cursor: ew-resize;
-  z-index: 25;
+  z-index: 120;
   touch-action: none;
+  pointer-events: auto;
   background: linear-gradient(
     90deg,
-    rgba(224, 192, 122, 0.08),
-    rgba(224, 192, 122, 0.35)
+    rgba(224, 192, 122, 0.12),
+    rgba(224, 192, 122, 0.45)
   );
 }
 
 .resize-edge-right {
   right: 0;
-  border-right: 3px solid rgba(224, 192, 122, 0.75);
+  border-right: 4px solid rgba(224, 192, 122, 0.9);
   border-radius: 0 8px 8px 0;
 }
 
 .resize-edge-left {
   left: 0;
-  border-left: 3px solid rgba(224, 192, 122, 0.75);
+  border-left: 4px solid rgba(224, 192, 122, 0.9);
   border-radius: 8px 0 0 8px;
 }
 
@@ -1435,8 +1456,8 @@ html[data-theme='buddy'] .combat-bar::after {
 }
 
 .pool-panel {
-  max-height: var(--overlay-pool-max-h);
-  overflow: visible;
+  max-height: none;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;

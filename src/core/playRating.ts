@@ -146,19 +146,21 @@ export function ratingCaptureRect(client: CaptureRect): CaptureRect {
 
 export function ratingCaptureRects(client: CaptureRect): CaptureRect[] {
   const primary = ratingCaptureRect(client)
+  const w = client.width
+  const h = client.height
   return [
     primary,
     {
-      x: client.x + Math.round(client.width * 0.5),
-      y: client.y + Math.round(client.height * 0.03),
-      width: Math.max(180, Math.round(client.width * 0.38)),
-      height: Math.max(110, Math.round(client.height * 0.34))
+      x: client.x + Math.round(w * 0.68),
+      y: client.y + Math.round(h * 0.06),
+      width: Math.max(120, Math.round(w * 0.18)),
+      height: Math.max(70, Math.round(h * 0.14))
     },
     {
-      x: client.x + Math.round(client.width * 0.42),
-      y: client.y + Math.round(client.height * 0.08),
-      width: Math.max(200, Math.round(client.width * 0.46)),
-      height: Math.max(120, Math.round(client.height * 0.36))
+      x: client.x + Math.round(w * 0.5),
+      y: client.y + Math.round(h * 0.03),
+      width: Math.max(180, Math.round(w * 0.38)),
+      height: Math.max(110, Math.round(h * 0.34))
     }
   ]
 }

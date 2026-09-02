@@ -39,6 +39,10 @@ export function ratingPollMode(input: {
   return 'idle'
 }
 
+export function ratingMenuSynced(currentMmr: number | null, ocrRating: number | null): boolean {
+  return currentMmr != null && ocrRating != null && currentMmr === ocrRating
+}
+
 export function ratingPollIntervalMs(mode: RatingPollMode): number {
   if (mode === 'postgame') return 900
   return 8000

@@ -70,7 +70,7 @@ describe('overlay layout', () => {
 
   it('clamps pool width into a usable range', () => {
     expect(clampPoolWidth(10)).toBe(10)
-    expect(clampPoolWidth(44)).toBe(22)
+    expect(clampPoolWidth(44)).toBe(30)
   })
 
   it('uses vw for panel width so resize is visible', () => {

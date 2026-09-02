@@ -69,6 +69,7 @@ export function DraggablePanel({
 
   const canResize = resizable && (unlocked || resizeWhenLocked)
   const canDrag = draggable && unlocked
+  const docked = anchor === 'left' || anchor === 'right'
 
   useEffect(() => {
     const clampForPanel = (next: OverlayPos): OverlayPos => {
@@ -161,26 +162,43 @@ export function DraggablePanel({
     event.stopPropagation()
   }
 
+  const widthVars =
+    panelWidthPct > 0 ? ({ ['--panel-width-vw' as string]: `${panelWidthPct}vw` } as CSSProperties) : { width }
+
   const panelStyle: CSSProperties =
     anchor === 'right'
-      ? {
-          right: '0',
-          left: 'auto',
-          top: `${pos.y}%`,
-          ...(panelWidthPct > 0 ? { ['--panel-width-vw' as string]: `${panelWidthPct}vw` } : { width })
-        }
+      ? { right: '0', left: 'auto', top: docked ? '0.5%' : `${pos.y}%`, bottom: docked ? '0.5%' : undefined, ...widthVars }
       : anchor === 'left'
-        ? {
-            left: '0',
-            top: `${pos.y}%`,
-            ...(panelWidthPct > 0 ? { ['--panel-width-vw' as string]: `${panelWidthPct}vw` } : { width })
-          }
+        ? { left: '0', top: docked ? '0.5%' : `${pos.y}%`, bottom: docked ? '0.5%' : undefined, ...widthVars }
         : { left: `${pos.x}%`, top: `${pos.y}%`, width }
+
+  const resizeHandle =
+    canResize &&
+    (resizeEdge === 'inner' ? (
+      <div
+        className={`resize-edge interactive capture-mouse no-drag ${anchor === 'right' ? 'resize-edge-left' : 'resize-edge-right'}`}
+        role="separator"
+        aria-label="Drag to resize panel width"
+        title="Drag to resize width"
+        onPointerDown={startResize}
+        onPointerEnter={() => onInteract(true)}
+        onPointerLeave={() => {
+          if (!resize.current) onInteract(false)
+        }}
+      />
+    ) : (
+      <div
+        className={`resize-grip interactive capture-mouse no-drag ${resizeWhenLocked ? 'resize-grip-persistent' : ''} ${anchor === 'right' ? 'resize-grip-left' : ''}`}
+        role="button"
+        aria-label="Resize panel"
+        onPointerDown={startResize}
+      />
+    ))
 
   return (
     <div
       ref={panelRef}
-      className={`float-panel ${canDrag ? 'interactive unlocked capture-mouse' : ''} ${anchor !== 'free' ? `anchor-${anchor}` : ''} ${className ?? ''}`}
+      className={`float-panel ${canDrag || canResize ? 'interactive capture-mouse' : ''} ${canDrag ? 'unlocked' : ''} ${docked ? `anchor-${anchor} docked` : ''} ${className ?? ''}`}
       style={panelStyle}
       onPointerDown={startDrag}
     >
@@ -196,25 +214,8 @@ export function DraggablePanel({
           Move
         </div>
       ) : null}
-      {canResize ? (
-        resizeEdge === 'inner' ? (
-          <div
-            className={`resize-edge interactive capture-mouse no-drag ${anchor === 'right' ? 'resize-edge-left' : 'resize-edge-right'}`}
-            role="separator"
-            aria-label="Drag to resize panel width"
-            title="Drag to resize width"
-            onPointerDown={startResize}
-          />
-        ) : (
-          <div
-            className={`resize-grip interactive capture-mouse no-drag ${resizeWhenLocked ? 'resize-grip-persistent' : ''} ${anchor === 'right' ? 'resize-grip-left' : ''}`}
-            role="button"
-            aria-label="Resize panel"
-            onPointerDown={startResize}
-          />
-        )
-      ) : null}
       {children}
+      {resizeHandle || null}
     </div>
   )
 }

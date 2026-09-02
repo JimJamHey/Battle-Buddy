@@ -40,6 +40,7 @@ import {
   ratingPollIntervalMs,
   isMenuScene,
   shouldHideOverlayForRating,
+  ratingMenuSynced,
   isEndGameDisconnect,
   simulateCombat,
   enrichCombatInput,
@@ -126,7 +127,6 @@ let mmrPollTimer: NodeJS.Timeout | null = null
 let awaitingPostGameMmr = false
 let postGameAt = 0
 let ratingOcrFailed = false
-let menuRatingSynced = false
 let currentScene: Scene = 'unknown'
 const SETTLEMENT_MAX_MS = 5 * 60 * 1000
 const EMPTY_RATING_OCR: RatingOcrStatus = {
@@ -256,7 +256,8 @@ function status(): TrackerStatus {
     cardCount: minions.length,
     cardsError: minions.length ? null : lastError,
     displayMode,
-    ratingOcr: { ...ratingOcr, failed: ratingOcrFailed }
+    ratingOcr: { ...ratingOcr, failed: ratingOcrFailed },
+    appDataPath: userData()
   }
 }
 
@@ -297,6 +298,7 @@ function noteObservedRating(
   observation: { rating: number | null; delta: number | null },
   opts?: { settled?: boolean }
 ): void {
+  const onMenu = !match.gameActive && isMenuScene(currentScene)
   let rating = observation.rating
   let delta = observation.delta
   if (awaitingPostGameMmr && rating == null && delta != null) {
@@ -315,12 +317,14 @@ function noteObservedRating(
     }
   }
   observation = { rating, delta }
+  const previousRating = settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null
   if (
     rating != null &&
+    !(onMenu && rating >= 1000 && rating <= 30000) &&
     !acceptObservedRating(rating, {
-      previous: settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null,
+      previous: previousRating,
       battleTag: settings.battleTag,
-      resync: !match.gameActive || awaitingPostGameMmr
+      resync: onMenu || awaitingPostGameMmr
     })
   ) {
     rating = null
@@ -395,7 +399,7 @@ function ratingPollContext() {
     playedAsSelf,
     lastGameSettled: last ? gameMmrIsSettled(last) : true,
     hasLastGame: Boolean(last),
-    menuRatingSynced
+    menuRatingSynced: ratingMenuSynced(settings.currentMmr, ratingOcr.rating)
   }
 }
 
@@ -484,9 +488,6 @@ async function pollPlayRating(force = false): Promise<void> {
       if (lastGameSettled()) {
         ratingOcrFailed = false
         awaitingPostGameMmr = false
-      }
-      if (!match.gameActive && isMenuScene(currentScene) && observed.rating != null) {
-        menuRatingSynced = true
       }
     }
   } catch (err) {
@@ -678,7 +679,6 @@ function bindTailer(): LogTailer {
         recordedThisMatch = false
         playedAsSelf = !match.spectating
         awaitingPostGameMmr = false
-        menuRatingSynced = false
       }
       if (result.detectedSelfName && !match.spectating) {
         const tag = leaderboardAccountId(result.detectedSelfName)
@@ -1366,7 +1366,6 @@ function registerIpc(): void {
     settings = next
     parser.setSelfBattleTag(settings.battleTag)
     if (patch?.currentMmr !== undefined) {
-      menuRatingSynced = false
       session = bindCurrentMmr(session, settings.currentMmr)
       void saveSession(userData(), session)
     }
@@ -1396,6 +1395,16 @@ function registerIpc(): void {
   ipcMain.handle('open-logs', async (e) => {
     if (!fromAppWindow(e.sender)) return
     if (currentLogsDir) await shell.openPath(currentLogsDir)
+  })
+  ipcMain.handle('open-app-data', async (e) => {
+    if (!fromAppWindow(e.sender)) return
+    await shell.openPath(userData())
+  })
+  ipcMain.handle('refresh-rating', async (e) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
+    lastPlayRatingAt = 0
+    await pollPlayRating(true)
+    return snapshot()
   })
   ipcMain.on('click-through', (e, enabled: boolean) => {
     if (e.sender !== overlayWindow?.webContents) return

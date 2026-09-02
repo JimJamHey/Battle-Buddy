@@ -90,6 +90,7 @@ export function SettingsApp() {
           {state.status.hearthstoneFocused ? ' · focused' : ''}
         </p>
         <p className="hint">Install: {state.status.installPath || '—'}</p>
+        <p className="hint">App data: {state.status.appDataPath}</p>
         <p className="hint">Logs: {state.status.logsDirectory || '—'}</p>
         <p className="hint">
           Live tracking: {state.status.logsLive ? 'yes' : 'no'}
@@ -99,8 +100,11 @@ export function SettingsApp() {
         {state.status.banner ? <p className="status-bad">{state.status.banner}</p> : null}
         {state.status.lastError ? <p className="status-bad">{state.status.lastError}</p> : null}
         <div className="row" style={{ marginTop: 10 }}>
+          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openAppData()}>
+            Open app data folder
+          </button>
           <button className="ghost" type="button" onClick={() => void window.battleBuddy.openLogs()}>
-            Open logs folder
+            Open Hearthstone logs
           </button>
           <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshLeaderboard()}>
             Refresh leaderboard
@@ -174,9 +178,9 @@ export function SettingsApp() {
           />
         </label>
         <p className="hint">
-          Session stats stay on the left and the minion pool on the right. Drag the gold edge on the
-          inner side of each panel to change width. Unlock layout to reposition the combat bar
-          (Ctrl+Shift+L).
+          Session stats stay on the left and the minion pool on the right. Drag the thick gold
+          strip on the inner edge of each panel to change width. Unlock layout to reposition the
+          combat bar (Ctrl+Shift+L).
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>
@@ -253,10 +257,25 @@ export function SettingsApp() {
             patch({ currentMmr: raw === '' ? null : Number(raw) })
           }}
         />
-        <p className="hint">
-          Enter your rating if it has not been read automatically yet. Per-game +/− still comes from
-          the client after each match.
-        </p>
+        <div className="row" style={{ marginTop: 4 }}>
+          <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshRating()}>
+            Read rating from screen
+          </button>
+        </div>
+        {state.status.ratingOcr.at ? (
+          <p className="hint">
+            Last screen read:{' '}
+            {state.status.ratingOcr.rating != null
+              ? state.status.ratingOcr.rating.toLocaleString('en-US')
+              : 'no number found'}
+            {state.status.ratingOcr.error ? ` (${state.status.ratingOcr.error})` : ''}
+            {state.status.ratingOcr.debugCropPath
+              ? ` · debug image in ${state.status.appDataPath}\\rating-ocr`
+              : ''}
+          </p>
+        ) : (
+          <p className="hint">Open the Battlegrounds Play screen, then use Read rating from screen.</p>
+        )}
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
           <input id="path" type="text" value={state.settings.hearthstonePath} readOnly />

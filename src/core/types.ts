@@ -243,6 +243,7 @@ export interface TrackerStatus {
   cardsError: string | null
   displayMode: OverlayDisplayMode
   ratingOcr: RatingOcrStatus
+  appDataPath: string
 }
 
 export type UpdatePhase =

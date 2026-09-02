@@ -9,7 +9,7 @@ import {
 export { DEFAULT_PANEL_WIDTH }
 
 const MIN_PANEL_WIDTH = 10
-const MAX_PANEL_WIDTH = 22
+const MAX_PANEL_WIDTH = 30
 /** One-time shrink for saves from the old oversized default range. */
 const LEGACY_WIDE_WIDTH = 18
 
@@ -21,7 +21,7 @@ export function clampPanelWidth(width: number): number {
 /** @deprecated use clampPanelWidth */
 export const clampPoolWidth = clampPanelWidth
 
-/** vw preference for sized panels; CSS caps the rendered width in rem. */
+/** vw preference for sized panels; rendered width follows this value. */
 export function panelWidthStyle(widthPct: number): string {
   return `${clampPanelWidth(widthPct)}vw`
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  ratingMenuSynced,
   ratingPollIntervalMs,
   ratingPollMode,
   shouldHideOverlayForRating,
@@ -37,6 +38,8 @@ describe('ratingPoll', () => {
 
   it('stops menu polling after the rating is synced', () => {
     expect(shouldPollRating({ ...base, menuRatingSynced: true })).toBe(false)
+    expect(ratingMenuSynced(5837, 5837)).toBe(true)
+    expect(ratingMenuSynced(5248, 5837)).toBe(false)
   })
 
   it('skips mid-match shop screens', () => {
