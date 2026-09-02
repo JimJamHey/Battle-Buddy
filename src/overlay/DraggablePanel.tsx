@@ -2,6 +2,8 @@ import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNo
 import { clampOverlayPos } from '../core/layout'
 import type { OverlayPos } from '../core/types'
 
+export type PanelAnchor = 'free' | 'left' | 'right'
+
 function measuredPanelWidthPct(panel: HTMLElement | null, root: Element | null, fallbackVw: number): number {
   if (!panel || !root) return fallbackVw
   const rootRect = root.getBoundingClientRect()
@@ -16,7 +18,10 @@ export function DraggablePanel({
   className,
   width,
   panelWidthPct = 0,
+  anchor = 'free',
+  draggable = true,
   resizable = false,
+  resizeWhenLocked = false,
   onMove,
   onMoveEnd,
   onResize,
@@ -29,8 +34,11 @@ export function DraggablePanel({
   className?: string
   width?: string
   panelWidthPct?: number
+  anchor?: PanelAnchor
+  draggable?: boolean
   resizable?: boolean
-  onMove: (pos: OverlayPos) => void
+  resizeWhenLocked?: boolean
+  onMove?: (pos: OverlayPos) => void
   onMoveEnd?: (pos: OverlayPos) => void
   onResize?: (widthPct: number) => void
   onResizeEnd?: (widthPct: number) => void
@@ -42,6 +50,7 @@ export function DraggablePanel({
   const resize = useRef<{ ox: number; ow: number } | null>(null)
   const posRef = useRef(pos)
   const widthRef = useRef(panelWidthPct)
+  const anchorRef = useRef(anchor)
   const onMoveRef = useRef(onMove)
   const onMoveEndRef = useRef(onMoveEnd)
   const onResizeRef = useRef(onResize)
@@ -49,11 +58,15 @@ export function DraggablePanel({
   const onInteractRef = useRef(onInteract)
   posRef.current = pos
   widthRef.current = panelWidthPct
+  anchorRef.current = anchor
   onMoveRef.current = onMove
   onMoveEndRef.current = onMoveEnd
   onResizeRef.current = onResize
   onResizeEndRef.current = onResizeEnd
   onInteractRef.current = onInteract
+
+  const canResize = resizable && (unlocked || resizeWhenLocked)
+  const canDrag = draggable && unlocked
 
   useEffect(() => {
     const clampForPanel = (next: OverlayPos): OverlayPos => {
@@ -62,17 +75,21 @@ export function DraggablePanel({
       return clampOverlayPos(next, widthPct)
     }
 
+    const resizeDelta = (event: PointerEvent, startOx: number, startOw: number, rect: DOMRect): number => {
+      const raw = ((event.clientX - startOx) / rect.width) * 100
+      return anchorRef.current === 'right' ? startOw - raw : startOw + raw
+    }
+
     const move = (event: PointerEvent) => {
       const root = panelRef.current?.closest('.overlay-root')
       if (!root) return
       const rect = root.getBoundingClientRect()
       if (resize.current) {
-        const delta = ((event.clientX - resize.current.ox) / rect.width) * 100
-        onResizeRef.current?.(resize.current.ow + delta)
+        onResizeRef.current?.(resizeDelta(event, resize.current.ox, resize.current.ow, rect))
         return
       }
       if (!drag.current) return
-      onMoveRef.current(
+      onMoveRef.current?.(
         clampForPanel({
           x: drag.current.px + ((event.clientX - drag.current.ox) / rect.width) * 100,
           y: drag.current.py + ((event.clientY - drag.current.oy) / rect.height) * 100
@@ -86,8 +103,7 @@ export function DraggablePanel({
         resize.current = null
         if (root) {
           const rect = root.getBoundingClientRect()
-          const delta = ((event.clientX - start.ox) / rect.width) * 100
-          onResizeEndRef.current?.(start.ow + delta)
+          onResizeEndRef.current?.(resizeDelta(event, start.ox, start.ow, rect))
         }
         onInteractRef.current(false)
         return
@@ -104,7 +120,7 @@ export function DraggablePanel({
         x: start.px + ((event.clientX - start.ox) / rect.width) * 100,
         y: start.py + ((event.clientY - start.oy) / rect.height) * 100
       })
-      onMoveRef.current(next)
+      onMoveRef.current?.(next)
       onMoveEndRef.current?.(next)
       onInteractRef.current(false)
     }
@@ -119,6 +135,7 @@ export function DraggablePanel({
   }, [])
 
   const startDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!canDrag) return
     const target = event.target as HTMLElement
     if (target.closest('button, a, input, select, .no-drag, .resize-grip')) return
     const fromHandle = Boolean(target.closest('.drag-grip, [data-drag-handle]'))
@@ -134,7 +151,7 @@ export function DraggablePanel({
   }
 
   const startResize = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!unlocked || !resizable) return
+    if (!canResize) return
     onInteract(true)
     resize.current = { ox: event.clientX, ow: widthRef.current }
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -142,14 +159,21 @@ export function DraggablePanel({
     event.stopPropagation()
   }
 
+  const panelStyle =
+    anchor === 'right'
+      ? { right: '0', left: 'auto', top: `${pos.y}%`, width }
+      : anchor === 'left'
+        ? { left: '0', top: `${pos.y}%`, width }
+        : { left: `${pos.x}%`, top: `${pos.y}%`, width }
+
   return (
     <div
       ref={panelRef}
-      className={`float-panel ${unlocked ? 'interactive unlocked capture-mouse' : ''} ${className ?? ''}`}
-      style={{ left: `${pos.x}%`, top: `${pos.y}%`, width }}
+      className={`float-panel ${canDrag ? 'interactive unlocked capture-mouse' : ''} ${anchor !== 'free' ? `anchor-${anchor}` : ''} ${className ?? ''}`}
+      style={panelStyle}
       onPointerDown={startDrag}
     >
-      {unlocked ? (
+      {canDrag ? (
         <div
           className="drag-grip interactive capture-mouse"
           data-drag-handle
@@ -161,9 +185,9 @@ export function DraggablePanel({
           Move
         </div>
       ) : null}
-      {unlocked && resizable ? (
+      {canResize ? (
         <div
-          className="resize-grip interactive capture-mouse no-drag"
+          className={`resize-grip interactive capture-mouse no-drag ${resizeWhenLocked ? 'resize-grip-persistent' : ''} ${anchor === 'right' ? 'resize-grip-left' : ''}`}
           role="button"
           aria-label="Resize panel"
           onPointerDown={startResize}

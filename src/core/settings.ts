@@ -1,4 +1,10 @@
-import { clampOverlayPos, clampSizedPanel, mergeOverlayLayout, migrateOverlayLayout } from './layout'
+import {
+  clampLeftDockedPanel,
+  clampOverlayPos,
+  clampRightDockedPanel,
+  mergeOverlayLayout,
+  migrateOverlayLayout
+} from './layout'
 import { resolveTheme } from './theme'
 import { DEFAULT_SETTINGS, type AppSettings, type OverlayLayout, type Region } from './types'
 
@@ -11,9 +17,9 @@ function clamp(n: number, min: number, max: number): number {
 
 function clampLayout(layout: OverlayLayout): OverlayLayout {
   return {
-    rail: clampSizedPanel(layout.rail),
+    rail: clampLeftDockedPanel(layout.rail),
     combat: clampOverlayPos(layout.combat),
-    pool: clampSizedPanel(layout.pool)
+    pool: clampRightDockedPanel(layout.pool)
   }
 }
 

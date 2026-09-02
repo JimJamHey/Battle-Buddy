@@ -229,8 +229,26 @@ p {
   touch-action: none;
 }
 
-.overlay-root:not(.unlocked) .resize-grip {
+.resize-grip-left {
+  right: auto;
+  left: 2px;
+  cursor: nesw-resize;
+  border-right: none;
+  border-left: 2px solid rgba(224, 192, 122, 0.7);
+  border-radius: 0 0 0 4px;
+}
+
+.overlay-root:not(.unlocked) .resize-grip:not(.resize-grip-persistent) {
   display: none;
+}
+
+.resize-grip-persistent {
+  opacity: 0.55;
+}
+
+.resize-grip-persistent:hover,
+.float-panel:hover .resize-grip-persistent {
+  opacity: 0.95;
 }
 
 .layout-hint {

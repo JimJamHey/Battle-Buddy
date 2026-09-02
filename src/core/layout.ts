@@ -19,13 +19,33 @@ export function clampPanelWidth(width: number): number {
 /** @deprecated use clampPanelWidth */
 export const clampPoolWidth = clampPanelWidth
 
-/** User-resized width in vw; floor/ceiling applied in CSS on .float-panel.sized */
+/** User-resized width in vw; floor applied in CSS on .float-panel.sized */
 export function panelWidthStyle(widthPct: number): string {
   return `${clampPanelWidth(widthPct)}vw`
 }
 
 export function poolWidthStyle(widthPct: number): string {
   return panelWidthStyle(widthPct)
+}
+
+export function dockRightX(widthPct: number): number {
+  return Math.max(0, 100 - clampPanelWidth(widthPct))
+}
+
+function clampDockedY(y: number): number {
+  return Math.min(88, Math.max(0, y))
+}
+
+/** Session rail — pinned to the left edge; only width and vertical offset are stored. */
+export function clampLeftDockedPanel(panel: OverlaySizedPanel): OverlaySizedPanel {
+  const w = clampPanelWidth(panel.w)
+  return { x: 0, y: clampDockedY(panel.y), w }
+}
+
+/** Minion pool — pinned to the right edge; only width and vertical offset are stored. */
+export function clampRightDockedPanel(panel: OverlaySizedPanel): OverlaySizedPanel {
+  const w = clampPanelWidth(panel.w)
+  return { x: dockRightX(w), y: clampDockedY(panel.y), w }
 }
 
 export function mergeOverlayLayout(
@@ -51,38 +71,42 @@ export function mergeOverlayLayout(
   }
 }
 
-/** Clamp panel origin; pass measured width % when available (see DraggablePanel). */
+/** Clamp free-floating panel origin; pass measured width % when available (see DraggablePanel). */
 export function clampOverlayPos(pos: OverlayPos, panelWidthPct = 0): OverlayPos {
   const maxX = Math.max(0, 100 - Math.max(0, panelWidthPct))
   return {
     x: Math.min(maxX, Math.max(0, pos.x)),
-    y: Math.min(88, Math.max(0, pos.y))
+    y: clampDockedY(pos.y)
   }
 }
 
+/** @deprecated use clampLeftDockedPanel or clampRightDockedPanel */
 export function clampSizedPanel(panel: OverlaySizedPanel): OverlaySizedPanel {
   const w = clampPanelWidth(panel.w)
   return { ...clampOverlayPos(panel, w), w }
 }
 
-/** @deprecated use clampSizedPanel */
-export const clampPoolLayout = clampSizedPanel
+/** @deprecated use clampLeftDockedPanel or clampRightDockedPanel */
+export const clampPoolLayout = clampRightDockedPanel
 
-/** Older builds parked the pool along the bottom; move those to the HDT right-hand list. */
+/** Snap side panels to screen edges and preserve user widths. */
 export function migrateOverlayLayout(layout: OverlayLayout): OverlayLayout {
   let merged = mergeOverlayLayout(DEFAULT_OVERLAY_LAYOUT, layout)
   if (merged.pool.x < 55 && merged.pool.y > 35) {
-    merged = { ...merged, pool: { ...DEFAULT_OVERLAY_LAYOUT.pool, w: merged.pool.w } }
+    merged = {
+      ...merged,
+      pool: { ...DEFAULT_OVERLAY_LAYOUT.pool, y: merged.pool.y, w: merged.pool.w }
+    }
   }
-  // Legacy default width only — do not reset user-chosen sizes.
   if (merged.pool.w === 26) {
     merged = { ...merged, pool: { ...merged.pool, w: DEFAULT_PANEL_WIDTH } }
   }
   if (merged.rail.w === 26) {
     merged = { ...merged, rail: { ...merged.rail, w: DEFAULT_PANEL_WIDTH } }
   }
-  if (merged.pool.x > 78) {
-    merged = { ...merged, pool: { ...merged.pool, x: DEFAULT_OVERLAY_LAYOUT.pool.x } }
+  return {
+    ...merged,
+    rail: clampLeftDockedPanel(merged.rail),
+    pool: clampRightDockedPanel(merged.pool)
   }
-  return merged
 }

@@ -54,12 +54,15 @@ export { mergeLogConfig, trackerBanner } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
 export { shouldPollRating, ratingPollMode, ratingPollIntervalMs, type RatingPollMode } from './ratingPoll'
 export {
+  clampLeftDockedPanel,
   clampOverlayPos,
   clampPanelWidth,
   clampPoolWidth,
+  clampRightDockedPanel,
   clampSizedPanel,
   clampPoolLayout,
   DEFAULT_PANEL_WIDTH,
+  dockRightX,
   mergeOverlayLayout,
   migrateOverlayLayout,
   panelWidthStyle,

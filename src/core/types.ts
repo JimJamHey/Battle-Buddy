@@ -29,9 +29,9 @@ export const DEFAULT_PANEL_WIDTH = 20
 export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
-  rail: { x: 0.55, y: 5.5, w: DEFAULT_PANEL_WIDTH },
+  rail: { x: 0, y: 5.5, w: DEFAULT_PANEL_WIDTH },
   combat: { x: 27, y: 1.4 },
-  pool: { x: 74, y: 3.2, w: DEFAULT_PANEL_WIDTH }
+  pool: { x: 100 - DEFAULT_PANEL_WIDTH, y: 3.2, w: DEFAULT_PANEL_WIDTH }
 }
 
 export interface AppSettings {

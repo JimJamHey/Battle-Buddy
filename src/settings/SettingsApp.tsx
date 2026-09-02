@@ -95,9 +95,6 @@ export function SettingsApp() {
           Live tracking: {state.status.logsLive ? 'yes' : 'no'}
           {state.status.needsHearthstoneRestart ? ' — restart Hearthstone' : ''}
         </p>
-        <p className="hint">
-          Cards: {state.status.cardCount} · Leaderboard: {state.status.leaderboardCount} players cached
-        </p>
         {state.status.cardsError ? <p className="status-bad">{state.status.cardsError}</p> : null}
         {state.status.banner ? <p className="status-bad">{state.status.banner}</p> : null}
         {state.status.lastError ? <p className="status-bad">{state.status.lastError}</p> : null}
@@ -120,12 +117,7 @@ export function SettingsApp() {
         <p className="hint">
           {checking
             ? 'Checking GitHub…'
-            : state.update.phase === 'unavailable'
-              ? `You're on v${state.update.currentVersion}.`
-              : `Installed version v${state.update.currentVersion}.`}
-          {state.update.canInstall
-            ? ' Installed copies check the rolling test release as well as numbered tags.'
-            : ''}
+            : `Installed version v${state.update.currentVersion}.`}
         </p>
         <div className="row" style={{ marginTop: 10 }}>
           <button
@@ -174,7 +166,7 @@ export function SettingsApp() {
           />
         </label>
         <label className="toggle">
-          <span>Unlock overlay (drag panels)</span>
+          <span>Unlock combat bar position</span>
           <input
             type="checkbox"
             checked={state.settings.layoutUnlocked}
@@ -182,17 +174,12 @@ export function SettingsApp() {
           />
         </label>
         <p className="hint">
-          {state.status.displayMode === 'exclusive'
-            ? 'Hearthstone is in fullscreen — switching it so the overlay can sit on the game.'
-            : state.status.displayMode === 'borderless'
-              ? 'Borderless fullscreen — overlay follows the game window.'
-              : 'Windowed — overlay follows the Hearthstone window in any size.'}
-          {' '}Unlock layout to drag panels or resize them from the bottom-right corner. Width is saved
-          between sessions.
+          Session stats stay on the left and the minion pool on the right. Drag each panel's inner
+          corner to change width. Unlock layout to reposition the combat bar (Ctrl+Shift+L).
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>
-            Reset layout
+            Reset panel widths
           </button>
         </div>
         <label htmlFor="opacity">Opacity ({state.settings.overlayOpacity}%)</label>
@@ -248,10 +235,10 @@ export function SettingsApp() {
           onBlur={() => commitTag(tagDraft)}
         />
         <p className="hint">
-          Rating is read from the Battlegrounds Play screen after a game. Other players’ ratings are
-          not available in the client.
+          Used to match your games on the leaderboard. Rating is read from the Battlegrounds Play screen
+          after each game.
         </p>
-        <label htmlFor="current-mmr">Current rating (optional seed)</label>
+        <label htmlFor="current-mmr">Current rating (optional)</label>
         <input
           id="current-mmr"
           type="number"
@@ -266,27 +253,9 @@ export function SettingsApp() {
           }}
         />
         <p className="hint">
-          Unlisted players can enter their rating here if OCR has not picked it up yet. Per-game +/− still
-          comes from the client after each match.
+          Enter your rating if it has not been read automatically yet. Per-game +/− still comes from
+          the client after each match.
         </p>
-        {state.status.ratingOcr ? (
-          <div className="hint" style={{ marginTop: 8 }}>
-            <p>
-              Rating OCR:{' '}
-              {state.status.ratingOcr.at
-                ? state.status.ratingOcr.failed
-                  ? 'could not settle'
-                  : state.status.ratingOcr.rating != null
-                    ? `read ${state.status.ratingOcr.rating}`
-                    : 'no rating parsed'
-                : 'not run yet'}
-            </p>
-            {state.status.ratingOcr.error ? <p>OCR: {state.status.ratingOcr.error}</p> : null}
-            {state.status.ratingOcr.debugCropPath ? (
-              <p>Debug crop: {state.status.ratingOcr.debugCropPath}</p>
-            ) : null}
-          </div>
-        ) : null}
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
           <input id="path" type="text" value={state.settings.hearthstonePath} readOnly />
@@ -304,7 +273,7 @@ export function SettingsApp() {
         <p className="hint">
           {state.status.cardsError
             ? `Minion catalog failed to load: ${state.status.cardsError}`
-            : 'Combat odds on top. Hands and trinkets are included when Power.log prints them. Click tavern 1–7 to peek a tier.'}
+            : 'Click tavern tiers 1–7 in the pool to peek other tiers.'}
         </p>
       </section>
 

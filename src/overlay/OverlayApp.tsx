@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { DEFAULT_OVERLAY_LAYOUT, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
-import { clampPanelWidth, DEFAULT_PANEL_WIDTH, panelWidthStyle, poolWidthStyle } from '../core/layout'
+import {
+  clampLeftDockedPanel,
+  clampPanelWidth,
+  clampRightDockedPanel,
+  panelWidthStyle,
+  poolWidthStyle
+} from '../core/layout'
 import { groupPoolCards, minionsForTier } from '../core/pool'
 import { formatBuffValue } from '../core/buffs'
 import { gamesToday, MAX_RECENT_GAMES } from '../core/session'
@@ -78,19 +84,13 @@ export function OverlayApp() {
     window.battleBuddy.setClickThrough(!inside)
   }
 
-  const movePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
+  const movePanel = (key: 'combat', pos: OverlayPos) => {
     dragging.current = true
-    setLayout((prev) => {
-      if (key === 'pool' || key === 'rail') return { ...prev, [key]: { ...prev[key], ...pos } }
-      return { ...prev, [key]: pos }
-    })
+    setLayout((prev) => ({ ...prev, [key]: pos }))
   }
-  const savePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
+  const savePanel = (key: 'combat', pos: OverlayPos) => {
     setLayout((prev) => {
-      const next =
-        key === 'pool' || key === 'rail'
-          ? { ...prev, [key]: { ...prev[key], ...pos } }
-          : { ...prev, [key]: pos }
+      const next = { ...prev, [key]: pos }
       void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
         dragging.current = false
       })
@@ -99,11 +99,19 @@ export function OverlayApp() {
   }
   const resizePanel = (key: 'pool' | 'rail', widthPct: number) => {
     dragging.current = true
-    setLayout((prev) => ({ ...prev, [key]: { ...prev[key], w: clampPanelWidth(widthPct) } }))
+    const w = clampPanelWidth(widthPct)
+    setLayout((prev) => ({
+      ...prev,
+      [key]: key === 'rail' ? clampLeftDockedPanel({ ...prev.rail, w }) : clampRightDockedPanel({ ...prev.pool, w })
+    }))
   }
   const savePanelWidth = (key: 'pool' | 'rail', widthPct: number) => {
     setLayout((prev) => {
-      const next = { ...prev, [key]: { ...prev[key], w: clampPanelWidth(widthPct) } }
+      const w = clampPanelWidth(widthPct)
+      const next = {
+        ...prev,
+        [key]: key === 'rail' ? clampLeftDockedPanel({ ...prev.rail, w }) : clampRightDockedPanel({ ...prev.pool, w })
+      }
       void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
         dragging.current = false
       })
@@ -122,7 +130,7 @@ export function OverlayApp() {
       </div>
       {unlocked ? (
         <div className="layout-hint interactive capture-mouse" role="status">
-          Drag a panel to place it · drag the corner grip to resize · Ctrl+Shift+L to lock
+          Drag combat odds to place · Ctrl+Shift+L to lock
         </div>
       ) : null}
 
@@ -144,7 +152,7 @@ export function OverlayApp() {
           ) : live && (state.match.heroName || state.match.heroCardId) ? (
             <div className="combat-bar waiting">Waiting for combat</div>
           ) : (
-            <div className="combat-bar placeholder">Combat odds — drag to place</div>
+            <div className="combat-bar placeholder">Combat odds — unlock layout to reposition</div>
           )}
           {showLastShot && state.lastOpponentShot ? (
             <LastSeenOpponent shot={state.lastOpponentShot} />
@@ -156,12 +164,13 @@ export function OverlayApp() {
         <DraggablePanel
           className="rail sized"
           pos={layout.rail}
+          anchor="left"
+          draggable={false}
           unlocked={unlocked}
           width={panelWidthStyle(layout.rail.w)}
           panelWidthPct={layout.rail.w}
           resizable
-          onMove={(pos) => movePanel('rail', pos)}
-          onMoveEnd={(pos) => savePanel('rail', pos)}
+          resizeWhenLocked
           onResize={(widthPct) => resizePanel('rail', widthPct)}
           onResizeEnd={(widthPct) => savePanelWidth('rail', widthPct)}
           onInteract={interact}
@@ -170,7 +179,7 @@ export function OverlayApp() {
             <SessionRail state={state} live={live} watching={watching} onHoverGame={setHoverGame} />
           ) : (
             <section className="panel session-panel">
-              <p className="hint">Session — drag Move to place</p>
+              <p className="hint">Session stats</p>
             </section>
           )}
           {state.match.buffs?.length ? (
@@ -192,12 +201,13 @@ export function OverlayApp() {
       <DraggablePanel
         className="pool sized"
         pos={layout.pool}
+        anchor="right"
+        draggable={false}
         unlocked={unlocked}
         width={poolWidthStyle(layout.pool.w)}
         panelWidthPct={layout.pool.w}
         resizable
-        onMove={(pos) => movePanel('pool', pos)}
-        onMoveEnd={(pos) => savePanel('pool', pos)}
+        resizeWhenLocked
         onResize={(widthPct) => resizePanel('pool', widthPct)}
         onResizeEnd={(widthPct) => savePanelWidth('pool', widthPct)}
         onInteract={interact}
