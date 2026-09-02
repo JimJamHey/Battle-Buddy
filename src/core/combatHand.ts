@@ -8,6 +8,14 @@ type CatalogRow = {
   health?: number
   tribes?: string[]
   text?: string
+  mechanics?: string[]
+}
+
+function nameMatchesOcr(normalized: string, name: string): boolean {
+  const key = name.toLowerCase().trim()
+  if (key.length < 4) return false
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(?:^|\\s)${escaped}(?:\\s|$)`).test(` ${normalized} `)
 }
 
 function sideSummonsFromHand(side: CombatSide, byId: Map<string, CatalogRow>): boolean {
@@ -36,8 +44,7 @@ export function matchCatalogCardsFromText(text: string, catalog: CatalogRow[]): 
   const seen = new Set<string>()
   const sorted = [...catalog].sort((a, b) => b.name.length - a.name.length)
   for (const card of sorted) {
-    const name = card.name.toLowerCase()
-    if (name.length < 4 || !normalized.includes(name)) continue
+    if (!nameMatchesOcr(normalized, card.name)) continue
     if (seen.has(card.id)) continue
     seen.add(card.id)
     hits.push({
@@ -45,14 +52,14 @@ export function matchCatalogCardsFromText(text: string, catalog: CatalogRow[]): 
       name: card.name,
       attack: card.attack ?? 1,
       health: card.health ?? 1,
-      divineShield: false,
-      taunt: false,
+      divineShield: (card.mechanics ?? []).some((tag) => tag.toLowerCase() === 'divine shield'),
+      taunt: (card.mechanics ?? []).some((tag) => tag.toLowerCase() === 'taunt'),
       poisonous: false,
-      venomous: false,
-      reborn: false,
-      windfury: false,
+      venomous: (card.mechanics ?? []).some((tag) => tag.toLowerCase() === 'venomous'),
+      reborn: (card.mechanics ?? []).some((tag) => tag.toLowerCase() === 'reborn'),
+      windfury: (card.mechanics ?? []).some((tag) => tag.toLowerCase() === 'windfury'),
       megaWindfury: false,
-      deathrattle: false,
+      deathrattle: (card.mechanics ?? []).some((tag) => tag.toLowerCase() === 'deathrattle'),
       tribes: card.tribes
     })
   }

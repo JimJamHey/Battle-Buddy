@@ -14,6 +14,17 @@ describe('combatHand', () => {
     expect(hits[0]?.cardId).toBe('A')
   })
 
+  it('does not match short names inside longer card names', () => {
+    const catalog = [
+      { id: 'A', name: 'Diremuck Forager', attack: 4, health: 5, tribes: ['Murloc'] },
+      { id: 'B', name: 'Murloc', attack: 2, health: 1, tribes: ['Murloc'] }
+    ]
+    expect(matchCatalogCardsFromText('Diremuck Forager ready', catalog)).toHaveLength(1)
+    expect(matchCatalogCardsFromText('Diremuck Forager ready', catalog)[0]?.cardId).toBe('A')
+    expect(matchCatalogCardsFromText('random murloc swarm', catalog)).toHaveLength(1)
+    expect(matchCatalogCardsFromText('random murloc swarm', catalog)[0]?.cardId).toBe('B')
+  })
+
   it('flags sides that summon from hand without a logged hand', () => {
     const input: CombatInput = {
       friendly: {

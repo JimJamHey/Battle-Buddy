@@ -13,12 +13,17 @@ export function opponentCombatCaptureRect(client: CaptureRect): CaptureRect {
   }
 }
 
-/** Friendly hand strip during combat (16:9). Used when Power.log omits HAND entities. */
+/** Friendly hand strip during combat. Scales with client aspect ratio (ref 16:9). */
 export function friendlyHandCaptureRect(client: CaptureRect): CaptureRect {
+  const refAspect = 16 / 9
+  const aspect = client.width / Math.max(1, client.height)
+  const yScale = Math.min(1.15, Math.max(0.85, aspect / refAspect))
+  const yBase = 0.7 * yScale
+  const hBase = 0.16 * yScale
   return {
     x: client.x + Math.round(client.width * 0.16),
-    y: client.y + Math.round(client.height * 0.7),
+    y: client.y + Math.round(client.height * yBase),
     width: Math.max(220, Math.round(client.width * 0.68)),
-    height: Math.max(72, Math.round(client.height * 0.16))
+    height: Math.max(72, Math.round(client.height * hBase))
   }
 }

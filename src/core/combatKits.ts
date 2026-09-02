@@ -58,6 +58,25 @@ export const COMBAT_KITS: Record<string, KitEntry> = {
         effects: [{ op: 'summonFromHand', count: 1, tribe: 'Murloc', select: 'highestAttack' }]
       }
     ]
+  },
+  // Deflect-o-Bot — buff self when a Mech is summoned during combat.
+  BGS_071: {
+    triggers: [
+      {
+        when: 'onSummon',
+        summonTribe: 'Mech',
+        effects: [{ op: 'buff', target: 'self', attack: 2, keywords: ['divineShield'] }]
+      }
+    ]
+  },
+  BGS_071_G: {
+    triggers: [
+      {
+        when: 'onSummon',
+        summonTribe: 'Mech',
+        effects: [{ op: 'buff', target: 'self', attack: 4, keywords: ['divineShield'] }]
+      }
+    ]
   }
 }
 
@@ -96,6 +115,7 @@ export function kitCoversGap(kit: CombatKit, gap: string): boolean {
   if (gap === 'Rally') return kit.triggers.some((row) => row.when === 'rally')
   if (gap === 'Start of Combat') return kit.triggers.some((row) => row.when === 'startOfCombat')
   if (gap === 'Avenge') return kit.triggers.some((row) => row.when === 'avenge')
+  if (gap === 'On Summon') return kit.triggers.some((row) => row.when === 'onSummon')
   return false
 }
 
@@ -108,5 +128,9 @@ function resolveKitEntry(cardId: string): KitEntry | undefined {
 }
 
 function sameTrigger(a: CombatTriggerSet, b: CombatTriggerSet): boolean {
-  return a.when === b.when && (a.avenge ?? null) === (b.avenge ?? null)
+  return (
+    a.when === b.when &&
+    (a.avenge ?? null) === (b.avenge ?? null) &&
+    (a.summonTribe ?? null) === (b.summonTribe ?? null)
+  )
 }

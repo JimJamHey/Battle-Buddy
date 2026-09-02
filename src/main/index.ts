@@ -76,6 +76,7 @@ import { createGameHost, pinOverlayToGame, followGameWindow, isOverlayForeground
 import { detectBattleNetRegion } from '../platform/battleNet'
 import { loadCardCatalog, readCachedCardCatalog } from './cards'
 import { appIcon } from './icon'
+import { buildSummonPools } from '../core/combatSummonPools'
 import { captureOpponentBoardDataUrl } from './combatShot'
 import { readCombatHandsFromScreen } from './combatOcr'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
@@ -101,6 +102,7 @@ let summons: Record<string, { attack: number; health: number; count: number }> =
 let combat: CombatOdds = { ...EMPTY_COMBAT }
 let lastCombatKey = ''
 let simGen = 0
+let combatSnapshotFlight: Promise<void> = Promise.resolve()
 let lastBoards: SeenBoard[] = []
 let lastOpponentShot: OpponentCombatShot | null = null
 let lastFriendlyBoard: SeenMinion[] = []
@@ -574,7 +576,7 @@ function bindTailer(): LogTailer {
         (result.combatEvent === 'start' || result.combatEvent === 'update') &&
         match.inCombat
       ) {
-        void handleCombatSnapshot(result.combatEvent === 'start' && parser.isCombatSnapshotLocked())
+        enqueueCombatSnapshot(result.combatEvent === 'start' && parser.isCombatSnapshotLocked())
       }
       if (result.combatEvent === 'end' || !match.inCombat) {
         if (combat.active || combat.simulating) {
@@ -859,6 +861,14 @@ async function grabOpponentCombatShot(
   scheduleBroadcast()
 }
 
+function enqueueCombatSnapshot(finalSnapshot: boolean): void {
+  combatSnapshotFlight = combatSnapshotFlight
+    .then(() => handleCombatSnapshot(finalSnapshot))
+    .catch((err) => {
+      console.error('combat snapshot failed', err)
+    })
+}
+
 async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
   let boards = parser.getCombat()
   if (!boards) return
@@ -868,8 +878,15 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
     const needs = combatInputNeedsHandOcr(probe, minions)
     if (needs.friendly || needs.opponent) {
       const client = await host.getClientBounds()
-      if (client) {
+      if (!client) {
+        ocrPartial = true
+      } else if (!match.inCombat) {
+        return
+      } else {
         const hands = await readCombatHandsFromScreen(client, minions)
+        if (!match.inCombat) return
+        boards = parser.getCombat()
+        if (!boards) return
         if (needs.friendly) {
           if (hands.friendly.length) boards = mergeHandOcr(boards, { friendly: hands.friendly })
           else ocrPartial = true
@@ -878,11 +895,10 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
           if (hands.opponent.length) boards = mergeHandOcr(boards, { opponent: hands.opponent })
           else ocrPartial = true
         }
-      } else {
-        ocrPartial = true
       }
     }
   }
+  if (!match.inCombat || !boards) return
   rememberBoard(boards.opponent, match.turn)
   lastFriendlyBoard = toSeenMinions(boards.friendly.minions)
   runCombatSim(boards, ocrPartial)
@@ -891,8 +907,9 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
 
 function runCombatSim(input: CombatInput, ocrPartial = false): void {
   const enriched = enrichCombatInput(input, minions)
-  const partial = combatInputHasGaps(enriched, minions) || ocrPartial
-  const key = JSON.stringify(enriched)
+  const pools = buildSummonPools(minions, match.availableTribes)
+  const partial = combatInputHasGaps(enriched, minions, pools) || ocrPartial
+  const key = JSON.stringify({ board: enriched, partial, ocrPartial })
   if (key === lastCombatKey) return
   lastCombatKey = key
   const gen = ++simGen
@@ -905,7 +922,7 @@ function runCombatSim(input: CombatInput, ocrPartial = false): void {
     opponentPlayerId: enriched.opponent.playerId
   }
   scheduleBroadcast()
-  const quick = simulateCombat(enriched, summons, COMBAT_QUICK_SAMPLES)
+  const quick = simulateCombat(enriched, summons, COMBAT_QUICK_SAMPLES, undefined, pools)
   if (gen !== simGen) return
   combat = {
     ...EMPTY_COMBAT,
@@ -919,7 +936,7 @@ function runCombatSim(input: CombatInput, ocrPartial = false): void {
   scheduleBroadcast()
   setImmediate(() => {
     if (gen !== simGen || lastCombatKey !== key) return
-    const full = simulateCombat(enriched, summons, COMBAT_FULL_SAMPLES)
+    const full = simulateCombat(enriched, summons, COMBAT_FULL_SAMPLES, undefined, pools)
     combat = {
       ...EMPTY_COMBAT,
       ...full,

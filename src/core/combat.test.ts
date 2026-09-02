@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   COMBAT_KITS,
+  collectNamedSummonNames,
   combatInputHasGaps,
   combatParseGaps,
   enrichCombatInput,
@@ -12,6 +13,7 @@ import {
   simulateCombat,
   type CombatInput
 } from './combatSim'
+import { buildSummonPools, pickRandomSummon } from './combatSummonPools'
 import { BoardTracker } from './entities'
 
 function side(
@@ -227,7 +229,282 @@ describe('combat sim', () => {
       'Start of Combat: When you have space, summon the highest-Attack Murloc from your hand for this combat only.'
     )
     const fx = kit.triggers.find((row) => row.when === 'startOfCombat')?.effects[0]
-    expect(fx).toMatchObject({ op: 'summonFromHand', tribe: 'Murloc', select: 'highestAttack' })
+    expect(fx).toMatchObject({
+      op: 'summonFromHand',
+      tribe: 'Murloc',
+      select: 'highestAttack',
+      requiresSpace: true
+    })
+  })
+
+  it('skips hand summons when the board is full and space is required', () => {
+    const forager = minion(4, 5, {
+      cardId: 'BG27_556',
+      tribes: ['Murloc'],
+      kit: {
+        triggers: [
+          {
+            when: 'startOfCombat',
+            effects: [
+              {
+                op: 'summonFromHand',
+                count: 1,
+                tribe: 'Murloc',
+                select: 'highestAttack',
+                requiresSpace: true
+              }
+            ]
+          }
+        ],
+        extraDeathrattles: 0,
+        cleave: false
+      }
+    })
+    const fillers = Array.from({ length: 6 }, () => minion(1, 1))
+    const input: CombatInput = {
+      friendly: {
+        ...side(1, [forager, ...fillers]),
+        hand: [minion(20, 20, { name: 'Big Murloc', tribes: ['Murloc'] })]
+      },
+      opponent: side(2, [minion(15, 15)])
+    }
+    const blocked = fightOnce(input, {}, () => 0, true)
+    expect(blocked.win).toBe('opponent')
+    const inputWithSpace: CombatInput = {
+      friendly: {
+        ...side(1, [forager, minion(1, 1)]),
+        hand: [minion(20, 20, { name: 'Big Murloc', tribes: ['Murloc'] })]
+      },
+      opponent: side(2, [minion(15, 15)])
+    }
+    const allowed = fightOnce(inputWithSpace, {}, () => 0, true)
+    expect(allowed.win).toBe('friendly')
+  })
+
+  it('buffs listeners when a matching tribe is summoned during combat', () => {
+    const bot = minion(3, 2, {
+      tribes: ['Mech'],
+      divineShield: true,
+      kit: {
+        triggers: [
+          {
+            when: 'onSummon',
+            summonTribe: 'Mech',
+            effects: [{ op: 'buff', target: 'self', attack: 2, keywords: ['divineShield'] }]
+          }
+        ],
+        extraDeathrattles: 0,
+        cleave: false
+      }
+    })
+    const input: CombatInput = {
+      friendly: {
+        ...side(1, [
+          bot,
+          minion(1, 1, {
+            deathrattle: true,
+            kit: {
+              triggers: [
+                {
+                  when: 'deathrattle',
+                  effects: [{ op: 'summon', count: 1, attack: 1, health: 1, name: 'Spawn Mech' }]
+                }
+              ],
+              extraDeathrattles: 0,
+              cleave: false
+            }
+          })
+        ])
+      },
+      opponent: side(2, [minion(1, 1)]),
+      named: {
+        'spawn mech': { attack: 1, health: 1, kit: { triggers: [], extraDeathrattles: 0, cleave: false }, tribes: ['Mech'] }
+      }
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('summons from a tribe pool for random summon effects', () => {
+    const pools = buildSummonPools([
+      { id: 'M1', name: 'Pool Murloc', attack: 5, health: 5, tribes: ['Murloc'], kind: 'minion' }
+    ])
+    const input: CombatInput = {
+      friendly: side(1, [
+        minion(1, 1, {
+          kit: {
+            triggers: [
+              {
+                when: 'startOfCombat',
+                effects: [{ op: 'summonRandom', count: 1, tribe: 'Murloc' }]
+              }
+            ],
+            extraDeathrattles: 0,
+            cleave: false
+          }
+        })
+      ]),
+      opponent: side(2, [minion(1, 3)])
+    }
+    const r = fightOnce(input, {}, () => 0, true, new Map(), pools)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('marks missing tribe summon pools as partial', () => {
+    const input = enrichCombatInput(
+      {
+        friendly: side(1, [
+          minion(1, 1, {
+            cardId: 'RAND',
+            kit: {
+              triggers: [{ when: 'deathrattle', effects: [{ op: 'summonRandom', tribe: 'Murloc' }] }],
+              extraDeathrattles: 0,
+              cleave: false
+            }
+          })
+        ]),
+        opponent: side(2, [minion(1, 1)])
+      },
+      [{ id: 'RAND', name: 'Random', text: 'Deathrattle: Summon a random Murloc.' }]
+    )
+    expect(combatInputHasGaps(input, [{ id: 'RAND', name: 'Random', text: 'Deathrattle: Summon a random Murloc.' }], {})).toBe(
+      true
+    )
+    const pools = buildSummonPools([{ id: 'M1', name: 'M', attack: 1, health: 1, tribes: ['Murloc'], kind: 'minion' }])
+    expect(
+      combatInputHasGaps(input, [{ id: 'RAND', name: 'Random', text: 'Deathrattle: Summon a random Murloc.' }], pools)
+    ).toBe(false)
+  })
+
+  it('prefers summon pool cards near tavern tier', () => {
+    const picked = pickRandomSummon(
+      buildSummonPools([
+        { id: 'T1', name: 'Low', attack: 1, health: 1, tribes: ['Beast'], techLevel: 1, kind: 'minion' },
+        { id: 'T5', name: 'High', attack: 9, health: 9, tribes: ['Beast'], techLevel: 5, kind: 'minion' }
+      ]),
+      'Beast',
+      () => 0.25,
+      5
+    )
+    expect(picked?.cardId).toBe('T5')
+  })
+
+  it('does not let a summoned minion trigger its own onSummon', () => {
+    const selfSummoner = minion(1, 1, {
+      kit: {
+        triggers: [
+          {
+            when: 'deathrattle',
+            effects: [{ op: 'summon', count: 1, attack: 1, health: 1, name: 'Echo Mech' }]
+          },
+          {
+            when: 'onSummon',
+            summonTribe: 'Mech',
+            effects: [{ op: 'buff', target: 'self', attack: 99 }]
+          }
+        ],
+        extraDeathrattles: 0,
+        cleave: false
+      },
+      tribes: ['Mech']
+    })
+    const input: CombatInput = {
+      friendly: side(1, [selfSummoner]),
+      opponent: side(2, [minion(1, 20, { taunt: true })]),
+      named: {
+        'echo mech': {
+          attack: 1,
+          health: 1,
+          kit: selfSummoner.kit!,
+          tribes: ['Mech']
+        }
+      }
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('opponent')
+  })
+
+  it('uses golden Deflect-o-Bot kit buff values', () => {
+    const text =
+      'Divine Shield Whenever you summon a Mech during combat, gain +2 Attack and Divine Shield.'
+    const golden = lookupCombatKit('BGS_071_G', text)
+    const fx = golden.triggers.find((row) => row.when === 'onSummon')?.effects[0]
+    expect(fx).toMatchObject({ op: 'buff', attack: 4, keywords: ['divineShield'] })
+  })
+
+  it('does not register the full catalog into named summon bodies', () => {
+    const catalog = [
+      { id: 'IMP', name: 'Imp', attack: 99, health: 99, text: 'A demon.' },
+      { id: 'DR', name: 'Spawner', text: 'Deathrattle: Summon a 1/1 Imp.' }
+    ]
+    const input = enrichCombatInput(
+      {
+        friendly: side(1, [
+          minion(1, 1, {
+            cardId: 'DR',
+            deathrattle: true,
+            kit: parseCardCombat('Deathrattle: Summon a 1/1 Imp.')
+          })
+        ]),
+        opponent: side(2, [minion(1, 1)])
+      },
+      catalog
+    )
+    expect(collectNamedSummonNames(input)).toEqual(new Set())
+    expect(input.named?.imp).toBeUndefined()
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('only adds explicit named summons referenced on the board', () => {
+    const catalog = [
+      { id: 'BEETLE', name: 'Beetle', attack: 2, health: 3, text: 'Buzz.' },
+      { id: 'OTHER', name: 'Other', attack: 9, health: 9, text: 'Nope.' }
+    ]
+    const input = enrichCombatInput(
+      {
+        friendly: side(1, [
+          minion(1, 1, {
+            kit: {
+              triggers: [
+                {
+                  when: 'deathrattle',
+                  effects: [{ op: 'summon', count: 1, name: 'Beetle' }]
+                }
+              ],
+              extraDeathrattles: 0,
+              cleave: false
+            }
+          })
+        ]),
+        opponent: side(2, [minion(1, 1)])
+      },
+      catalog
+    )
+    expect(input.named?.beetle).toMatchObject({ attack: 2, health: 3 })
+    expect(input.named?.other).toBeUndefined()
+  })
+
+  it('stealAttack removes attack from the defender', () => {
+    const input: CombatInput = {
+      friendly: side(1, [
+        minion(8, 8, {
+          kit: {
+            triggers: [
+              {
+                when: 'afterKill',
+                effects: [{ op: 'stealAttack' }]
+              }
+            ],
+            extraDeathrattles: 0,
+            cleave: false
+          }
+        })
+      ]),
+      opponent: side(2, [minion(5, 1)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
   })
 
   it('runs trinket start-of-combat damage', () => {
@@ -460,6 +737,78 @@ describe('board tracker', () => {
       'start'
     )
     expect(t.isSnapshotLocked()).toBe(true)
+    expect(
+      t.feed('D 12:00 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=11', 1, name)
+    ).toBeNull()
+  })
+
+  it('emits update when hand arrives after attack lock', () => {
+    const t = new BoardTracker()
+    const name = (id: number) => (id === 1 ? 'Me' : 'Them')
+    const boardLines = [
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    for (const line of boardLines) t.feed(line, 1, name)
+    expect(t.feed('D 12:00 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=10', 1, name)).toBe(
+      'start'
+    )
+    expect(t.getFrozen()?.friendly.hand).toEqual([])
+    const handLines = [
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=30 CardID=BGS_HAND',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=3',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=9',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    let event = null
+    for (const line of handLines) event = t.feed(line, 1, name) ?? event
+    expect(event).toBe('update')
+    expect(t.getFrozen()?.friendly.hand?.[0]?.attack).toBe(9)
+  })
+
+  it('emits update when board stats change after attack lock', () => {
+    const t = new BoardTracker()
+    const name = (id: number) => (id === 1 ? 'Me' : 'Them')
+    const boardLines = [
+      'D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=GameEntity tag=BACON_IN_COMBAT_PHASE value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=10 CardID=BGS_PET',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=5',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1',
+      'D 12:00 GameState.DebugPrintPower() - FULL_ENTITY - Creating ID=20 CardID=BGS_OPP',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CARDTYPE value=4',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE value=1',
+      'D 12:00 GameState.DebugPrintPower() -     tag=CONTROLLER value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ATK value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=HEALTH value=2',
+      'D 12:00 GameState.DebugPrintPower() -     tag=ZONE_POSITION value=1'
+    ]
+    for (const line of boardLines) t.feed(line, 1, name)
+    expect(t.feed('D 12:00 GameState.DebugPrintPower() - BLOCK_START BlockType=ATTACK Entity=10', 1, name)).toBe(
+      'start'
+    )
+    let event = t.feed('D 12:00 GameState.DebugPrintPower() - TAG_CHANGE Entity=10 tag=ATK value=12', 1, name)
+    expect(event).toBe('update')
+    expect(t.getFrozen()?.friendly.minions[0]?.attack).toBe(12)
   })
 
   it('does not freeze a combat board against yourself', () => {
@@ -668,7 +1017,8 @@ describe('combat kit registry', () => {
     expect(combatParseGaps('Deathrattle: Copy a random deathrattle.')).toEqual(
       expect.arrayContaining(['Deathrattle', 'Copy Deathrattle'])
     )
-    expect(combatParseGaps('Start of Combat: Summon a random Beast.')).toContain('Random summon')
+    expect(combatParseGaps('Start of Combat: Summon a random Beast.')).not.toContain('Random summon')
+    expect(combatParseGaps('Start of Combat: Summon a random minion.')).toContain('Random summon')
   })
 
   it('only treats this-game text as a gap when it sits on a combat trigger', () => {

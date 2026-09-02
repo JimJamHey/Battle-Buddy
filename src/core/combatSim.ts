@@ -1,15 +1,15 @@
 import {
   cardHasCleave,
   combatParseGaps,
-  parseStartOfCombat,
   type CombatEffect,
   type CombatKit,
   type CombatTarget,
   type CombatTriggerSet
 } from './combatEffects'
 import { kitCoversGap, kitLookupIds, lookupCombatKit } from './combatKits'
+import { pickRandomSummon, summonPoolHasTribe, type SummonPools } from './combatSummonPools'
 
-export type { CombatKit, SocEffect } from './combatEffects'
+export type { CombatKit } from './combatEffects'
 export { cardHasCleave, parseCardCombat, parseDeathrattleSummon, parseStartOfCombat, combatParseGaps } from './combatEffects'
 export { COMBAT_KITS, lookupCombatKit, mergeCombatKits } from './combatKits'
 
@@ -34,7 +34,6 @@ export interface CombatMinion {
   cleave?: boolean
   tribes?: string[]
   kit?: CombatKit
-  startOfCombat?: ReturnType<typeof parseStartOfCombat>
 }
 
 export interface CombatSide {
@@ -115,6 +114,8 @@ interface FightCtx {
   nextUid: number
   killer: SimMinion | null
   hands: [SimMinion[], SimMinion[]]
+  summonPools: SummonPools
+  tavernTier: [number, number]
 }
 
 function summonFor(
@@ -347,7 +348,7 @@ function insertSummons(
   tokens: SimMinion[],
   ctx?: FightCtx,
   side?: 0 | 1
-): void {
+): SimMinion[] {
   if (ctx && side != null) {
     const bonus = ctx.auraAtk[side]
     const tribe = ctx.auraTribe[side]
@@ -358,8 +359,45 @@ function insertSummons(
     }
   }
   const room = BOARD_CAP - board.length
-  if (room <= 0 || !tokens.length) return
-  board.splice(at, 0, ...tokens.slice(0, room))
+  if (room <= 0 || !tokens.length) return []
+  const added = tokens.slice(0, room)
+  board.splice(at, 0, ...added)
+  return added
+}
+
+function fireOnSummon(
+  summoned: SimMinion[],
+  own: SimMinion[],
+  enemy: SimMinion[],
+  ctx: FightCtx,
+  rng: () => number,
+  side: 0 | 1
+): void {
+  for (const token of summoned) {
+    for (const listener of [...living(own)]) {
+      if (listener.uid === token.uid) continue
+      for (const row of listener.kit.triggers) {
+        if (row.when !== 'onSummon') continue
+        if (row.summonTribe && !hasTribe(token, row.summonTribe)) continue
+        runEffects(listener, own, enemy, row.effects, ctx, rng, side, token)
+      }
+    }
+  }
+}
+
+function addSummons(
+  own: SimMinion[],
+  enemy: SimMinion[],
+  at: number,
+  tokens: SimMinion[],
+  ctx: FightCtx,
+  rng: () => number,
+  side: 0 | 1,
+  fireEvents = true
+): SimMinion[] {
+  const added = insertSummons(own, at, tokens, ctx, side)
+  if (fireEvents && added.length) fireOnSummon(added, own, enemy, ctx, rng, side)
+  return added
 }
 
 function pickFromHand(hand: SimMinion[], fx: CombatEffect, rng: () => number): SimMinion | null {
@@ -387,10 +425,30 @@ function runEffects(
 ): void {
   for (const fx of effects) {
     if (fx.op === 'summon') {
-      insertSummons(own, insertAt ?? own.length, summonFromEffect(fx, ctx), ctx, side)
+      addSummons(own, enemy, insertAt ?? own.length, summonFromEffect(fx, ctx), ctx, rng, side)
+      continue
+    }
+    if (fx.op === 'summonRandom') {
+      const tokens: SimMinion[] = []
+      for (let i = 0; i < (fx.count ?? 1); i++) {
+        const body = pickRandomSummon(ctx.summonPools, fx.tribe, rng, ctx.tavernTier[side])
+        if (!body) continue
+        tokens.push(
+          spawn(ctx, {
+            cardId: body.cardId,
+            name: body.name,
+            attack: body.attack,
+            health: body.health,
+            tribes: body.tribes,
+            kit: body.kit
+          })
+        )
+      }
+      addSummons(own, enemy, insertAt ?? own.length, tokens, ctx, rng, side)
       continue
     }
     if (fx.op === 'summonFromHand') {
+      if (fx.requiresSpace && BOARD_CAP - living(own).length <= 0) continue
       const hand = ctx.hands[side]
       const n = Math.max(1, fx.count ?? 1)
       const tokens: SimMinion[] = []
@@ -402,7 +460,7 @@ function runEffects(
         if (idx >= 0) hand.splice(idx, 1)
         tokens.push(pick)
       }
-      insertSummons(own, insertAt ?? own.length, tokens, ctx, side)
+      addSummons(own, enemy, insertAt ?? own.length, tokens, ctx, rng, side)
       continue
     }
     if (fx.op === 'destroyKiller' && ctx.killer && ctx.killer.health > 0) {
@@ -428,7 +486,9 @@ function runEffects(
       continue
     }
     if (fx.op === 'stealAttack' && defender) {
-      source.attack += Math.max(0, defender.attack)
+      const stolen = Math.max(0, defender.attack)
+      source.attack += stolen
+      defender.attack = Math.max(0, defender.attack - stolen)
       continue
     }
     if (fx.op === 'removeKeywords' && defender) {
@@ -639,7 +699,8 @@ export function fightOnce(
   summons: Record<string, DeathrattleSummon | null>,
   rng: () => number,
   friendlyFirst?: boolean,
-  named: FightCtx['named'] = new Map()
+  named: FightCtx['named'] = new Map(),
+  summonPools: SummonPools = {}
 ): { win: 'friendly' | 'opponent' | 'tie'; damageToOpponent: number; damageToFriendly: number } {
   const ctx: FightCtx = {
     gems: gemPair(input),
@@ -649,7 +710,12 @@ export function fightOnce(
     named,
     nextUid: 1,
     killer: null,
-    hands: [[], []]
+    hands: [[], []],
+    summonPools,
+    tavernTier: [
+      Math.max(1, input.friendly.tavernTier ?? 1),
+      Math.max(1, input.opponent.tavernTier ?? 1)
+    ]
   }
   const fBoard = input.friendly.minions.map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
   const oBoard = input.opponent.minions.map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
@@ -723,7 +789,8 @@ export function simulateCombat(
   input: CombatInput,
   summons: Record<string, DeathrattleSummon | null> = {},
   samples = COMBAT_FULL_SAMPLES,
-  rng?: () => number
+  rng?: () => number,
+  summonPools: SummonPools = {}
 ): CombatResult {
   const named = namedFromInput(input)
   const roll = rng ?? mulberry32(hashCombat(input))
@@ -740,7 +807,7 @@ export function simulateCombat(
   const selfHp = Math.max(1, input.friendly.heroHealth + input.friendly.heroArmor)
 
   for (let i = 0; i < samples; i++) {
-    const r = fightOnce(input, summons, roll, undefined, named)
+    const r = fightOnce(input, summons, roll, undefined, named, summonPools)
     dealtMin = Math.min(dealtMin, r.damageToOpponent)
     dealtMax = Math.max(dealtMax, r.damageToOpponent)
     takenMin = Math.min(takenMin, r.damageToFriendly)
@@ -843,20 +910,48 @@ function catalogCard(
   return name ? byName.get(name.toLowerCase()) : undefined
 }
 
+/** Names referenced by summon effects that need catalog stats (not inline N/N tokens). */
+export function collectNamedSummonNames(input: CombatInput): Set<string> {
+  const names = new Set<string>()
+  const scan = (m: CombatMinion) => {
+    const kit = m.kit
+    if (!kit) return
+    for (const row of kit.triggers) {
+      for (const fx of row.effects) {
+        if (fx.op !== 'summon' || !fx.name || fx.name.startsWith('token:')) continue
+        if (fx.attack != null && fx.health != null) continue
+        const key = fx.name.trim().toLowerCase()
+        if (key) names.add(key)
+      }
+    }
+  }
+  const rows = [
+    ...input.friendly.minions,
+    ...input.opponent.minions,
+    ...(input.friendly.hand ?? []),
+    ...(input.opponent.hand ?? []),
+    ...(input.friendly.trinkets ?? []),
+    ...(input.opponent.trinkets ?? [])
+  ]
+  for (const m of rows) scan(m)
+  return names
+}
+
+function namedBodyForCard(
+  card: CatalogCard,
+  kitFor: (cardId: string, text: string, card?: CatalogCard) => CombatKit
+): NamedCombatBody {
+  return {
+    attack: card.attack ?? 1,
+    health: card.health ?? 1,
+    kit: kitFor(card.id, card.text ?? '', card),
+    tribes: card.tribes ?? []
+  }
+}
+
 export function enrichCombatInput(input: CombatInput, catalog: CatalogCard[]): CombatInput {
   const byId = new Map(catalog.map((card) => [card.id, card]))
   const byName = new Map(catalog.map((card) => [card.name.toLowerCase(), card]))
-  const named: Record<string, NamedCombatBody> = { ...(input.named ?? {}) }
-  for (const card of catalog) {
-    const key = card.name.toLowerCase()
-    if (!key || named[key]) continue
-    named[key] = {
-      attack: card.attack ?? 1,
-      health: card.health ?? 1,
-      kit: kitFor(card.id, card.text ?? '', card),
-      tribes: card.tribes ?? []
-    }
-  }
   const enrich = (m: CombatMinion): CombatMinion => {
     const card = catalogCard(m.cardId, m.name, byId, byName)
     const text = card?.text ?? ''
@@ -866,13 +961,12 @@ export function enrichCombatInput(input: CombatInput, catalog: CatalogCard[]): C
       name: m.name || card?.name || m.name,
       cleave: m.cleave || cardHasCleave(card?.mechanics, text),
       tribes: m.tribes?.length ? m.tribes : card?.tribes,
-      kit,
-      startOfCombat: m.startOfCombat?.length ? m.startOfCombat : parseStartOfCombat(text)
+      kit
     }
   }
-  return {
+  const enriched: CombatInput = {
     ...input,
-    named,
+    named: { ...(input.named ?? {}) },
     friendly: {
       ...input.friendly,
       minions: input.friendly.minions.map(enrich),
@@ -886,11 +980,20 @@ export function enrichCombatInput(input: CombatInput, catalog: CatalogCard[]): C
       trinkets: input.opponent.trinkets?.map(enrich)
     }
   }
+  const named = enriched.named ?? {}
+  for (const key of collectNamedSummonNames(enriched)) {
+    if (named[key]) continue
+    const card = byName.get(key)
+    if (!card) continue
+    named[key] = namedBodyForCard(card, kitFor)
+  }
+  return { ...enriched, named }
 }
 
 export function combatInputHasGaps(
   input: CombatInput,
-  catalog: { id: string; name: string; text?: string; mechanics?: string[] }[]
+  catalog: { id: string; name: string; text?: string; mechanics?: string[]; techLevel?: number }[],
+  summonPools: SummonPools = {}
 ): boolean {
   const byId = new Map(catalog.map((card) => [card.id, card]))
   const byName = new Map(catalog.map((card) => [card.name.toLowerCase(), card]))
@@ -902,13 +1005,44 @@ export function combatInputHasGaps(
     ...(input.friendly.trinkets ?? []),
     ...(input.opponent.trinkets ?? [])
   ]
-  return rows.some((m) => {
-    const card = catalogCard(m.cardId, m.name, byId, byName)
-    const text = card?.text ?? ''
-    const kit = m.kit ?? kitFor(m.cardId || m.name, text, card)
-    const gaps = combatParseGaps(text, card?.mechanics ?? []).filter((gap) => !kitCoversGap(kit, gap))
-    if (gaps.length > 0) return true
-    if (m.deathrattle && !kit.triggers.some((row) => row.when === 'deathrattle')) return true
+  if (rows.some((m) => cardRowHasGaps(m, byId, byName))) return true
+  return combatSidesNeedSummonPools(input, summonPools)
+}
+
+function cardRowHasGaps(
+  m: CombatMinion,
+  byId: Map<string, { id: string; name: string; text?: string; mechanics?: string[] }>,
+  byName: Map<string, { id: string; name: string; text?: string; mechanics?: string[] }>
+): boolean {
+  const card = catalogCard(m.cardId, m.name, byId, byName)
+  const text = card?.text ?? ''
+  const kit = m.kit ?? kitFor(m.cardId || m.name, text, card)
+  const gaps = combatParseGaps(text, card?.mechanics ?? []).filter((gap) => !kitCoversGap(kit, gap))
+  if (gaps.length > 0) return true
+  if (m.deathrattle && !kit.triggers.some((row) => row.when === 'deathrattle')) return true
+  return false
+}
+
+function combatSidesNeedSummonPools(input: CombatInput, summonPools: SummonPools): boolean {
+  const tierFor = (side: CombatSide) => Math.max(1, side.tavernTier ?? 1)
+  const needsPool = (side: CombatSide) => {
+    const tier = tierFor(side)
+    const scan = [...side.minions, ...(side.hand ?? []), ...(side.trinkets ?? [])]
+    for (const m of scan) {
+      const kit = m.kit
+      if (!kit) continue
+      for (const row of kit.triggers) {
+        for (const fx of row.effects) {
+          if (fx.op !== 'summonRandom' || !fx.tribe) continue
+          const pool = summonPools[fx.tribe.toLowerCase()]?.filter((body) => body.techLevel <= tier) ?? []
+          if (!pool.length) return true
+        }
+      }
+    }
     return false
-  })
+  }
+  return (
+    needsPool(input.friendly) ||
+    needsPool(input.opponent)
+  )
 }

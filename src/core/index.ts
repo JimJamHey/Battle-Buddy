@@ -6,6 +6,7 @@ export {
   parseCardCombat,
   simulateCombat,
   enrichCombatInput,
+  collectNamedSummonNames,
   combatInputHasGaps,
   lookupCombatKit,
   mergeCombatKits,
@@ -27,6 +28,17 @@ export { parsePlayRating, parseRatingObservation, mergeRatingObservations, isSes
 export { opponentCombatCaptureRect, friendlyHandCaptureRect } from './combatCapture'
 export { combatInputNeedsHandOcr, matchCatalogCardsFromText, mergeHandOcr } from './combatHand'
 export {
+  COMBAT_TRIGGERS,
+  COMBAT_KEYWORDS,
+  UNSUPPORTED_COMBAT_MECHANICS,
+  keywordsFromText,
+  cardTextIsCombatRelevant
+} from './combatMechanics'
+export { buildSummonPools, pickRandomSummon, summonPoolHasTribe } from './combatSummonPools'
+export type { SummonPools, SummonPoolBody } from './combatSummonPools'
+export { combatCoverageReport, combatCoverageForCard } from './combatCoverage'
+export type { CoverageReport, CoverageRow } from './combatCoverage'
+export {
   strategyCandidates,
   snapshotFromCatalog,
   diffSnapshots,
@@ -37,6 +49,7 @@ export {
   strategyCatalog
 } from './strategy'
 export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strategy'
+export { loadPoolSnapshot, COMMITTED_POOL_BUILD, assertCommittedPoolBuild, poolBuildNumber } from './poolSnapshot'
 export { mergeLogConfig, trackerBanner } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
 export { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
