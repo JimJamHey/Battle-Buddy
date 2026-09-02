@@ -253,6 +253,42 @@ p {
   opacity: 0.95;
 }
 
+.resize-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+  z-index: 25;
+  touch-action: none;
+  background: linear-gradient(
+    90deg,
+    rgba(224, 192, 122, 0.08),
+    rgba(224, 192, 122, 0.35)
+  );
+}
+
+.resize-edge-right {
+  right: 0;
+  border-right: 3px solid rgba(224, 192, 122, 0.75);
+  border-radius: 0 8px 8px 0;
+}
+
+.resize-edge-left {
+  left: 0;
+  border-left: 3px solid rgba(224, 192, 122, 0.75);
+  border-radius: 8px 0 0 8px;
+}
+
+.resize-edge:hover,
+.float-panel:hover .resize-edge {
+  background: linear-gradient(
+    90deg,
+    rgba(224, 192, 122, 0.18),
+    rgba(224, 192, 122, 0.55)
+  );
+}
+
 .layout-hint {
   position: absolute;
   top: 50%;

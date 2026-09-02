@@ -52,7 +52,7 @@ export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strate
 export { loadPoolSnapshot, COMMITTED_POOL_BUILD, assertCommittedPoolBuild, poolBuildNumber } from './poolSnapshot'
 export { mergeLogConfig, trackerBanner } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
-export { shouldPollRating, ratingPollMode, ratingPollIntervalMs, isMenuScene, type RatingPollMode } from './ratingPoll'
+export { shouldPollRating, ratingPollMode, ratingPollIntervalMs, isMenuScene, shouldHideOverlayForRating, type RatingPollMode } from './ratingPoll'
 export {
   clampLeftDockedPanel,
   clampOverlayPos,

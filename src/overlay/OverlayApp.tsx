@@ -171,6 +171,7 @@ export function OverlayApp() {
           panelWidthPct={layout.rail.w}
           resizable
           resizeWhenLocked
+          resizeEdge="inner"
           onResize={(widthPct) => resizePanel('rail', widthPct)}
           onResizeEnd={(widthPct) => savePanelWidth('rail', widthPct)}
           onInteract={interact}
@@ -208,6 +209,7 @@ export function OverlayApp() {
         panelWidthPct={layout.pool.w}
         resizable
         resizeWhenLocked
+        resizeEdge="inner"
         onResize={(widthPct) => resizePanel('pool', widthPct)}
         onResizeEnd={(widthPct) => savePanelWidth('pool', widthPct)}
         onInteract={interact}

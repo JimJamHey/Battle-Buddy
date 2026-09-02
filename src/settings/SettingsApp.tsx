@@ -174,8 +174,9 @@ export function SettingsApp() {
           />
         </label>
         <p className="hint">
-          Session stats stay on the left and the minion pool on the right. Drag each panel's inner
-          corner to change width. Unlock layout to reposition the combat bar (Ctrl+Shift+L).
+          Session stats stay on the left and the minion pool on the right. Drag the gold edge on the
+          inner side of each panel to change width. Unlock layout to reposition the combat bar
+          (Ctrl+Shift+L).
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>

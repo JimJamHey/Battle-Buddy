@@ -39,6 +39,7 @@ import {
   ratingPollMode,
   ratingPollIntervalMs,
   isMenuScene,
+  shouldHideOverlayForRating,
   isEndGameDisconnect,
   simulateCombat,
   enrichCombatInput,
@@ -125,6 +126,7 @@ let mmrPollTimer: NodeJS.Timeout | null = null
 let awaitingPostGameMmr = false
 let postGameAt = 0
 let ratingOcrFailed = false
+let menuRatingSynced = false
 let currentScene: Scene = 'unknown'
 const SETTLEMENT_MAX_MS = 5 * 60 * 1000
 const EMPTY_RATING_OCR: RatingOcrStatus = {
@@ -343,6 +345,10 @@ function noteObservedRating(
     void saveSettings(userData(), settings)
     changed = true
   }
+  if (rating != null && !match.gameActive && gamesToday(session).length === 0 && session.startMmr !== rating) {
+    session = { ...session, startMmr: rating }
+    changed = true
+  }
   const next = applyRatingObservation(session, observation, opts)
   if (next !== session) {
     session = next
@@ -388,7 +394,8 @@ function ratingPollContext() {
     placement: match.placement,
     playedAsSelf,
     lastGameSettled: last ? gameMmrIsSettled(last) : true,
-    hasLastGame: Boolean(last)
+    hasLastGame: Boolean(last),
+    menuRatingSynced
   }
 }
 
@@ -407,14 +414,14 @@ function noteRatingOcrCapture(
   }
 }
 
-async function withOverlayHiddenForOcr<T>(fn: () => Promise<T>): Promise<T> {
+async function withOverlayHiddenForOcr<T>(hide: boolean, fn: () => Promise<T>): Promise<T> {
   const win = overlayWindow
   const wasVisible = Boolean(win && !win.isDestroyed() && win.isVisible())
   try {
-    if (wasVisible && win && !win.isDestroyed()) win.hide()
+    if (hide && wasVisible && win && !win.isDestroyed()) win.hide()
     return await fn()
   } finally {
-    if (wasVisible && win && !win.isDestroyed()) win.show()
+    if (hide && wasVisible && win && !win.isDestroyed()) win.showInactive()
   }
 }
 
@@ -427,12 +434,11 @@ async function pollPlayRating(force = false): Promise<void> {
     lastGameSettled: ctx.lastGameSettled,
     hasLastGame: ctx.hasLastGame
   })
-  const menuIdle = !match.gameActive && isMenuScene(currentScene)
   const wantResults =
     mode === 'postgame' ||
     Boolean(playedAsSelf && match.placement && match.placement > 0 && match.gameActive)
   const now = Date.now()
-  const minGap = ratingPollIntervalMs(mode, menuIdle)
+  const minGap = ratingPollIntervalMs(mode)
   if (!force && now - lastPlayRatingAt < minGap) return
   lastPlayRatingAt = now
   const bounds = await host.getClientBounds()
@@ -446,11 +452,11 @@ async function pollPlayRating(force = false): Promise<void> {
     return
   }
   playRatingBusy = true
+  const hideOverlay = shouldHideOverlayForRating(mode)
   try {
-    const capture = await withOverlayHiddenForOcr(() =>
+    const capture = await withOverlayHiddenForOcr(hideOverlay, () =>
       readRatingObservation(bounds, {
         includeResults: wantResults,
-        idleOnly: mode === 'idle',
         debugDir: join(userData(), 'rating-ocr')
       })
     )
@@ -478,6 +484,9 @@ async function pollPlayRating(force = false): Promise<void> {
       if (lastGameSettled()) {
         ratingOcrFailed = false
         awaitingPostGameMmr = false
+      }
+      if (!match.gameActive && isMenuScene(currentScene) && observed.rating != null) {
+        menuRatingSynced = true
       }
     }
   } catch (err) {
@@ -669,6 +678,7 @@ function bindTailer(): LogTailer {
         recordedThisMatch = false
         playedAsSelf = !match.spectating
         awaitingPostGameMmr = false
+        menuRatingSynced = false
       }
       if (result.detectedSelfName && !match.spectating) {
         const tag = leaderboardAccountId(result.detectedSelfName)
@@ -1184,9 +1194,6 @@ async function tickOverlayBody(): Promise<void> {
   const key = `${bounds.x},${bounds.y},${bounds.width},${bounds.height}`
   const sizeKey = `${bounds.width}x${bounds.height}`
   const moved = key !== lastBoundsKey || sizeKey !== lastSizeKey
-  if (moved && !match.gameActive && isMenuScene(currentScene) && ratingOcr.at == null) {
-    void pollPlayRating(true)
-  }
   if (process.platform === 'win32') {
     if (moved) {
       followGameWindow(win.getNativeWindowHandle(), raw, clickThrough)
@@ -1359,6 +1366,7 @@ function registerIpc(): void {
     settings = next
     parser.setSelfBattleTag(settings.battleTag)
     if (patch?.currentMmr !== undefined) {
+      menuRatingSynced = false
       session = bindCurrentMmr(session, settings.currentMmr)
       void saveSession(userData(), session)
     }

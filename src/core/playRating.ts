@@ -137,10 +137,10 @@ export function isSessionTotalDelta(
 /** Upper-right Battlegrounds Play widget, where "Rating NNNN" sits. */
 export function ratingCaptureRect(client: CaptureRect): CaptureRect {
   return {
-    x: client.x + Math.round(client.width * 0.56),
-    y: client.y + Math.round(client.height * 0.05),
-    width: Math.max(160, Math.round(client.width * 0.3)),
-    height: Math.max(90, Math.round(client.height * 0.28))
+    x: client.x + Math.round(client.width * 0.62),
+    y: client.y + Math.round(client.height * 0.04),
+    width: Math.max(150, Math.round(client.width * 0.26)),
+    height: Math.max(80, Math.round(client.height * 0.22))
   }
 }
 

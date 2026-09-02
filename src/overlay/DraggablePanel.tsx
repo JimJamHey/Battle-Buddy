@@ -22,6 +22,7 @@ export function DraggablePanel({
   draggable = true,
   resizable = false,
   resizeWhenLocked = false,
+  resizeEdge = 'corner',
   onMove,
   onMoveEnd,
   onResize,
@@ -38,6 +39,7 @@ export function DraggablePanel({
   draggable?: boolean
   resizable?: boolean
   resizeWhenLocked?: boolean
+  resizeEdge?: 'corner' | 'inner'
   onMove?: (pos: OverlayPos) => void
   onMoveEnd?: (pos: OverlayPos) => void
   onResize?: (widthPct: number) => void
@@ -137,7 +139,7 @@ export function DraggablePanel({
   const startDrag = (event: ReactPointerEvent<HTMLElement>) => {
     if (!canDrag) return
     const target = event.target as HTMLElement
-    if (target.closest('button, a, input, select, .no-drag, .resize-grip')) return
+    if (target.closest('button, a, input, select, .no-drag, .resize-grip, .resize-edge')) return
     const fromHandle = Boolean(target.closest('.drag-grip, [data-drag-handle]'))
     if (!unlocked && !fromHandle) return
     onInteract(true)
@@ -195,12 +197,22 @@ export function DraggablePanel({
         </div>
       ) : null}
       {canResize ? (
-        <div
-          className={`resize-grip interactive capture-mouse no-drag ${resizeWhenLocked ? 'resize-grip-persistent' : ''} ${anchor === 'right' ? 'resize-grip-left' : ''}`}
-          role="button"
-          aria-label="Resize panel"
-          onPointerDown={startResize}
-        />
+        resizeEdge === 'inner' ? (
+          <div
+            className={`resize-edge interactive capture-mouse no-drag ${anchor === 'right' ? 'resize-edge-left' : 'resize-edge-right'}`}
+            role="separator"
+            aria-label="Drag to resize panel width"
+            title="Drag to resize width"
+            onPointerDown={startResize}
+          />
+        ) : (
+          <div
+            className={`resize-grip interactive capture-mouse no-drag ${resizeWhenLocked ? 'resize-grip-persistent' : ''} ${anchor === 'right' ? 'resize-grip-left' : ''}`}
+            role="button"
+            aria-label="Resize panel"
+            onPointerDown={startResize}
+          />
+        )
       ) : null}
       {children}
     </div>
