@@ -186,7 +186,9 @@ p {
 }
 
 .float-panel.sized {
-  min-width: var(--overlay-panel-min);
+  width: min(var(--panel-width-vw, 14vw), var(--overlay-panel-cap, 15.5rem));
+  max-width: 17vw;
+  min-width: 9.5rem;
 }
 
 .drag-grip {

@@ -24,7 +24,7 @@ export interface OverlayLayout {
   pool: OverlaySizedPanel
 }
 
-export const DEFAULT_PANEL_WIDTH = 20
+export const DEFAULT_PANEL_WIDTH = 14
 /** @deprecated use DEFAULT_PANEL_WIDTH */
 export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 

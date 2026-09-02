@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { clampOverlayPos } from '../core/layout'
 import type { OverlayPos } from '../core/types'
 
@@ -159,11 +159,20 @@ export function DraggablePanel({
     event.stopPropagation()
   }
 
-  const panelStyle =
+  const panelStyle: CSSProperties =
     anchor === 'right'
-      ? { right: '0', left: 'auto', top: `${pos.y}%`, width }
+      ? {
+          right: '0',
+          left: 'auto',
+          top: `${pos.y}%`,
+          ...(panelWidthPct > 0 ? { ['--panel-width-vw' as string]: `${panelWidthPct}vw` } : { width })
+        }
       : anchor === 'left'
-        ? { left: '0', top: `${pos.y}%`, width }
+        ? {
+            left: '0',
+            top: `${pos.y}%`,
+            ...(panelWidthPct > 0 ? { ['--panel-width-vw' as string]: `${panelWidthPct}vw` } : { width })
+          }
         : { left: `${pos.x}%`, top: `${pos.y}%`, width }
 
   return (

@@ -193,9 +193,7 @@ export async function readRatingObservation(
   const includeResults = Boolean(opts?.includeResults)
   const regions = includeResults
     ? resultCaptureRects(client)
-    : opts?.idleOnly
-      ? ratingCaptureRects(client).slice(0, 1)
-      : ratingCaptureRects(client)
+    : ratingCaptureRects(client)
   const parts: RatingObservation[] = []
   let rawText = ''
   let error: string | null = null

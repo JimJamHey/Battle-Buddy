@@ -8,8 +8,10 @@ import {
 
 export { DEFAULT_PANEL_WIDTH }
 
-const MIN_PANEL_WIDTH = 12
-const MAX_PANEL_WIDTH = 36
+const MIN_PANEL_WIDTH = 10
+const MAX_PANEL_WIDTH = 22
+/** One-time shrink for saves from the old oversized default range. */
+const LEGACY_WIDE_WIDTH = 18
 
 export function clampPanelWidth(width: number): number {
   if (!Number.isFinite(width)) return DEFAULT_PANEL_WIDTH
@@ -19,7 +21,7 @@ export function clampPanelWidth(width: number): number {
 /** @deprecated use clampPanelWidth */
 export const clampPoolWidth = clampPanelWidth
 
-/** User-resized width in vw; floor applied in CSS on .float-panel.sized */
+/** vw preference for sized panels; CSS caps the rendered width in rem. */
 export function panelWidthStyle(widthPct: number): string {
   return `${clampPanelWidth(widthPct)}vw`
 }
@@ -89,6 +91,11 @@ export function clampSizedPanel(panel: OverlaySizedPanel): OverlaySizedPanel {
 /** @deprecated use clampLeftDockedPanel or clampRightDockedPanel */
 export const clampPoolLayout = clampRightDockedPanel
 
+function shrinkLegacyWidePanel(panel: OverlaySizedPanel): OverlaySizedPanel {
+  if (panel.w > LEGACY_WIDE_WIDTH) return { ...panel, w: DEFAULT_PANEL_WIDTH }
+  return panel
+}
+
 /** Snap side panels to screen edges and preserve user widths. */
 export function migrateOverlayLayout(layout: OverlayLayout): OverlayLayout {
   let merged = mergeOverlayLayout(DEFAULT_OVERLAY_LAYOUT, layout)
@@ -103,6 +110,11 @@ export function migrateOverlayLayout(layout: OverlayLayout): OverlayLayout {
   }
   if (merged.rail.w === 26) {
     merged = { ...merged, rail: { ...merged.rail, w: DEFAULT_PANEL_WIDTH } }
+  }
+  merged = {
+    ...merged,
+    rail: shrinkLegacyWidePanel(merged.rail),
+    pool: shrinkLegacyWidePanel(merged.pool)
   }
   return {
     ...merged,

@@ -38,6 +38,7 @@ import {
   shouldPollRating,
   ratingPollMode,
   ratingPollIntervalMs,
+  isMenuScene,
   isEndGameDisconnect,
   simulateCombat,
   enrichCombatInput,
@@ -426,11 +427,12 @@ async function pollPlayRating(force = false): Promise<void> {
     lastGameSettled: ctx.lastGameSettled,
     hasLastGame: ctx.hasLastGame
   })
+  const menuIdle = !match.gameActive && isMenuScene(currentScene)
   const wantResults =
     mode === 'postgame' ||
     Boolean(playedAsSelf && match.placement && match.placement > 0 && match.gameActive)
   const now = Date.now()
-  const minGap = ratingPollIntervalMs(mode)
+  const minGap = ratingPollIntervalMs(mode, menuIdle)
   if (!force && now - lastPlayRatingAt < minGap) return
   lastPlayRatingAt = now
   const bounds = await host.getClientBounds()
@@ -705,7 +707,7 @@ function bindTailer(): LogTailer {
       if (scene === 'gameplay') return
       if (scene === 'bacon' || scene === 'hub') {
         leaveMatchToMenu(scene === 'hub')
-        if (scene === 'bacon') void pollPlayRating(true)
+        void pollPlayRating(true)
       }
     },
     (line) => {
@@ -1139,6 +1141,7 @@ async function tickOverlay(): Promise<void> {
 async function tickOverlayBody(): Promise<void> {
   if (bootstrap.phase !== 'ready') return
   const hwnd = await host.findHearthstone()
+  const hsJustFound = hwnd != null && !hsFound
   hsFound = hwnd != null
   if (hsWasFound && !hsFound) void ensureWindowedOptions()
   hsWasFound = hsFound
@@ -1149,6 +1152,7 @@ async function tickOverlayBody(): Promise<void> {
     hsFocused = overlayWindow.isFocused()
   }
   if (shouldPollRating(ratingPollContext())) void pollPlayRating(false)
+  if (hsJustFound && shouldPollRating(ratingPollContext())) void pollPlayRating(true)
 
   const win = overlayWindow
   if (!win || win.isDestroyed()) return
@@ -1180,6 +1184,9 @@ async function tickOverlayBody(): Promise<void> {
   const key = `${bounds.x},${bounds.y},${bounds.width},${bounds.height}`
   const sizeKey = `${bounds.width}x${bounds.height}`
   const moved = key !== lastBoundsKey || sizeKey !== lastSizeKey
+  if (moved && !match.gameActive && isMenuScene(currentScene) && ratingOcr.at == null) {
+    void pollPlayRating(true)
+  }
   if (process.platform === 'win32') {
     if (moved) {
       followGameWindow(win.getNativeWindowHandle(), raw, clickThrough)

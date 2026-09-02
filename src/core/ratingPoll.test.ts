@@ -19,7 +19,13 @@ describe('ratingPoll', () => {
     expect(ratingPollMode({ awaitingPostGameMmr: false, lastGameSettled: true, hasLastGame: false })).toBe(
       'idle'
     )
-    expect(ratingPollIntervalMs('idle')).toBe(8000)
+    expect(ratingPollIntervalMs('idle')).toBe(6000)
+    expect(ratingPollIntervalMs('idle', true)).toBe(2500)
+  })
+
+  it('polls on the hub / main menu before a match starts', () => {
+    expect(shouldPollRating({ ...base, scene: 'hub' })).toBe(true)
+    expect(shouldPollRating({ ...base, scene: 'unknown' })).toBe(true)
   })
 
   it('skips mid-match shop screens', () => {
