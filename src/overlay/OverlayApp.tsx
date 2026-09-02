@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { DEFAULT_OVERLAY_LAYOUT, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
+import { clampPoolWidth, DEFAULT_PANEL_WIDTH, panelWidthStyle, poolWidthStyle } from '../core/layout'
 import { groupPoolCards, minionsForTier } from '../core/pool'
 import { formatBuffValue } from '../core/buffs'
 import { gamesToday, MAX_RECENT_GAMES } from '../core/session'
@@ -79,11 +80,28 @@ export function OverlayApp() {
 
   const movePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
     dragging.current = true
-    setLayout((prev) => ({ ...prev, [key]: pos }))
+    setLayout((prev) => {
+      if (key === 'pool') return { ...prev, pool: { ...prev.pool, ...pos } }
+      return { ...prev, [key]: pos }
+    })
   }
   const savePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
     setLayout((prev) => {
-      const next = { ...prev, [key]: pos }
+      const next =
+        key === 'pool' ? { ...prev, pool: { ...prev.pool, ...pos } } : { ...prev, [key]: pos }
+      void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
+        dragging.current = false
+      })
+      return next
+    })
+  }
+  const resizePool = (widthPct: number) => {
+    dragging.current = true
+    setLayout((prev) => ({ ...prev, pool: { ...prev.pool, w: clampPoolWidth(widthPct) } }))
+  }
+  const savePoolWidth = (widthPct: number) => {
+    setLayout((prev) => {
+      const next = { ...prev, pool: { ...prev.pool, w: clampPoolWidth(widthPct) } }
       void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
         dragging.current = false
       })
@@ -102,7 +120,7 @@ export function OverlayApp() {
       </div>
       {unlocked ? (
         <div className="layout-hint interactive capture-mouse" role="status">
-          Drag a panel to place it · Ctrl+Shift+L to lock
+          Drag a panel to place it · drag the pool corner to resize · Ctrl+Shift+L to lock
         </div>
       ) : null}
 
@@ -137,7 +155,7 @@ export function OverlayApp() {
           className="rail"
           pos={layout.rail}
           unlocked={unlocked}
-          width="min(368px, 32vw)"
+          width={panelWidthStyle(DEFAULT_PANEL_WIDTH)}
           onMove={(pos) => movePanel('rail', pos)}
           onMoveEnd={(pos) => savePanel('rail', pos)}
           onInteract={interact}
@@ -169,9 +187,13 @@ export function OverlayApp() {
         className="pool"
         pos={layout.pool}
         unlocked={unlocked}
-        width="min(368px, 32vw)"
+        width={poolWidthStyle(layout.pool.w)}
+        panelWidthPct={layout.pool.w}
+        resizable
         onMove={(pos) => movePanel('pool', pos)}
         onMoveEnd={(pos) => savePanel('pool', pos)}
+        onResize={resizePool}
+        onResizeEnd={savePoolWidth}
         onInteract={interact}
       >
         {state.minions.length ? (

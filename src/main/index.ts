@@ -35,6 +35,9 @@ import {
   ensureToday,
   recordFinish,
   sceneFromMode,
+  shouldPollRating,
+  ratingPollMode,
+  ratingPollIntervalMs,
   isEndGameDisconnect,
   simulateCombat,
   enrichCombatInput,
@@ -65,6 +68,8 @@ import {
   type StrategyCompView,
   type TrackerStatus,
   type BootstrapStatus,
+  type RatingOcrStatus,
+  type Scene,
   EMPTY_COMBAT,
   EMPTY_MATCH,
   LOADING_BOOTSTRAP,
@@ -118,6 +123,19 @@ let combatShotGen = 0
 let mmrPollTimer: NodeJS.Timeout | null = null
 let awaitingPostGameMmr = false
 let postGameAt = 0
+let ratingOcrFailed = false
+let currentScene: Scene = 'unknown'
+const SETTLEMENT_MAX_MS = 5 * 60 * 1000
+const EMPTY_RATING_OCR: RatingOcrStatus = {
+  at: null,
+  raw: null,
+  rating: null,
+  delta: null,
+  error: null,
+  failed: false,
+  debugCropPath: null
+}
+let ratingOcr: RatingOcrStatus = { ...EMPTY_RATING_OCR }
 let boardRows: LeaderboardEntry[] = []
 let selectedTier = 0
 let clickThrough = true
@@ -234,7 +252,8 @@ function status(): TrackerStatus {
     cardsReady: minions.length > 0,
     cardCount: minions.length,
     cardsError: minions.length ? null : lastError,
-    displayMode
+    displayMode,
+    ratingOcr: { ...ratingOcr, failed: ratingOcrFailed }
   }
 }
 
@@ -348,20 +367,93 @@ function noteObservedRating(
   if (changed) scheduleBroadcast()
 }
 
+function lastSessionGame() {
+  return session.games.at(-1) ?? null
+}
+
+function lastGameSettled(): boolean {
+  const last = lastSessionGame()
+  return last ? gameMmrIsSettled(last) : true
+}
+
+function ratingPollContext() {
+  const last = lastSessionGame()
+  return {
+    hsFound,
+    logCatchup,
+    gameActive: match.gameActive,
+    scene: currentScene,
+    awaitingPostGameMmr,
+    placement: match.placement,
+    playedAsSelf,
+    lastGameSettled: last ? gameMmrIsSettled(last) : true,
+    hasLastGame: Boolean(last)
+  }
+}
+
+function noteRatingOcrCapture(
+  capture: { rawText: string; error: string | null; debugCropPath: string | null },
+  observation: { rating: number | null; delta: number | null }
+): void {
+  ratingOcr = {
+    at: Date.now(),
+    raw: capture.rawText.trim().slice(0, 400) || null,
+    rating: observation.rating,
+    delta: observation.delta,
+    error: capture.error,
+    failed: ratingOcrFailed,
+    debugCropPath: capture.debugCropPath
+  }
+}
+
+async function withOverlayHiddenForOcr<T>(fn: () => Promise<T>): Promise<T> {
+  const win = overlayWindow
+  const wasVisible = Boolean(win && !win.isDestroyed() && win.isVisible())
+  try {
+    if (wasVisible && win && !win.isDestroyed()) win.hide()
+    return await fn()
+  } finally {
+    if (wasVisible && win && !win.isDestroyed()) win.show()
+  }
+}
+
 async function pollPlayRating(force = false): Promise<void> {
-  if ((process.platform !== 'win32' && process.platform !== 'darwin') || playRatingBusy || !hsFound) return
+  if ((process.platform !== 'win32' && process.platform !== 'darwin') || playRatingBusy) return
+  const ctx = ratingPollContext()
+  if (!shouldPollRating(ctx)) return
+  const mode = ratingPollMode({
+    awaitingPostGameMmr,
+    lastGameSettled: ctx.lastGameSettled,
+    hasLastGame: ctx.hasLastGame
+  })
   const wantResults =
-    awaitingPostGameMmr || Boolean(playedAsSelf && match.placement && match.placement > 0)
-  if (match.gameActive && !wantResults) return
+    mode === 'postgame' ||
+    Boolean(playedAsSelf && match.placement && match.placement > 0 && match.gameActive)
   const now = Date.now()
-  const minGap = wantResults ? 900 : 2500
+  const minGap = ratingPollIntervalMs(mode)
   if (!force && now - lastPlayRatingAt < minGap) return
   lastPlayRatingAt = now
   const bounds = await host.getClientBounds()
-  if (!bounds) return
+  if (!bounds) {
+    ratingOcr = {
+      ...ratingOcr,
+      at: now,
+      error: 'Could not read the Hearthstone window bounds',
+      failed: ratingOcrFailed
+    }
+    return
+  }
   playRatingBusy = true
   try {
-    const observed = await readRatingObservation(bounds, { includeResults: wantResults })
+    const capture = await withOverlayHiddenForOcr(() =>
+      readRatingObservation(bounds, {
+        includeResults: wantResults,
+        idleOnly: mode === 'idle',
+        debugDir: join(userData(), 'rating-ocr')
+      })
+    )
+    const observed = capture.observation
+    noteRatingOcrCapture(capture, observed)
     const place = observed.placement ?? match.placement
     if (
       playedAsSelf &&
@@ -378,10 +470,21 @@ async function pollPlayRating(force = false): Promise<void> {
         matchKey: null
       })
     }
-    const settled = awaitingPostGameMmr && now - postGameAt > 12_000
-    if (observed.rating != null || observed.delta != null) noteObservedRating(observed, { settled })
-  } catch {
-    /* Play-screen OCR is best-effort */
+    const settled = mode === 'postgame' && now - postGameAt > 12_000
+    if (observed.rating != null || observed.delta != null) {
+      noteObservedRating(observed, { settled })
+      if (lastGameSettled()) {
+        ratingOcrFailed = false
+        awaitingPostGameMmr = false
+      }
+    }
+  } catch (err) {
+    ratingOcr = {
+      ...ratingOcr,
+      at: Date.now(),
+      error: err instanceof Error ? err.message : String(err),
+      failed: ratingOcrFailed
+    }
   } finally {
     playRatingBusy = false
   }
@@ -598,10 +701,11 @@ function bindTailer(): LogTailer {
       const mode = parseLoadingScreenScene(line)
       if (!mode) return
       const scene = sceneFromMode(mode)
+      currentScene = scene
       if (scene === 'gameplay') return
       if (scene === 'bacon' || scene === 'hub') {
         leaveMatchToMenu(scene === 'hub')
-        if (scene === 'bacon' && awaitingPostGameMmr) void pollPlayRating(true)
+        if (scene === 'bacon') void pollPlayRating(true)
       }
     },
     (line) => {
@@ -760,26 +864,50 @@ function applyLatestMmr(): void {
 function beginPostGameMmr(): void {
   if (logCatchup) return
   awaitingPostGameMmr = true
+  ratingOcrFailed = false
   postGameAt = Date.now()
-  pollMmrAfterGame(40)
+  scheduleMmrSettlement()
   void pollPlayRating(true)
 }
 
-function pollMmrAfterGame(attempts: number): void {
+function scheduleMmrSettlement(): void {
   if (mmrPollTimer) clearTimeout(mmrPollTimer)
-  void Promise.all([maybeRefreshLeaderboard(true), pollPlayRating(true)]).then(() => {
+  const elapsed = Date.now() - postGameAt
+  const last = lastSessionGame()
+  const settled = Boolean(last && gameMmrIsSettled(last))
+  if (settled && elapsed > 12_000) {
+    awaitingPostGameMmr = false
+    ratingOcrFailed = false
+    return
+  }
+  if (elapsed > SETTLEMENT_MAX_MS && !settled) {
+    awaitingPostGameMmr = false
+    ratingOcrFailed = true
+    ratingOcr = { ...ratingOcr, failed: true, at: Date.now() }
+    scheduleBroadcast()
+    return
+  }
+  if (!awaitingPostGameMmr && settled) return
+  void Promise.all([
+    maybeRefreshLeaderboard(elapsed < 30_000),
+    pollPlayRating(true)
+  ]).then(() => {
     applyLatestMmr()
     scheduleBroadcast()
-    if (attempts <= 1 || !awaitingPostGameMmr) {
-      if (attempts <= 1) awaitingPostGameMmr = false
-      return
-    }
-    const last = session.games[session.games.length - 1]
-    if (last && gameMmrIsSettled(last) && Date.now() - postGameAt > 12_000) {
+    const game = lastSessionGame()
+    const done = Boolean(game && gameMmrIsSettled(game) && Date.now() - postGameAt > 12_000)
+    if (done) {
       awaitingPostGameMmr = false
+      ratingOcrFailed = false
       return
     }
-    mmrPollTimer = setTimeout(() => pollMmrAfterGame(attempts - 1), 1_500)
+    if (!awaitingPostGameMmr && (!game || gameMmrIsSettled(game))) return
+    const mode = ratingPollMode({
+      awaitingPostGameMmr,
+      lastGameSettled: game ? gameMmrIsSettled(game) : true,
+      hasLastGame: Boolean(game)
+    })
+    mmrPollTimer = setTimeout(() => scheduleMmrSettlement(), mode === 'postgame' ? 1500 : 8000)
   })
 }
 
@@ -1020,7 +1148,7 @@ async function tickOverlayBody(): Promise<void> {
   } else if (!hsFocused && overlayWindow && !overlayWindow.isDestroyed()) {
     hsFocused = overlayWindow.isFocused()
   }
-  if (match.gameActive || awaitingPostGameMmr) void pollPlayRating(false)
+  if (shouldPollRating(ratingPollContext())) void pollPlayRating(false)
 
   const win = overlayWindow
   if (!win || win.isDestroyed()) return

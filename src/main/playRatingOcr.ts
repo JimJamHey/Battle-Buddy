@@ -1,9 +1,17 @@
 import { execFile } from 'node:child_process'
+import { mkdir, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import { unlink, writeFile } from 'node:fs/promises'
-import { encodeBmp32, parseRatingObservation, ratingCaptureRects, resultCaptureRects, mergeRatingObservations, type CaptureRect, type RatingObservation } from '../core/playRating'
+import {
+  encodeBmp32,
+  parseRatingObservation,
+  ratingCaptureRects,
+  resultCaptureRects,
+  mergeRatingObservations,
+  type CaptureRect,
+  type RatingObservation
+} from '../core/playRating'
 import { captureGameClientBgra } from './winCapture'
 import { macOcrRegion } from '../platform/macos'
 
@@ -35,6 +43,13 @@ Write-Output $result.Text
 `
 
 let ocrScriptPath: string | null = null
+
+export interface RatingOcrCapture {
+  observation: RatingObservation
+  rawText: string
+  error: string | null
+  debugCropPath: string | null
+}
 
 async function ocrScript(): Promise<string> {
   if (ocrScriptPath) return ocrScriptPath
@@ -75,35 +90,142 @@ export async function ocrCaptureText(region: CaptureRect): Promise<string> {
   }
 }
 
-async function ocrRegion(region: CaptureRect, allowLoneDelta = false): Promise<RatingObservation> {
+async function saveDebugCrop(
+  debugDir: string | undefined,
+  width: number,
+  height: number,
+  pixels: Buffer | null
+): Promise<string | null> {
+  if (!debugDir || !pixels) return null
+  try {
+    await mkdir(debugDir, { recursive: true })
+    const path = join(debugDir, 'rating-ocr-debug.bmp')
+    await writeFile(path, encodeBmp32(width, height, pixels))
+    return path
+  } catch {
+    return null
+  }
+}
+
+async function ocrRatingRegion(
+  region: CaptureRect,
+  allowLoneDelta = false,
+  debugDir?: string
+): Promise<RatingOcrCapture> {
+  const width = Math.round(region.width)
+  const height = Math.round(region.height)
+  if (width < 40 || height < 40) {
+    return {
+      observation: { rating: null, delta: null },
+      rawText: '',
+      error: 'Capture region too small',
+      debugCropPath: null
+    }
+  }
   const parseOpts = { allowLoneDelta, allowSmallLoneDelta: allowLoneDelta }
-  const text = await ocrCaptureText(region)
-  return parseRatingObservation(text, parseOpts)
+  if (process.platform === 'darwin') {
+    const text = await macOcrRegion(region.x, region.y, width, height)
+    const observation = parseRatingObservation(text, parseOpts)
+    const error = !text.trim()
+      ? 'No OCR text — grant Screen Recording to BattleBuddy in System Settings'
+      : null
+    return { observation, rawText: text, error, debugCropPath: null }
+  }
+  if (process.platform !== 'win32') {
+    return {
+      observation: { rating: null, delta: null },
+      rawText: '',
+      error: 'Rating OCR is only supported on Windows and macOS',
+      debugCropPath: null
+    }
+  }
+  const pixels = captureGameClientBgra(region.x, region.y, width, height)
+  if (!pixels) {
+    const debugCropPath = await saveDebugCrop(debugDir, width, height, null)
+    return {
+      observation: { rating: null, delta: null },
+      rawText: '',
+      error: 'Could not capture the Hearthstone window',
+      debugCropPath
+    }
+  }
+  const bmp = encodeBmp32(width, height, pixels)
+  const imagePath = join(tmpdir(), `battle-buddy-rating-${process.pid}-${Date.now()}.bmp`)
+  await writeFile(imagePath, bmp)
+  try {
+    const rawText = await ocrImage(imagePath)
+    const observation = parseRatingObservation(rawText, parseOpts)
+    const debugCropPath =
+      observation.rating == null && observation.delta == null
+        ? await saveDebugCrop(debugDir, width, height, pixels)
+        : null
+    return {
+      observation,
+      rawText,
+      error: rawText.trim() ? null : 'OCR returned no text',
+      debugCropPath
+    }
+  } catch (err) {
+    const debugCropPath = await saveDebugCrop(debugDir, width, height, pixels)
+    return {
+      observation: { rating: null, delta: null },
+      rawText: '',
+      error: err instanceof Error ? err.message : String(err),
+      debugCropPath
+    }
+  } finally {
+    await unlink(imagePath).catch(() => undefined)
+  }
 }
 
 export async function readRatingObservation(
   client: CaptureRect,
-  opts?: { includeResults?: boolean }
-): Promise<RatingObservation> {
-  if (process.platform !== 'win32' && process.platform !== 'darwin') return { rating: null, delta: null }
-  const includeResults = Boolean(opts?.includeResults)
-  const regions = includeResults ? resultCaptureRects(client) : ratingCaptureRects(client)
-  const parts: RatingObservation[] = []
-  for (const [i, region] of regions.entries()) {
-    const plaque = includeResults && i < 3
-    const observed = await ocrRegion(region, plaque)
-    parts.push(observed)
-    if (observed.rating != null && observed.delta != null) {
-      return observed.placement != null
-        ? observed
-        : { ...observed, placement: mergeRatingObservations(parts).placement }
+  opts?: { includeResults?: boolean; idleOnly?: boolean; debugDir?: string }
+): Promise<RatingOcrCapture> {
+  if (process.platform !== 'win32' && process.platform !== 'darwin') {
+    return {
+      observation: { rating: null, delta: null },
+      rawText: '',
+      error: 'Rating OCR is only supported on Windows and macOS',
+      debugCropPath: null
     }
   }
-  return mergeRatingObservations(parts)
+  const includeResults = Boolean(opts?.includeResults)
+  const regions = includeResults
+    ? resultCaptureRects(client)
+    : opts?.idleOnly
+      ? ratingCaptureRects(client).slice(0, 1)
+      : ratingCaptureRects(client)
+  const parts: RatingObservation[] = []
+  let rawText = ''
+  let error: string | null = null
+  let debugCropPath: string | null = null
+  for (const [i, region] of regions.entries()) {
+    const plaque = includeResults && i < 3
+    const captured = await ocrRatingRegion(region, plaque, opts?.debugDir)
+    if (captured.rawText) rawText = [rawText, captured.rawText].filter(Boolean).join('\n')
+    if (captured.error && !error) error = captured.error
+    if (captured.debugCropPath) debugCropPath = captured.debugCropPath
+    const observed = captured.observation
+    parts.push(observed)
+    if (observed.rating != null && observed.delta != null) {
+      const merged =
+        observed.placement != null
+          ? observed
+          : { ...observed, placement: mergeRatingObservations(parts).placement }
+      return { observation: merged, rawText, error, debugCropPath }
+    }
+  }
+  return {
+    observation: mergeRatingObservations(parts),
+    rawText,
+    error,
+    debugCropPath
+  }
 }
 
 export async function readPlayRating(client: CaptureRect): Promise<number | null> {
-  return (await readRatingObservation(client)).rating
+  return (await readRatingObservation(client)).observation.rating
 }
 
 export async function cleanupOcrTemps(): Promise<void> {

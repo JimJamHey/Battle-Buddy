@@ -150,6 +150,15 @@ p {
   position: relative;
   overflow: visible;
   user-select: none;
+  /* Fluid bounds — scale on any viewport without fixed-resolution breakpoints */
+  --overlay-panel-min: clamp(11rem, 14vw, 16rem);
+  --overlay-panel-max: clamp(14rem, 20vw, 22rem);
+  --overlay-combat-width: clamp(18rem, 44vw, 42rem);
+  --overlay-pool-max-h: clamp(22rem, 70vh, 52rem);
+  --overlay-tier-min: clamp(1.45rem, 2.8vh, 2.15rem);
+  --overlay-row-min: clamp(2.1rem, 4.8vh, 3.25rem);
+  --overlay-nav-gap: clamp(0.35rem, 0.8vh, 0.55rem);
+  --overlay-nav-pad: clamp(0.45rem, 1vh, 0.65rem);
 }
 
 .overlay-root .interactive {
@@ -205,6 +214,23 @@ p {
   cursor: grabbing;
 }
 
+.resize-grip {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+  border-right: 2px solid rgba(224, 192, 122, 0.7);
+  border-bottom: 2px solid rgba(224, 192, 122, 0.7);
+  border-radius: 0 0 4px 0;
+  opacity: 0.85;
+}
+
+.overlay-root:not(.unlocked) .resize-grip {
+  display: none;
+}
+
 .layout-hint {
   position: absolute;
   top: 50%;
@@ -253,8 +279,9 @@ p {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 14px 22px;
-  width: min(720px, 64vw);
-  min-width: min(720px, 64vw);
+  width: var(--overlay-combat-width);
+  min-width: 0;
+  max-width: calc(100vw - 1.5rem);
   padding: 14px 22px 16px;
   border-radius: 18px;
   background:
@@ -266,7 +293,7 @@ p {
     0 0 0 1px var(--overlay-accent-line),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(22px) saturate(1.4);
-  font-size: 14px;
+  font-size: clamp(0.78rem, 0.45rem + 0.45vw, 0.9rem);
   letter-spacing: 0.03em;
 }
 
@@ -341,7 +368,7 @@ p {
 .combat-stat strong {
   font-variant-numeric: tabular-nums;
   margin-left: 4px;
-  font-size: 18px;
+  font-size: clamp(1rem, 0.7rem + 0.55vw, 1.15rem);
   color: #f4f7fb;
 }
 
@@ -1134,8 +1161,8 @@ html[data-theme='buddy'] .combat-bar::after {
   left: 50%;
   transform: translateX(-50%);
   z-index: 90;
-  min-width: min(720px, 78vw);
-  max-width: min(980px, 92vw);
+  min-width: min(var(--overlay-combat-width), 92vw);
+  max-width: min(42rem, 92vw);
   padding: 12px 14px 14px;
   border-radius: 16px;
   background:
@@ -1335,7 +1362,8 @@ html[data-theme='buddy'] .combat-bar::after {
 
 .last-seen-shot {
   display: block;
-  width: min(720px, 64vw);
+  width: var(--overlay-combat-width);
+  max-width: calc(100vw - 1.5rem);
   height: auto;
   max-height: 28vh;
   object-fit: contain;
@@ -1349,7 +1377,7 @@ html[data-theme='buddy'] .combat-bar::after {
 }
 
 .pool-panel {
-  max-height: 92vh;
+  max-height: var(--overlay-pool-max-h);
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -1360,8 +1388,8 @@ html[data-theme='buddy'] .combat-bar::after {
 .pool-nav {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 10px 8px;
+  gap: var(--overlay-nav-gap);
+  padding: var(--overlay-nav-pad) var(--overlay-nav-pad) calc(var(--overlay-nav-pad) * 0.75);
   border-bottom: 1px solid var(--overlay-accent-line);
   flex-shrink: 0;
   position: relative;
@@ -1390,9 +1418,9 @@ html[data-theme='buddy'] .combat-bar::after {
   border: 0;
   background: transparent;
   color: var(--muted);
-  min-height: 32px;
+  min-height: var(--overlay-tier-min);
   border-radius: 9px;
-  font-size: 12px;
+  font-size: clamp(0.65rem, 0.35rem + 0.35vw, 0.8rem);
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1419,9 +1447,9 @@ html[data-theme='buddy'] .combat-bar::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 36px;
-  padding: 6px 10px;
-  font-size: 15px;
+  min-height: calc(var(--overlay-tier-min) + 0.25rem);
+  padding: 0.35rem 0.6rem;
+  font-size: clamp(0.78rem, 0.45rem + 0.5vw, 0.95rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -1446,18 +1474,18 @@ html[data-theme='buddy'] .combat-bar::after {
 
 .tier-track {
   display: grid;
-  grid-template-columns: minmax(46px, 1.35fr) repeat(7, minmax(0, 1fr));
-  gap: 4px;
+  grid-template-columns: minmax(40px, 1.2fr) repeat(7, minmax(0, 1fr));
+  gap: 3px;
 }
 
 .tier-tab {
-  min-height: 32px;
-  padding: 0 4px;
+  min-height: var(--overlay-tier-min);
+  padding: 0 0.2rem;
   border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(8, 10, 20, 0.78);
   color: var(--muted);
-  font-size: 12px;
+  font-size: clamp(0.65rem, 0.35rem + 0.35vw, 0.8rem);
   font-weight: 750;
 }
 
@@ -1489,13 +1517,13 @@ html[data-theme='buddy'] .combat-bar::after {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  min-height: 28px;
-  padding: 0 6px;
+  min-height: calc(var(--overlay-tier-min) - 0.2rem);
+  padding: 0 0.35rem;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
-  font-size: 11px;
+  font-size: clamp(0.62rem, 0.32rem + 0.32vw, 0.75rem);
   font-weight: 700;
 }
 
@@ -1639,7 +1667,7 @@ html[data-theme='buddy'] .combat-bar::after {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 48px;
+  min-height: var(--overlay-row-min);
   padding: 0 10px 0 8px;
   gap: 8px;
   overflow: hidden;
