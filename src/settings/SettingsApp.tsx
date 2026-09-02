@@ -187,6 +187,8 @@ export function SettingsApp() {
             : state.status.displayMode === 'borderless'
               ? 'Borderless fullscreen — overlay follows the game window.'
               : 'Windowed — overlay follows the Hearthstone window in any size.'}
+          {' '}Unlock layout to drag panels or resize the pool from the bottom-right corner. Panels scale
+          down on 1080p screens.
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>
@@ -249,6 +251,42 @@ export function SettingsApp() {
           Rating is read from the Battlegrounds Play screen after a game. Other players’ ratings are
           not available in the client.
         </p>
+        <label htmlFor="current-mmr">Current rating (optional seed)</label>
+        <input
+          id="current-mmr"
+          type="number"
+          min={0}
+          max={30000}
+          step={1}
+          placeholder="e.g. 5200"
+          value={state.settings.currentMmr ?? ''}
+          onChange={(e) => {
+            const raw = e.target.value.trim()
+            patch({ currentMmr: raw === '' ? null : Number(raw) })
+          }}
+        />
+        <p className="hint">
+          Unlisted players can enter their rating here if OCR has not picked it up yet. Per-game +/− still
+          comes from the client after each match.
+        </p>
+        {state.status.ratingOcr ? (
+          <div className="hint" style={{ marginTop: 8 }}>
+            <p>
+              Rating OCR:{' '}
+              {state.status.ratingOcr.at
+                ? state.status.ratingOcr.failed
+                  ? 'could not settle'
+                  : state.status.ratingOcr.rating != null
+                    ? `read ${state.status.ratingOcr.rating}`
+                    : 'no rating parsed'
+                : 'not run yet'}
+            </p>
+            {state.status.ratingOcr.error ? <p>OCR: {state.status.ratingOcr.error}</p> : null}
+            {state.status.ratingOcr.debugCropPath ? (
+              <p>Debug crop: {state.status.ratingOcr.debugCropPath}</p>
+            ) : null}
+          </div>
+        ) : null}
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
           <input id="path" type="text" value={state.settings.hearthstonePath} readOnly />

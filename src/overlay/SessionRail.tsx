@@ -72,6 +72,9 @@ export function SessionRail({
       {selfRating(state) == null && !state.match.spectating ? (
         <p className="hint">Stay on the Battlegrounds Play screen so we can read Rating from the client.</p>
       ) : null}
+      {state.status.ratingOcr?.failed ? (
+        <p className="hint">Could not read Rating after the last game. Stay on the results or Play screen, or set it in Settings.</p>
+      ) : null}
       <div className="session-games capture-mouse">
         <p className="session-section-label">Latest Games</p>
         <div className="session-games-cols">

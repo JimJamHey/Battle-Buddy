@@ -38,7 +38,18 @@ export {
 export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strategy'
 export { mergeLogConfig, trackerBanner } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
-export { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
+export { shouldPollRating, ratingPollMode, ratingPollIntervalMs, type RatingPollMode } from './ratingPoll'
+export {
+  clampOverlayPos,
+  clampPoolLayout,
+  clampPoolWidth,
+  mergeOverlayLayout,
+  migrateOverlayLayout,
+  panelWidthStyle,
+  poolWidthStyle,
+  PANEL_MAX_WIDTH_PX,
+  PANEL_REFERENCE_WIDTH_PX
+} from './layout'
 export { isNewerVersion, isPrerelease } from './version'
 export { curatedStrategies } from './curated'
 export { sanitizeSettings, sanitizeTier } from './settings'

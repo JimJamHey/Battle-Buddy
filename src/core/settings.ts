@@ -1,4 +1,4 @@
-import { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
+import { clampOverlayPos, clampPoolLayout, mergeOverlayLayout, migrateOverlayLayout } from './layout'
 import { resolveTheme } from './theme'
 import { DEFAULT_SETTINGS, type AppSettings, type OverlayLayout, type Region } from './types'
 
@@ -13,7 +13,7 @@ function clampLayout(layout: OverlayLayout): OverlayLayout {
   return {
     rail: clampOverlayPos(layout.rail),
     combat: clampOverlayPos(layout.combat),
-    pool: clampOverlayPos(layout.pool)
+    pool: clampPoolLayout(layout.pool)
   }
 }
 

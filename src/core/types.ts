@@ -10,16 +10,25 @@ export interface OverlayPos {
   y: number
 }
 
+/** Pool panel width as a percent of the overlay viewport (18–38). */
+export interface OverlayPoolLayout extends OverlayPos {
+  w: number
+}
+
 export interface OverlayLayout {
   rail: OverlayPos
   combat: OverlayPos
-  pool: OverlayPos
+  pool: OverlayPoolLayout
 }
+
+export const DEFAULT_PANEL_WIDTH = 20
+/** @deprecated use DEFAULT_PANEL_WIDTH */
+export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
   rail: { x: 0.55, y: 5.5 },
   combat: { x: 27, y: 1.4 },
-  pool: { x: 71.5, y: 3.2 }
+  pool: { x: 74, y: 3.2, w: DEFAULT_PANEL_WIDTH }
 }
 
 export interface AppSettings {
@@ -204,6 +213,16 @@ export interface BgMinion {
 
 export type OverlayDisplayMode = 'unknown' | 'windowed' | 'borderless' | 'exclusive'
 
+export interface RatingOcrStatus {
+  at: number | null
+  raw: string | null
+  rating: number | null
+  delta: number | null
+  error: string | null
+  failed: boolean
+  debugCropPath: string | null
+}
+
 export interface TrackerStatus {
   hearthstoneFound: boolean
   hearthstoneFocused: boolean
@@ -220,6 +239,7 @@ export interface TrackerStatus {
   cardCount: number
   cardsError: string | null
   displayMode: OverlayDisplayMode
+  ratingOcr: RatingOcrStatus
 }
 
 export type UpdatePhase =

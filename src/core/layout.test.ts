@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
+import {
+  clampOverlayPos,
+  clampPoolLayout,
+  clampPoolWidth,
+  mergeOverlayLayout,
+  migrateOverlayLayout,
+  panelWidthStyle
+} from './layout'
 import { DEFAULT_OVERLAY_LAYOUT } from './types'
 
 describe('overlay layout', () => {
@@ -13,9 +20,9 @@ describe('overlay layout', () => {
   it('moves the old bottom pool onto the right-hand list', () => {
     const next = migrateOverlayLayout({
       ...DEFAULT_OVERLAY_LAYOUT,
-      pool: { x: 16, y: 52 }
+      pool: { x: 16, y: 52, w: 20 }
     })
-    expect(next.pool).toEqual(DEFAULT_OVERLAY_LAYOUT.pool)
+    expect(next.pool).toEqual({ ...DEFAULT_OVERLAY_LAYOUT.pool, w: 20 })
     expect(next.pool.x).toBeGreaterThan(70)
   })
 
@@ -23,11 +30,34 @@ describe('overlay layout', () => {
     expect(clampOverlayPos({ x: -4, y: 120 })).toEqual({ x: 0, y: 88 })
   })
 
-  it('pulls a too-far-right pool back for the wider side panels', () => {
+  it('keeps the pool on-screen using its width', () => {
+    expect(clampPoolLayout({ x: 90, y: 4, w: 20 })).toEqual({ x: 80, y: 4, w: 20 })
+    expect(clampPoolLayout({ x: 82, y: 4, w: 18 })).toEqual({ x: 82, y: 4, w: 18 })
+  })
+
+  it('allows a narrower pool farther right than the old fixed-width cap', () => {
     const next = migrateOverlayLayout({
       ...DEFAULT_OVERLAY_LAYOUT,
-      pool: { x: 74, y: 3.5 }
+      pool: { x: 78, y: 3.5, w: 18 }
     })
-    expect(next.pool.x).toBe(DEFAULT_OVERLAY_LAYOUT.pool.x)
+    expect(next.pool.x).toBe(78)
+    expect(next.pool.w).toBe(18)
+  })
+
+  it('shrinks legacy wide pool defaults for 1080p-friendly sizing', () => {
+    const next = migrateOverlayLayout({
+      ...DEFAULT_OVERLAY_LAYOUT,
+      pool: { x: 71.5, y: 3.2, w: 26 }
+    })
+    expect(next.pool.w).toBe(20)
+  })
+
+  it('clamps pool width into a usable range', () => {
+    expect(clampPoolWidth(12)).toBe(14)
+    expect(clampPoolWidth(44)).toBe(28)
+  })
+
+  it('caps panel width in CSS for 1080p screens', () => {
+    expect(panelWidthStyle(20)).toBe('min(20vw, var(--overlay-panel-max, 300px))')
   })
 })
