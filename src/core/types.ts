@@ -30,6 +30,12 @@ export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 
 /** Bottom inset (px) so side panels clear friends, gold, reroll, and the settings cog. */
 export const OVERLAY_SAFE_BOTTOM_PX = 100
+/**
+ * Extra bottom inset for the session rail only. Hearthstone's friends list opens
+ * up the lower-left of the client, exactly where the rail sits, so the rail stops
+ * short of it rather than sitting on top of the social panel.
+ */
+export const OVERLAY_SAFE_BOTTOM_RAIL_PCT = 34
 /** Top inset for the pool panel turn/combat header. */
 export const OVERLAY_SAFE_TOP_POOL_PX = 56
 

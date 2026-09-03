@@ -23,6 +23,9 @@
   --overlay-accent-line: rgba(224, 192, 122, 0.35);
   --overlay-edge-a: #e0c07a;
   --overlay-edge-b: #6ee0c4;
+  /* Fill + ink for selected chrome (tavern tier, active tab). Themed per skin. */
+  --overlay-select: #6ee0c4;
+  --overlay-select-ink: #04201a;
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.38);
   --radius: 16px;
   font-family: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
@@ -50,6 +53,8 @@ html[data-theme='hearth'] {
   --overlay-edge-a: #e4c278;
   --overlay-edge-b: #8a5a22;
   --radius: 10px;
+  --overlay-select: #e4c278;
+  --overlay-select-ink: #1d1408;
 }
 
 html[data-theme='crown'] {
@@ -73,6 +78,8 @@ html[data-theme='crown'] {
   --overlay-edge-a: #f0c96a;
   --overlay-edge-b: #a78bfa;
   --radius: 14px;
+  --overlay-select: #c4b5fd;
+  --overlay-select-ink: #150a26;
 }
 
 html[data-theme='coliseum'] {
@@ -96,6 +103,8 @@ html[data-theme='coliseum'] {
   --overlay-edge-a: #c5d0dc;
   --overlay-edge-b: #5ee0c8;
   --radius: 12px;
+  --overlay-select: #5ee0c8;
+  --overlay-select-ink: #04201a;
 }
 
 html[data-theme='warband'] {
@@ -119,6 +128,8 @@ html[data-theme='warband'] {
   --overlay-edge-a: #94a3b8;
   --overlay-edge-b: #64748b;
   --radius: 12px;
+  --overlay-select: #9fb4c8;
+  --overlay-select-ink: #0b1119;
 }
 
 html[data-theme='voidreach'] {
@@ -142,6 +153,8 @@ html[data-theme='voidreach'] {
   --overlay-edge-a: #e879f9;
   --overlay-edge-b: #67e8f9;
   --radius: 18px;
+  --overlay-select: #e879f9;
+  --overlay-select-ink: #1d0426;
 }
 
 * {
@@ -301,6 +314,8 @@ p {
 
 .panel-dock.rail-dock.docked {
   top: 0.5%;
+  /* Clears Hearthstone's friends list, which opens over the lower-left client. */
+  bottom: var(--overlay-safe-bottom-rail, 34%);
 }
 
 .panel-dock.pool-dock.docked {
@@ -865,9 +880,7 @@ html[data-theme='hearth'] .combat-bar::before {
     url('./frames/hearth-corner-tr.webp') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
     url('./frames/hearth-corner-bl.webp') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
     url('./frames/hearth-corner-br.webp') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
-  animation: hearth-flicker 3.8s ease-in-out infinite;
-  will-change: filter;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.55));
 }
 
 html[data-theme='hearth'] .panel::after,
@@ -933,9 +946,7 @@ html[data-theme='crown'] .combat-bar::before {
     url('./frames/crown-corner-tr.webp') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
     url('./frames/crown-corner-bl.webp') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
     url('./frames/crown-corner-br.webp') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
-  filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.35));
-  animation: crown-glow 5s ease-in-out infinite;
-  will-change: filter;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 8px rgba(167, 139, 250, 0.3));
 }
 
 html[data-theme='crown'] .panel::after,
@@ -1101,10 +1112,7 @@ html[data-theme='voidreach'] .combat-bar::before {
     url('./frames/voidreach-corner-tr.webp') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
     url('./frames/voidreach-corner-bl.webp') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
     url('./frames/voidreach-corner-br.webp') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
-  filter: drop-shadow(0 0 12px rgba(192, 38, 211, 0.35));
-  transform-origin: center;
-  animation: void-breathe 5.6s ease-in-out infinite;
-  will-change: transform, filter;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 8px rgba(192, 38, 211, 0.3));
 }
 
 html[data-theme='voidreach'] .panel::after,
@@ -1314,8 +1322,8 @@ html[data-theme='voidreach'] .buff-tag {
 }
 
 .chip.live {
-  color: var(--mint);
-  border-color: rgba(110, 224, 196, 0.45);
+  color: var(--overlay-select);
+  border-color: color-mix(in srgb, var(--overlay-select) 55%, transparent);
 }
 
 .chip.watch {
@@ -1986,8 +1994,8 @@ html[data-theme='voidreach'] .buff-tag {
   width: 100%;
   overflow: hidden;
   border-radius: 12px;
-  border: 1px solid rgba(125, 211, 252, 0.22);
-  background: rgba(8, 12, 24, 0.55);
+  border: 1px solid var(--overlay-accent-line);
+  background: rgba(0, 0, 0, 0.42);
 }
 
 .pool-kicker strong,
@@ -2038,16 +2046,15 @@ html[data-theme='voidreach'] .buff-tag {
 }
 
 .tier-tab.active {
-  color: #041016;
-  background: linear-gradient(180deg, #a5f3fc, #22d3ee);
-  border-color: #67e8f9;
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.28);
+  color: var(--overlay-select-ink);
+  background: var(--overlay-select);
+  border-color: var(--overlay-select);
 }
 
 .tier-tab.shop-tier:not(.active) {
-  color: #67e8f9;
-  border-color: rgba(103, 232, 249, 0.75);
-  box-shadow: 0 0 0 1px rgba(103, 232, 249, 0.28), 0 0 14px rgba(34, 211, 238, 0.2);
+  color: var(--overlay-select);
+  border-color: color-mix(in srgb, var(--overlay-select) 70%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--overlay-select) 30%, transparent);
 }
 
 .tribe-track {
@@ -2092,9 +2099,9 @@ html[data-theme='voidreach'] .buff-tag {
 }
 
 .tribe-tab.active {
-  color: #f4f7fb;
-  background: rgba(34, 211, 238, 0.14);
-  border-color: rgba(103, 232, 249, 0.4);
+  color: var(--text);
+  background: color-mix(in srgb, var(--overlay-select) 16%, transparent);
+  border-color: color-mix(in srgb, var(--overlay-select) 55%, transparent);
 }
 
 .tribe-tab.tribe-beast { color: #e8b56b; }
@@ -2262,14 +2269,14 @@ html[data-theme='voidreach'] .buff-tag {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #12141f;
-  color: #c4b5fd;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--overlay-select);
   font-size: 10px;
   font-weight: 750;
   line-height: 18px;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.4);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--overlay-select) 45%, transparent);
 }
 
 .pool-name {
@@ -2280,60 +2287,48 @@ html[data-theme='voidreach'] .buff-tag {
   padding-right: 6px;
   font-size: 12px;
   font-weight: 650;
-  color: #f4f7fb;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  color: var(--text);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 8px rgba(0, 0, 0, 0.7);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.pool-slice {
+/*
+ * Minion art bleeds in from the right edge of the row and fades out under the
+ * name. It is absolutely positioned so it never contributes to row height — the
+ * art is decoration, and the row stays the size the text needs.
+ */
+.pool-art {
   position: absolute;
-  inset: 0;
-  width: 100%;
+  inset: 0 0 0 auto;
+  width: 60%;
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
-  background: transparent;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
 }
 
-.pool-slice:not(:has(img)) {
+.pool-art:not(:has(img)) {
   display: none;
 }
 
-.pool-slice::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    var(--overlay-row) 0%,
-    color-mix(in srgb, var(--overlay-row) 82%, transparent) 34%,
-    color-mix(in srgb, var(--overlay-row) 18%, transparent) 58%,
-    transparent 78%
-  );
-}
-
-.pool-row:hover .pool-slice::after {
-  background: linear-gradient(
-    90deg,
-    var(--overlay-row-hover) 0%,
-    color-mix(in srgb, var(--overlay-row-hover) 70%, transparent) 36%,
-    transparent 72%
-  );
-}
-
-.pool-tile {
-  position: absolute;
-  inset: 0;
+.pool-face {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: right center;
+  /* Minion paintings put the face in the upper third. */
+  object-position: center 28%;
   display: block;
-  background: transparent;
-  opacity: 1;
-  filter: saturate(1.08) brightness(1.06);
+  opacity: 0.5;
+  filter: saturate(1.05);
+}
+
+.pool-row:hover .pool-face {
+  opacity: 0.68;
 }
 
 .pool-cost {
@@ -2494,6 +2489,18 @@ html[data-theme='voidreach'] .buff-tag {
   100% {
     opacity: 1;
     transform: translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pool-row,
+  .pool-face,
+  .pool-row::before {
+    transition: none;
+  }
+
+  .pool-list .pool-row {
+    animation: none;
   }
 }
 
@@ -2849,43 +2856,6 @@ html[data-theme='voidreach'] .settings-root .card {
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
-@keyframes hearth-flicker {
-  0%, 100% {
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 4px rgba(255, 180, 70, 0.2));
-  }
-  42% {
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 12px rgba(255, 210, 90, 0.55));
-  }
-  68% {
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 3px rgba(255, 160, 40, 0.18));
-  }
-}
-
-@keyframes crown-sheen {
-  0%, 100% { background-position: 0 0, 0% 0; }
-  50%       { background-position: 0 0, 100% 0; }
-}
-
-@keyframes crown-glow {
-  0%, 100% { filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.3)); }
-  50%       { filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.4)); }
-}
-
-@keyframes warband-mist {
-  0%, 100% { opacity: 0.5; transform: translateY(0); }
-  50%       { opacity: 0.85; transform: translateY(-4px); }
-}
-
-@keyframes void-vein {
-  0%   { background-position: 0 0, 0 0, 0 0; }
-  100% { background-position: 0 0, 0 0, 180px 120px; }
-}
-
-@keyframes void-breathe {
-  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(192, 38, 211, 0.3)); }
-  50%       { transform: scale(1.03); filter: drop-shadow(0 0 20px rgba(103, 232, 249, 0.35)); }
-}
-
 @media (max-width: 1920px), (max-height: 1080px) {
   .overlay-root {
     --overlay-panel-max: 280px;
@@ -2944,13 +2914,3 @@ html[data-theme='voidreach'] .settings-root .card {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html[data-theme='hearth'] .panel::before,
-  html[data-theme='hearth'] .combat-bar::before,
-  html[data-theme='crown'] .panel::before,
-  html[data-theme='crown'] .combat-bar::before,
-  html[data-theme='voidreach'] .panel::before,
-  html[data-theme='voidreach'] .combat-bar::before {
-    animation: none;
-  }
-}

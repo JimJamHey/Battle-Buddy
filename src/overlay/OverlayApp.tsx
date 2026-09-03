@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { DEFAULT_OVERLAY_LAYOUT, OVERLAY_SAFE_BOTTOM_PX, OVERLAY_SAFE_TOP_POOL_PX, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
+import { DEFAULT_OVERLAY_LAYOUT, OVERLAY_SAFE_BOTTOM_PX, OVERLAY_SAFE_BOTTOM_RAIL_PCT, OVERLAY_SAFE_TOP_POOL_PX, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
 import {
   clampLeftDockedPanel,
   clampPanelWidth,
@@ -126,6 +126,7 @@ export function OverlayApp() {
       style={{
         opacity: state.settings.overlayOpacity / 100,
         ['--overlay-safe-bottom' as string]: `${OVERLAY_SAFE_BOTTOM_PX}px`,
+        ['--overlay-safe-bottom-rail' as string]: `${OVERLAY_SAFE_BOTTOM_RAIL_PCT}%`,
         ['--overlay-safe-top-pool' as string]: `${OVERLAY_SAFE_TOP_POOL_PX}px`
       }}
     >

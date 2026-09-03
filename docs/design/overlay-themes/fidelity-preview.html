@@ -89,10 +89,44 @@
         <p class="session-games-empty">No games yet today</p>
       </div>
     </section>
-    <section class="panel pool-panel">
-      <header class="panel-head"><h2>Recruit · T5</h2></header>
-      <div class="pool-kicker">Pool / Strategies · Beast · Murloc</div>
-      <p style="padding:8px;opacity:0.75;margin:0;font-size:12px">Minion rows…</p>
+    <section class="panel pool-panel" style="display:flex;flex-direction:column">
+      <header class="pool-nav no-drag">
+        <div class="pool-mode-toggle" role="tablist">
+          <button type="button" class="active">Pool</button>
+          <button type="button">Strategies</button>
+        </div>
+        <div class="tier-track">
+          <button class="tier-tab">All</button>
+          <button class="tier-tab">1</button><button class="tier-tab">2</button>
+          <button class="tier-tab">3</button><button class="tier-tab">4</button>
+          <button class="tier-tab active">5</button><button class="tier-tab shop-tier">6</button>
+          <button class="tier-tab">7</button>
+        </div>
+        <div class="tribe-track">
+          <button class="tribe-tab active">All types</button>
+          <button class="tribe-tab tribe-beast">Beast</button>
+          <button class="tribe-tab tribe-murloc">Murloc</button>
+          <button class="tribe-tab tribe-dragon">Dragon</button>
+        </div>
+      </header>
+      <div class="pool-list no-drag with-tier-bubbles">
+        <section class="pool-group">
+          <header class="pool-group-head tribe-beast"><span>Beast</span></header>
+          <div class="pool-row"><span class="pool-tier">5</span><span class="pool-name">Mama Bear</span>
+            <span class="pool-art"><img class="pool-face" src="https://art.hearthstonejson.com/v1/256x/BGS_021.jpg" /></span></div>
+          <div class="pool-row"><span class="pool-tier">4</span><span class="pool-name">Cave Hydra</span>
+            <span class="pool-art"><img class="pool-face" src="https://art.hearthstonejson.com/v1/256x/LOO_825.jpg" /></span></div>
+          <div class="pool-row unavailable"><span class="pool-tier">3</span><span class="pool-name">Rat Pack</span>
+            <span class="pool-art"><img class="pool-face" src="https://art.hearthstonejson.com/v1/256x/CFM_316.jpg" /></span></div>
+        </section>
+        <section class="pool-group">
+          <header class="pool-group-head tribe-murloc"><span>Murloc</span></header>
+          <div class="pool-row"><span class="pool-tier">6</span><span class="pool-name">King Bagurgle</span>
+            <span class="pool-art"><img class="pool-face" src="https://art.hearthstonejson.com/v1/256x/UNG_998h.jpg" /></span></div>
+          <div class="pool-row"><span class="pool-tier">2</span><span class="pool-name">Murloc Tidehunter</span>
+            <span class="pool-art"><img class="pool-face" src="https://art.hearthstonejson.com/v1/256x/EX1_506.jpg" /></span></div>
+        </section>
+      </div>
     </section>
   </div>
   <!-- The launcher is a separate Electron window in the real app; it only shares this
