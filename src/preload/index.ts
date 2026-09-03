@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { AppSettings, OverlaySnapshot } from '../core/types'
+import type { AppSettings, MemoryProbeReport, OverlaySnapshot } from '../core/types'
 
 const api = {
   getState: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('get-state'),
@@ -11,6 +11,7 @@ const api = {
   openAppData: (): Promise<void> => ipcRenderer.invoke('open-app-data'),
   openRatingOcrFolder: (): Promise<void> => ipcRenderer.invoke('open-rating-ocr-folder'),
   refreshRating: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('refresh-rating'),
+  probeRatingMemory: (): Promise<MemoryProbeReport | null> => ipcRenderer.invoke('probe-rating-memory'),
   onOcrCapture: (callback: (active: boolean) => void) => {
     const listener = (_event: unknown, active: boolean) => callback(Boolean(active))
     ipcRenderer.on('ocr-capture', listener)

@@ -4,11 +4,32 @@ import { THEMES } from '../core/theme'
 import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
 import { averageFinish, gamesToday } from '../core/session'
 import { UpdateBanner } from '../ui/UpdateBanner'
+import type { MemoryProbeReport } from '../core/types'
 import logoUrl from './logo.png'
+
+/** Mirrors `summarizeProbe` in the main process, for the renderer's benefit. */
+function probeSummary(probe: MemoryProbeReport): string {
+  switch (probe.failure) {
+    case null:
+      return `Connected to ${probe.imageName ?? 'Assembly-CSharp'} through ${probe.assemblyCount} assemblies.`
+    case 'not-windows':
+      return 'Reading the game\u2019s memory is Windows-only right now.'
+    case 'no-process':
+      return 'Hearthstone is not running.'
+    case 'no-handle':
+      return 'Could not open Hearthstone for reading. Try running BattleBuddy as administrator.'
+    case 'no-mono-module':
+      return `No Mono runtime found among ${probe.moduleCount} loaded modules.`
+    default:
+      return `Stopped at: ${probe.failure}.`
+  }
+}
 
 export function SettingsApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
   const [tagDraft, setTagDraft] = useState('')
+  const [probe, setProbe] = useState<MemoryProbeReport | null>(null)
+  const [probing, setProbing] = useState(false)
   const tagTimer = useRef<number | null>(null)
 
   useEffect(() => {
@@ -267,6 +288,47 @@ export function SettingsApp() {
             ? `Minion catalog failed to load: ${state.status.cardsError}`
             : 'Click tavern tiers 1–7 in the pool to peek other tiers.'}
         </p>
+      </section>
+
+      <section className="card">
+        <h2>Rating source</h2>
+        <p className="hint">
+          Hearthstone keeps your Battlegrounds rating in the game&apos;s own memory rather than in
+          any log file, which is where Deck Tracker reads it from. This check reports how far
+          BattleBuddy can follow that same path on your machine.
+        </p>
+        <div className="row" style={{ marginTop: 8 }}>
+          <button
+            className="ghost"
+            type="button"
+            disabled={probing}
+            onClick={async () => {
+              setProbing(true)
+              try {
+                setProbe(await window.battleBuddy.probeRatingMemory())
+              } finally {
+                setProbing(false)
+              }
+            }}
+          >
+            {probing ? 'Checking\u2026' : 'Check rating source'}
+          </button>
+        </div>
+        {probe ? (
+          <>
+            <p className={probe.failure ? 'status-wait' : 'status-ok'}>{probeSummary(probe)}</p>
+            {probe.diagnostics.length ? (
+              <ol className="games">
+                {probe.diagnostics.map((line, i) => (
+                  <li key={i}>{line}</li>
+                ))}
+              </ol>
+            ) : null}
+            <p className="hint">
+              Full details saved to rating-memory-probe.json in the app data folder.
+            </p>
+          </>
+        ) : null}
       </section>
 
       <section className="card">

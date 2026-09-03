@@ -257,6 +257,46 @@ export interface RatingOcrStatus {
   debugCropPath: string | null
 }
 
+/**
+ * Result of following the chain into Hearthstone's Mono runtime to reach the
+ * authoritative rating. Shared with the renderer so the launcher can report how
+ * far the read got on a given machine.
+ */
+export interface MemoryProbeReport {
+  supported: boolean
+  pid: number
+  monoModule: { name: string; base: string; size: number } | null
+  moduleCount: number
+  rootDomain: string | null
+  assemblyCount: number
+  assemblyCSharpImage: string | null
+  imageName: string | null
+  offsets: MonoStructOffsets | null
+  failure: MemoryProbeFailure | null
+  diagnostics: string[]
+  at: number
+}
+
+export interface MonoStructOffsets {
+  domainAssemblies: number
+  assemblyName: number
+  assemblyImage: number
+  imageName: number
+}
+
+export type MemoryProbeFailure =
+  | 'not-windows'
+  | 'no-process'
+  | 'no-handle'
+  | 'no-mono-module'
+  | 'no-export-table'
+  | 'no-root-domain-export'
+  | 'no-root-domain-global'
+  | 'no-root-domain'
+  | 'no-assembly-list'
+  | 'no-assembly-csharp'
+  | 'no-assembly-image'
+
 export interface TrackerStatus {
   hearthstoneFound: boolean
   hearthstoneFocused: boolean

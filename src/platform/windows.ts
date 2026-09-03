@@ -329,6 +329,17 @@ export const windowsHost: GameHost = {
  * Independent TOPMOST overlay — do not parent it to Hearthstone.
  * Re-apply WS_EX_TRANSPARENT whenever we pin, or SetWindowPos eats click-through.
  */
+/** PID of the running Hearthstone client, or 0 when the window is not present. */
+export function gameProcessId(): number {
+  try {
+    const hwnd = findWindow()
+    if (!hwndOk(hwnd)) return 0
+    return windowPid(hwnd)
+  } catch {
+    return 0
+  }
+}
+
 export function pinOverlayToGame(overlayHandle: Buffer, passClicks = true): void {
   try {
     const api = loadNative()

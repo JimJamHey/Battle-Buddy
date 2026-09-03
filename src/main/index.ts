@@ -92,6 +92,7 @@ import { readCombatHandsFromScreen } from './combatOcr'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
 import { LogTailer } from './logTailer'
 import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
+import { probeRatingMemory, summarizeProbe } from './ratingMemory'
 import { loadSession, loadSettings, saveSession, saveSettings } from './persist'
 import { AppUpdater } from './updater'
 import { releasePageUrl } from '../core/release'
@@ -1470,6 +1471,19 @@ function registerIpc(): void {
     lastPlayRatingAt = 0
     await pollPlayRating(true)
     return snapshot()
+  })
+  ipcMain.handle('probe-rating-memory', async (e) => {
+    if (!fromAppWindow(e.sender)) return null
+    const report = probeRatingMemory()
+    console.info('rating memory probe:', summarizeProbe(report))
+    for (const line of report.diagnostics) console.info('  ', line)
+    // Persisted so the exact per-build Mono offsets can be read back off a real client.
+    await writeFile(
+      join(userData(), 'rating-memory-probe.json'),
+      JSON.stringify(report, null, 2),
+      'utf8'
+    ).catch(() => undefined)
+    return report
   })
   ipcMain.on('click-through', (e, enabled: boolean) => {
     if (e.sender !== overlayWindow?.webContents) return
