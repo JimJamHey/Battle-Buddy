@@ -78,19 +78,21 @@ export function SessionRail({
       {state.status.ratingOcr?.failed ? (
         <p className="hint">Could not read Rating after the last game. Stay on the results or Play screen, or set it in Settings.</p>
       ) : null}
-      {buffs.length > 0 ? (
-        <div className="session-dynamic capture-mouse" aria-label="Active match buffs">
-          {buffs.map((buff) => (
-            <div className={`buff-tag buff-${buff.key} capture-mouse`} key={buff.key} title={buff.label}>
-              <CardArt className="buff-art" cardId={buff.iconCardId} variant="face" hideIfMissing />
-              <div className="buff-copy">
-                <span>{buff.label}</span>
-                <strong>{formatBuffValue(buff)}</strong>
-              </div>
+      <div
+        className="session-dynamic capture-mouse"
+        aria-label="Active match buffs"
+        data-empty={buffs.length === 0 ? 'true' : undefined}
+      >
+        {buffs.map((buff) => (
+          <div className={`buff-tag buff-${buff.key} capture-mouse`} key={buff.key} title={buff.label}>
+            <CardArt className="buff-art" cardId={buff.iconCardId} variant="face" hideIfMissing />
+            <div className="buff-copy">
+              <span>{buff.label}</span>
+              <strong>{formatBuffValue(buff)}</strong>
             </div>
-          ))}
-        </div>
-      ) : null}
+          </div>
+        ))}
+      </div>
       <div className="session-games capture-mouse">
         <p className="session-section-label">Latest Games</p>
         <div className="session-games-cols">
