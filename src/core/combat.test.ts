@@ -425,6 +425,46 @@ describe('combat sim', () => {
     expect(r.win).toBe('opponent')
   })
 
+  it('Whirl-O-Tron copies the two leftmost deathrattles at start of combat', () => {
+    const drKit = (atk: number, hp: number) => ({
+      triggers: [{ when: 'deathrattle' as const, effects: [{ op: 'summon' as const, count: 1, attack: atk, health: hp }] }],
+      extraDeathrattles: 0,
+      cleave: false
+    })
+    const whirlKit = lookupCombatKit('BG21_HERO_030_Buddy', '')
+    expect(whirlKit.triggers.some((r) => r.when === 'startOfCombat' && r.effects.some((e) => e.op === 'copyLeftDeathrattles'))).toBe(true)
+    const leftDr = minion(1, 1, { deathrattle: true, kit: drKit(5, 5) })
+    const rightDr = minion(1, 1, { deathrattle: true, kit: drKit(1, 1) })
+    const whirlOTron = minion(3, 6, { cardId: 'BG21_HERO_030_Buddy', kit: whirlKit })
+    const input: CombatInput = {
+      friendly: side(1, [leftDr, rightDr, whirlOTron]),
+      opponent: side(2, [minion(1, 30)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
+  it('damageDead op scales damage by tribe deaths this combat', () => {
+    const squirrelKit = lookupCombatKit('TB_BaconShop_HERO_17_Buddy', '')
+    expect(squirrelKit.triggers.some((r) => r.when === 'deathrattle' && r.effects.some((e) => e.op === 'damageDead'))).toBe(true)
+    // Two Mechs die first. Squirrel Bomb dies last (has divine shield buffer).
+    // DR fires: 4×2=8 damage to a 1/6 opponent → opponent dead. Friendly wins.
+    const input: CombatInput = {
+      friendly: side(1, [
+        minion(1, 1, { tribes: ['Mech'] }),
+        minion(1, 1, { tribes: ['Mech'] }),
+        minion(5, 20, {
+          cardId: 'TB_BaconShop_HERO_17_Buddy',
+          deathrattle: true,
+          kit: squirrelKit
+        })
+      ]),
+      opponent: side(2, [minion(1, 6)])
+    }
+    const r = fightOnce(input, {}, () => 0, true)
+    expect(r.win).toBe('friendly')
+  })
+
   it('uses golden Deflect-o-Bot kit buff values', () => {
     const text =
       'Divine Shield Whenever you summon a Mech during combat, gain +2 Attack and Divine Shield.'
@@ -889,9 +929,11 @@ describe('combat gaps', () => {
     expect(combatGapReport(input, [], {}).partial).toBe(false)
   })
 
-  it('flags scaled effects inside parsed triggers', () => {
-    expect(combatParseGaps('Deathrattle: Deal 1 damage for each friendly Beast.')).toContain('Scaled')
-    expect(combatParseGaps('Start of Combat: Give your minions +1 Attack for each friendly Mech.')).toContain('Scaled')
+  it('does not flag for-each effects as Scaled gaps (approximated or kitted)', () => {
+    // These cards are either kitted (Squirrel Bomb) or the parser approximates a fixed value.
+    // We no longer surface Scaled as a gap since it would just suppress the best model we have.
+    expect(combatParseGaps('Deathrattle: Deal 1 damage for each friendly Beast.')).not.toContain('Scaled')
+    expect(combatParseGaps('Start of Combat: Give your minions +1 Attack for each friendly Mech.')).not.toContain('Scaled')
     expect(combatParseGaps('Deathrattle: Deal 5 damage to the enemy hero.')).not.toContain('Scaled')
   })
 
@@ -1085,10 +1127,12 @@ describe('combat kit registry', () => {
     expect(combatParseGaps('Start of Combat: Summon a random minion.')).toContain('Random summon')
   })
 
-  it('only treats this-game text as a gap when it sits on a combat trigger', () => {
+  it('does not flag this-game as a gap (stats are baked in before combat)', () => {
+    // "This game" scaling happens in the shop phase; by combat start the minion
+    // already carries its accumulated stats in m.attack/m.health.
     expect(combatParseGaps('After you play a minion, give it +1/+1 this game.')).not.toContain('This game')
-    expect(combatParseGaps('Deathrattle: Give your minions +1/+1 this game.')).toContain('This game')
-    expect(combatParseGaps('Start of Combat: Give your minions +1/+1 for each friendly Beast.')).toContain('Scaled')
+    expect(combatParseGaps('Deathrattle: Give your minions +1/+1 this game.')).not.toContain('This game')
+    // Copy Deathrattle is still a meaningful gap when not covered by a kit
     expect(parseCardCombat('Deathrattle: Summon a 1/1 copy of a friendly Mech.').triggers).toEqual([])
     expect(combatParseGaps('Deathrattle: Summon a 1/1 copy of a friendly Mech.')).toContain('Deathrattle')
   })

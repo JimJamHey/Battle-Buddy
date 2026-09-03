@@ -33,27 +33,26 @@ export const COMBAT_KEYWORDS: Record<
   stealth: { logTags: ['STEALTH'], patterns: [/\bstealth\b/i] }
 }
 
-/** Mechanics the text parser does not model — boards with these show Partial. */
+/**
+ * Mechanics that cannot be modeled in the combat sim.
+ *
+ * Deliberately excluded (these look like combat text but only fire in the shop phase):
+ *   - Magnetic         — merges at play time; merged stats are already in m.attack/health
+ *   - Spellcraft       — creates a paired spell in the Tavern; buffs expire before combat
+ *   - Activate         — costs gold during the shopping phase; never fires in combat
+ *   - End of Turn      — fires at end of the shopping turn, not during combat
+ *   - "This game"      — accumulates during the shopping phase; stats already baked into m.attack/health
+ *
+ * Remaining unsupported patterns below cause a genuine gap in the combat sim.
+ */
 export const UNSUPPORTED_COMBAT_MECHANICS = [
   'Frenzy',
-  'Magnetic',
-  'Spellcraft',
-  'Activate',
-  'End of Turn',
   'Copy Deathrattle',
-  'This game',
-  'Scaled'
 ] as const
 
 export const UNSUPPORTED_COMBAT_PATTERNS: [RegExp, (typeof UNSUPPORTED_COMBAT_MECHANICS)[number]][] = [
   [/\bfrenzy\b/i, 'Frenzy'],
-  [/\bmagnetic\b/i, 'Magnetic'],
-  [/\bspellcraft\b/i, 'Spellcraft'],
-  [/\bactivate\b/i, 'Activate'],
-  [/end of (?:your )?turn/i, 'End of Turn'],
   [/copy.{0,40}deathrattle|gains?.{0,24}(?:a copy of |the )?deathrattle/i, 'Copy Deathrattle'],
-  [/\bthis game\b/i, 'This game'],
-  [/\bfor each\b/i, 'Scaled']
 ]
 
 export function keywordsFromText(blob: string): CombatKeywordSimKey[] {
@@ -77,6 +76,10 @@ export function unsupportedMechanicsInText(blob: string, combatTriggerBlob = '')
 /** Card text that can affect combat resolution. */
 export function cardTextIsCombatRelevant(text: string, mechanics: string[] = []): boolean {
   const raw = text.replace(/<[^>]+>/g, ' ').replace(/\[x\]/gi, ' ')
+  // Exclude pure shop-phase cards from being considered "combat relevant" for coverage.
+  // These patterns only fire in the shop phase and never during combat resolution.
+  const shopOnly = /\bactivate\s*\(/i.test(raw) || /spellcraft\s*:/i.test(raw)
+  if (shopOnly && !/deathrattle|rally|avenge|start of combat/i.test(raw)) return false
   const blob = `${raw} ${mechanics.join(' ')}`
   if (/\b(?:deathrattle|rally|avenge|start of combat)\b/i.test(blob)) return true
   if (/during combat/i.test(blob)) return true

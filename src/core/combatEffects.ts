@@ -44,6 +44,8 @@ export type CombatOp =
   | 'shinyRing'
   | 'summonFromHand'
   | 'setHealth'
+  | 'copyLeftDeathrattles'
+  | 'damageDead'
 
 export type CombatTarget =
   | 'self'

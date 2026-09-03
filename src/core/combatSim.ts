@@ -116,6 +116,8 @@ interface FightCtx {
   hands: [SimMinion[], SimMinion[]]
   summonPools: SummonPools
   tavernTier: [number, number]
+  /** Minions that died this combat, per side (for damageDead scaling). */
+  dead: [SimMinion[], SimMinion[]]
 }
 
 function summonFor(
@@ -547,6 +549,31 @@ function runEffects(
         }
       }
     }
+    if (fx.op === 'damageDead') {
+      // Deal (fx.attack) per friendly dead minion with optional tribe filter to a random enemy.
+      const deadOwn = ctx.dead[side]
+      const qualified = fx.tribe
+        ? deadOwn.filter((m) => hasTribe(m, fx.tribe!))
+        : deadOwn
+      const dmg = (fx.attack ?? 1) * qualified.length
+      if (dmg > 0 && living(enemy).length) {
+        const target = enemy[Math.floor(rng() * living(enemy).length)]
+        if (target) applyHit(target, dmg, false)
+      }
+      continue
+    }
+    if (fx.op === 'copyLeftDeathrattles') {
+      // Copy up to fx.count leftmost DR triggers from friendly board into source's kit.
+      const n = fx.count ?? 2
+      const drSources = own
+        .filter((m) => m.uid !== source.uid && m.kit.triggers.some((r) => r.when === 'deathrattle'))
+        .slice(0, n)
+      for (const donor of drSources) {
+        const drRow = donor.kit.triggers.find((r) => r.when === 'deathrattle')
+        if (drRow) source.kit = { ...source.kit, triggers: [...source.kit.triggers, drRow] }
+      }
+      continue
+    }
   }
 }
 
@@ -612,6 +639,7 @@ function resolveDeaths(
     if (deadIdx < 0) break
     const dead = own[deadIdx]
     own.splice(deadIdx, 1)
+    ctx.dead[side].push(dead)
     noteAvenge(own, dead.uid)
     const extras = own.reduce((n, m) => n + m.kit.extraDeathrattles, 0)
     const repeats = 1 + extras + ctx.extraDr[side]
@@ -715,7 +743,8 @@ export function fightOnce(
     tavernTier: [
       Math.max(1, input.friendly.tavernTier ?? 1),
       Math.max(1, input.opponent.tavernTier ?? 1)
-    ]
+    ],
+    dead: [[], []]
   }
   const fBoard = input.friendly.minions.map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
   const oBoard = input.opponent.minions.map((m) => toSim(m, ctx.nextUid++, summonFor(m.cardId, summons)))
