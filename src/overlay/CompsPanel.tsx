@@ -99,7 +99,7 @@ export function CompsPanel({
                       cardId={card.id}
                       name={card.name}
                       dbfId={full?.dbfId}
-                      variant="render"
+                      variant="face"
                       hideIfMissing
                     />
                   </span>

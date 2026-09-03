@@ -77,15 +77,21 @@ export function SessionRail({
         aria-label="Active match buffs"
         data-empty={buffs.length === 0 ? 'true' : undefined}
       >
-        {buffs.map((buff) => (
-          <div className={`buff-tag buff-${buff.key} capture-mouse`} key={buff.key} title={buff.label}>
-            <CardArt className="buff-art" cardId={buff.iconCardId} variant="face" hideIfMissing />
-            <div className="buff-copy">
-              <span>{buff.label}</span>
-              <strong>{formatBuffValue(buff)}</strong>
+        {buffs.length === 0 ? (
+          <p className="session-dynamic-empty">
+            {live ? 'No active buffs yet' : 'Active buffs appear here during a match'}
+          </p>
+        ) : (
+          buffs.map((buff) => (
+            <div className={`buff-tag buff-${buff.key} capture-mouse`} key={buff.key} title={buff.label}>
+              <CardArt className="buff-art" cardId={buff.iconCardId} variant="face" hideIfMissing />
+              <div className="buff-copy">
+                <span>{buff.label}</span>
+                <strong>{formatBuffValue(buff)}</strong>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
       <div className="session-games capture-mouse">
         <p className="session-section-label">Latest Games</p>

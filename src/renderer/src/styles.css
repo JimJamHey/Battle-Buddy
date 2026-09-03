@@ -217,8 +217,12 @@ p {
   --overlay-row-min: clamp(1.5rem, 2.2vh, 2rem);
   --overlay-nav-gap: clamp(0.3rem, 0.7vh, 0.6rem);
   --overlay-nav-pad: clamp(0.4rem, 0.9vh, 0.7rem);
-  /* Design artboards: 120×120 corners with −28px outward inset */
-  --overlay-frame-size: clamp(64px, 6.25vw, 120px);
+  /*
+   * Corner art scales off the panel it decorates (container query units), not the
+   * viewport — a viewport-sized corner swallowed the header copy on narrow rails.
+   * Fallback value applies where container queries are unavailable.
+   */
+  --overlay-frame-size: clamp(32px, 5vw, 72px);
   --overlay-frame-inset: calc(var(--overlay-frame-size) * -0.233);
 }
 
@@ -783,13 +787,29 @@ p {
   isolation: isolate;
 }
 
+.panel,
+.combat-bar {
+  container-type: inline-size;
+}
+
+@supports (width: 1cqw) {
+  .panel,
+  .combat-bar {
+    --overlay-frame-size: clamp(30px, 22cqw, 84px);
+  }
+}
+
 .panel::before,
 .combat-bar::before {
   content: '';
   position: absolute;
   inset: -18px;
   pointer-events: none;
-  z-index: 4;
+  /*
+   * Below content (z-index 3) so ornamental art can never sit on top of copy.
+   * The art still reads outside the panel edges, which is where the design puts it.
+   */
+  z-index: 1;
   display: none;
   /* GPU-composited layer — no layout impact from frame art */
   will-change: filter;
@@ -819,8 +839,7 @@ p {
 /* ── Tavern Hearth ─────────────────────────────── */
 html[data-theme='hearth'] .panel,
 html[data-theme='hearth'] .combat-bar,
-html[data-theme='hearth'] .pool-panel,
-html[data-theme='hearth'] .settings-root .card {
+html[data-theme='hearth'] .pool-panel {
   border: 0;
   color: #f6ead2;
   background-color: #1a120c;
@@ -889,8 +908,7 @@ html[data-theme='hearth'] .session-dynamic {
 /* ── Titan's Crown ─────────────────────────────── */
 html[data-theme='crown'] .panel,
 html[data-theme='crown'] .combat-bar,
-html[data-theme='crown'] .pool-panel,
-html[data-theme='crown'] .settings-root .card {
+html[data-theme='crown'] .pool-panel {
   border: 0;
   background-color: #120a1e;
   background-image:
@@ -940,8 +958,7 @@ html[data-theme='crown'] .session-dynamic {
 /* ── Tribe Coliseum ─────────────────────────────── */
 html[data-theme='coliseum'] .panel,
 html[data-theme='coliseum'] .combat-bar,
-html[data-theme='coliseum'] .pool-panel,
-html[data-theme='coliseum'] .settings-root .card {
+html[data-theme='coliseum'] .pool-panel {
   border: 0;
   background-color: #0c1018;
   background-image:
@@ -1010,8 +1027,7 @@ html[data-theme='coliseum'] .buff-tag.buff-shop    { border-left: 3px solid #5ee
 /* ── Warband Front ─────────────────────────────── */
 html[data-theme='warband'] .panel,
 html[data-theme='warband'] .combat-bar,
-html[data-theme='warband'] .pool-panel,
-html[data-theme='warband'] .settings-root .card {
+html[data-theme='warband'] .pool-panel {
   border: 0;
   background-color: #10141c;
   background-image:
@@ -1060,8 +1076,7 @@ html[data-theme='warband'] .session-dynamic {
 /* ── Void Reach ─────────────────────────────────── */
 html[data-theme='voidreach'] .panel,
 html[data-theme='voidreach'] .combat-bar,
-html[data-theme='voidreach'] .pool-panel,
-html[data-theme='voidreach'] .settings-root .card {
+html[data-theme='voidreach'] .pool-panel {
   border: 0;
   background-color: #06040c;
   background-image:
@@ -1153,6 +1168,7 @@ html[data-theme='voidreach'] .buff-tag {
 }
 
 .session-dynamic {
+  position: relative;
   margin: 6px 0 4px;
   padding: 8px 10px;
   border-radius: 10px;
@@ -1161,16 +1177,22 @@ html[data-theme='voidreach'] .buff-tag {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  /* Fill session↔pool height parity whitespace (design dynamic zone) */
+  /* Absorbs the session↔pool height-parity whitespace without forcing the panel taller */
   flex: 1 1 auto;
-  min-height: clamp(7rem, 22vh, 16rem);
-  overflow: auto;
+  min-height: 3.25rem;
+  overflow-y: auto;
+  overflow-x: hidden;
   isolation: isolate;
 }
 
-.session-dynamic[data-empty='true'] {
-  /* Keep painted dynamic art visible when no buffs are active */
-  min-height: clamp(8rem, 26vh, 18rem);
+.session-dynamic-empty {
+  margin: auto;
+  padding: 4px 8px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
 .buff-grid {
@@ -1334,10 +1356,12 @@ html[data-theme='voidreach'] .buff-tag {
 .session-section-label {
   margin: 0 0 8px;
   text-align: center;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 750;
-  letter-spacing: 0.06em;
-  color: #f4f7fb;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .mmr-grid {
@@ -1361,17 +1385,19 @@ html[data-theme='voidreach'] .buff-tag {
 
 .mmr-grid span {
   display: block;
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .mmr-grid strong {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 
 .stat-pills {
@@ -1380,12 +1406,19 @@ html[data-theme='voidreach'] .buff-tag {
   margin-bottom: 8px;
 }
 
+.stat-pills {
+  flex-wrap: wrap;
+}
+
 .stat-pills span {
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 650;
   color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 3px 9px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 .session-panel {
@@ -1511,30 +1544,29 @@ html[data-theme='voidreach'] .buff-tag {
 }
 
 .comp-need .pool-row {
-  min-height: 88px;
-  padding: 6px 10px;
-  gap: 10px;
+  min-height: var(--overlay-row-min);
+  padding: 3px 10px;
+  gap: 8px;
 }
 
 .comp-need-art {
   position: relative;
   z-index: 1;
   flex-shrink: 0;
-  width: 62px;
-  height: 86px;
-  border-radius: 0;
-  overflow: visible;
-  background: transparent;
-  box-shadow: none;
+  width: 34px;
+  height: 26px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .comp-need-card {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: center top;
+  object-fit: cover;
+  object-position: center 32%;
   display: block;
-  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.62));
 }
 
 .comp-list .pool-row.unavailable {
@@ -2763,34 +2795,65 @@ html[data-theme='voidreach'] .pool-group-head.tier-head {
   color: #f0e8ff;
 }
 
+/*
+ * Launcher art is painted once on the scroll root — never per card, which tiled the
+ * same illustration down the page. The scrim keeps form copy legible over the art.
+ */
+.settings-root {
+  background-attachment: fixed, fixed, fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center top;
+}
+
 html[data-theme='hearth'] .settings-root {
-  background:
+  background-image:
+    linear-gradient(180deg, rgba(18, 14, 9, 0.72) 0%, rgba(18, 14, 9, 0.88) 45%, #120e09 88%),
     radial-gradient(circle at 18% 0%, rgba(226, 192, 122, 0.22), transparent 36%),
-    repeating-linear-gradient(90deg, rgba(56, 32, 12, 0.28) 0 1px, transparent 1px 6px),
-    #120e09;
+    url('./frames/hearth-panel-bg.webp');
+  background-color: #120e09;
 }
 html[data-theme='crown'] .settings-root {
-  background:
-    radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.28), transparent 40%),
-    radial-gradient(circle at 90% 100%, rgba(34, 211, 238, 0.12), transparent 36%),
-    #0a0614;
+  background-image:
+    linear-gradient(180deg, rgba(10, 6, 20, 0.7) 0%, rgba(10, 6, 20, 0.88) 45%, #0a0614 88%),
+    radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.24), transparent 40%),
+    url('./frames/crown-panel-bg.webp');
+  background-color: #0a0614;
 }
 html[data-theme='coliseum'] .settings-root {
-  background:
-    radial-gradient(circle at 0% 50%, rgba(232, 181, 107, 0.12), transparent 40%),
-    radial-gradient(circle at 100% 50%, rgba(94, 224, 200, 0.1), transparent 40%),
-    #080c14;
+  background-image:
+    linear-gradient(180deg, rgba(8, 12, 20, 0.7) 0%, rgba(8, 12, 20, 0.88) 45%, #080c14 88%),
+    radial-gradient(circle at 0% 20%, rgba(232, 181, 107, 0.14), transparent 42%),
+    url('./frames/coliseum-panel-bg.webp');
+  background-color: #080c14;
 }
 html[data-theme='warband'] .settings-root {
-  background:
+  background-image:
+    linear-gradient(180deg, rgba(12, 16, 24, 0.72) 0%, rgba(12, 16, 24, 0.9) 45%, #0c1018 88%),
     radial-gradient(circle at 50% 0%, rgba(148, 163, 184, 0.16), transparent 38%),
-    linear-gradient(180deg, #0c1018, #10141c);
+    url('./frames/warband-panel-bg.webp');
+  background-color: #0c1018;
 }
 html[data-theme='voidreach'] .settings-root {
-  background:
-    radial-gradient(circle at 90% 0%, rgba(192, 38, 211, 0.28), transparent 34%),
-    radial-gradient(circle at 8% 100%, rgba(103, 232, 249, 0.14), transparent 40%),
-    #040208;
+  background-image:
+    linear-gradient(180deg, rgba(4, 2, 8, 0.7) 0%, rgba(4, 2, 8, 0.88) 45%, #040208 88%),
+    radial-gradient(circle at 90% 0%, rgba(192, 38, 211, 0.26), transparent 36%),
+    url('./frames/voidreach-panel-bg.webp');
+  background-color: #040208;
+}
+
+/* Cards read as glass over the single page-wide illustration. */
+html[data-theme='hearth'] .settings-root .card,
+html[data-theme='crown'] .settings-root .card,
+html[data-theme='coliseum'] .settings-root .card,
+html[data-theme='warband'] .settings-root .card,
+html[data-theme='voidreach'] .settings-root .card {
+  background: color-mix(in srgb, var(--panel-solid) 74%, transparent);
+  border: 1px solid var(--overlay-accent-line);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(14px) saturate(1.1);
 }
 
 @keyframes hearth-flicker {

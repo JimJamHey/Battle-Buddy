@@ -95,6 +95,38 @@
       <p style="padding:8px;opacity:0.75;margin:0;font-size:12px">Minion rows…</p>
     </section>
   </div>
+  <div class="settings-root" style="margin-top:32px;max-width:520px">
+    <header class="settings-hero">
+      <div class="settings-hero-brand">
+        <div>
+          <p class="eyebrow">BattleBuddy</p>
+          <h1>Launcher</h1>
+        </div>
+      </div>
+      <span class="version-pill">v0.1.0</span>
+    </header>
+    <section class="card">
+      <h2>Updates</h2>
+      <p class="hint">Installed version: v0.1.0</p>
+      <button class="primary" type="button">Check for updates</button>
+    </section>
+    <section class="card">
+      <h2>Overlay</h2>
+      <label class="toggle"><span>Show overlay</span><input type="checkbox" checked /></label>
+      <label class="toggle"><span>Keep overlay visible in fullscreen</span><input type="checkbox" checked /></label>
+      <label for="op">Opacity (96%)</label>
+      <input id="op" type="number" value="96" />
+    </section>
+    <section class="card">
+      <h2>Account</h2>
+      <label for="rg">Leaderboard region</label>
+      <select id="rg"><option>Americas (US)</option></select>
+      <label for="bt">BattleTag</label>
+      <input id="bt" type="text" value="JimJamHey" />
+      <p class="hint">Used to find your rating on the leaderboard.</p>
+    </section>
+  </div>
+
   <script>
     document.querySelectorAll('.bar button[data-theme]').forEach((btn) => {
       btn.addEventListener('click', () => {
