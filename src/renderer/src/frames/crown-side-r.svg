@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 230">
+  <defs>
+    <linearGradient id="cs-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a0a30"/>
+      <stop offset="50%" stop-color="#0f0620"/>
+      <stop offset="100%" stop-color="#1a0a30"/>
+    </linearGradient>
+    <linearGradient id="cs-crystal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#f0c96a"/>
+    </linearGradient>
+    <linearGradient id="cs-spire" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#1a0a30"/>
+      <stop offset="60%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#e0d4ff"/>
+    </linearGradient>
+    <filter id="css-glow">
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Base dark -->
+  <rect width="58" height="230" fill="url(#cs-bg)"/>
+
+  <!-- Main crystal beam -->
+  <rect x="0" y="0" width="14" height="230" fill="#1a0a30" opacity="0.9"/>
+  <rect x="0" y="0" width="14" height="230" fill="url(#cs-crystal)" opacity="0.2"/>
+
+  <!-- Facet zigzag pattern -->
+  <polyline points="0,0 14,18 0,36 14,54 0,72 14,90 0,108 14,126 0,144 14,162 0,180 14,198 0,216 14,230" fill="none" stroke="#a78bfa" stroke-width="0.8" opacity="0.7"/>
+  <polyline points="14,0 0,18 14,36 0,54 14,72 0,90 14,108 0,126 14,144 0,162 14,180 0,198 14,216 0,230" fill="none" stroke="#22d3ee" stroke-width="0.5" opacity="0.5"/>
+
+  <!-- Crystal spires at intervals -->
+  <g filter="url(#css-glow)">
+    <!-- Spire at 40 -->
+    <polygon points="7,28 4,42 7,18 10,42" fill="url(#cs-spire)" opacity="0.9"/>
+    <polygon points="7,18 6,28 7,14 8,28" fill="#e0d4ff" opacity="0.8"/>
+
+    <!-- Spire at 95 -->
+    <polygon points="7,83 4,97 7,73 10,97" fill="url(#cs-spire)" opacity="0.85"/>
+    <polygon points="7,73 6,83 7,69 8,83" fill="#cffafe" opacity="0.8"/>
+
+    <!-- Spire at 150 -->
+    <polygon points="7,138 4,152 7,128 10,152" fill="url(#cs-spire)" opacity="0.9"/>
+    <polygon points="7,128 6,138 7,124 8,138" fill="#e0d4ff" opacity="0.8"/>
+
+    <!-- Spire at 205 -->
+    <polygon points="7,193 4,207 7,183 10,207" fill="url(#cs-spire)" opacity="0.85"/>
+    <polygon points="7,183 6,193 7,179 8,193" fill="#fffde4" opacity="0.8"/>
+  </g>
+
+  <!-- Gold trim edge -->
+  <line x1="14" y1="0" x2="14" y2="230" stroke="#f0c96a" stroke-width="1.5" opacity="0.65"/>
+  <line x1="15.5" y1="0" x2="15.5" y2="230" stroke="#22d3ee" stroke-width="0.6" opacity="0.35"/>
+
+  <!-- Gem accents at spire bases -->
+  <g filter="url(#css-glow)">
+    <polygon points="7,42 5,40 7,38 9,40" fill="#f0c96a"/>
+    <polygon points="7,97 5,95 7,93 9,95" fill="#a78bfa"/>
+    <polygon points="7,152 5,150 7,148 9,150" fill="#22d3ee"/>
+    <polygon points="7,207 5,205 7,203 9,205" fill="#f0c96a"/>
+  </g>
+
+  <!-- Scattered crystal dust -->
+  <circle cx="24" cy="25" r="1" fill="#a78bfa" opacity="0.6"/>
+  <circle cx="35" cy="60" r="0.8" fill="#22d3ee" opacity="0.5"/>
+  <circle cx="28" cy="90" r="1" fill="#f0c96a" opacity="0.6"/>
+  <circle cx="40" cy="125" r="0.8" fill="#a78bfa" opacity="0.5"/>
+  <circle cx="22" cy="158" r="1" fill="#22d3ee" opacity="0.6"/>
+  <circle cx="38" cy="192" r="0.9" fill="#f0c96a" opacity="0.5"/>
+</svg>

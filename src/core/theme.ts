@@ -1,22 +1,28 @@
 export const THEMES = [
-  { id: 'classic', name: 'Classic' },
-  { id: 'cthulhu', name: 'Cthulhu' },
-  { id: 'buddy', name: 'Battle Buddy' }
+  { id: 'hearth',    name: 'Tavern Hearth' },
+  { id: 'crown',     name: "Titan's Crown"  },
+  { id: 'coliseum',  name: 'Tribe Coliseum' },
+  { id: 'warband',   name: 'Warband Front'  },
+  { id: 'voidreach', name: 'Void Reach'     },
 ] as const
 
 export type ThemeId = (typeof THEMES)[number]['id']
 
-export const DEFAULT_THEME: ThemeId = 'buddy'
+export const DEFAULT_THEME: ThemeId = 'hearth'
 
+/** Old IDs from the launcher and persisted settings — map gracefully. */
 const LEGACY_THEMES: Record<string, ThemeId> = {
-  ember: 'classic',
-  grove: 'classic',
-  arcane: 'classic',
-  tide: 'cthulhu'
+  classic: 'hearth',
+  ember:   'hearth',
+  grove:   'hearth',
+  arcane:  'hearth',
+  buddy:   'crown',
+  cthulhu: 'voidreach',
+  tide:    'voidreach',
 }
 
 export function isThemeId(value: unknown): value is ThemeId {
-  return THEMES.some((theme) => theme.id === value)
+  return THEMES.some((t) => t.id === value)
 }
 
 export function resolveTheme(value: unknown): ThemeId {

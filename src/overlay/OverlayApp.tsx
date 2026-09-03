@@ -9,13 +9,11 @@ import {
   poolWidthStyle
 } from '../core/layout'
 import { groupPoolCards, minionsForTier } from '../core/pool'
-import { formatBuffValue } from '../core/buffs'
 import { gamesToday, MAX_RECENT_GAMES } from '../core/session'
 import { normalizeName } from '../core/parser'
 import { heroHasBuddy } from '../core/cards'
 import { combatOpponentLabel } from '../ui/format'
 import { UpdateBanner } from '../ui/UpdateBanner'
-import { CardArt } from './CardArt'
 import { CombatBar } from './CombatBar'
 import { DraggablePanel } from './DraggablePanel'
 import { LastSeenOpponent } from './LastSeen'
@@ -185,25 +183,12 @@ export function OverlayApp() {
           onInteract={interact}
         >
           {showSession ? (
-            <SessionRail state={state} live={live} watching={watching} onHoverGame={setHoverGame} />
+            <SessionRail state={state} live={live} watching={watching} buffs={state.match.buffs ?? []} onHoverGame={setHoverGame} />
           ) : (
             <section className="panel session-panel">
               <p className="hint">Session stats</p>
             </section>
           )}
-          {state.match.buffs?.length ? (
-            <div className="buff-dock capture-mouse">
-              {state.match.buffs.map((buff) => (
-                <div className={`buff-tag buff-${buff.key} capture-mouse`} key={buff.key} title={buff.label}>
-                  <CardArt className="buff-art" cardId={buff.iconCardId} variant="face" hideIfMissing />
-                  <div className="buff-copy">
-                    <span>{buff.label}</span>
-                    <strong>{formatBuffValue(buff)}</strong>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
         </DraggablePanel>
       ) : null}
 

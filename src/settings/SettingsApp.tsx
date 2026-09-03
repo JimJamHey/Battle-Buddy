@@ -21,7 +21,7 @@ export function SettingsApp() {
   }, [state?.settings.battleTag])
 
   useEffect(() => {
-    document.documentElement.dataset.theme = state?.settings.theme ?? 'buddy'
+    document.documentElement.dataset.theme = state?.settings.theme ?? 'hearth'
     document.body.style.background = ''
   }, [state?.settings.theme])
 
@@ -198,11 +198,13 @@ export function SettingsApp() {
               key={theme.id}
               type="button"
               data-theme-id={theme.id}
+              data-theme-preview={theme.id}
               aria-pressed={state.settings.theme === theme.id}
               className={state.settings.theme === theme.id ? 'active' : ''}
               onClick={() => patch({ theme: theme.id })}
             >
-              {theme.name}
+              <span className="theme-swatch" aria-hidden="true" />
+              <span className="theme-label">{theme.name}</span>
             </button>
           ))}
         </div>

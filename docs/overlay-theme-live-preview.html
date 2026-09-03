@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="hearth">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BattleBuddy — Live Theme Preview</title>
+  <link rel="stylesheet" href="../src/renderer/src/styles.css" />
+  <style>
+    body { margin: 0; background: #0a1018; min-height: 100vh; }
+    .preview-page { padding: 16px; max-width: 1200px; margin: 0 auto; }
+    .preview-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .preview-tabs button {
+      border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.4);
+      color: #ccc; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+      font: 700 11px/1 system-ui; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .preview-tabs button.on { color: #fff; border-color: var(--gold); }
+    .preview-grid {
+      display: grid; grid-template-columns: 340px 1fr 340px; gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .preview-grid { grid-template-columns: 1fr; } }
+    .preview-stage {
+      background: linear-gradient(180deg, #1a2838, #0e1820 50%, #12100c);
+      border-radius: 12px; padding: 24px 12px; min-height: 720px;
+      position: relative;
+    }
+    .preview-combat { display: flex; justify-content: center; margin-bottom: 16px; }
+    .session-panel { max-height: 640px; }
+    .pool-panel { max-height: 640px; }
+    h1 { font: 750 18px/1.2 system-ui; color: #e8edf4; margin: 0 0 4px; }
+    p.note { font: 13px/1.4 system-ui; color: #8fa3bf; margin: 0 0 16px; }
+  </style>
+</head>
+<body>
+  <div class="preview-page overlay-root">
+    <h1>Live overlay themes (real CSS)</h1>
+    <p class="note">Uses the built stylesheet from the app. Switch themes to preview all five before commit.</p>
+    <div class="preview-tabs" id="tabs"></div>
+    <div class="preview-stage">
+      <div class="preview-combat">
+        <div class="combat-bar">
+          <div class="combat-side"><span class="combat-stat lethal">LETHAL <strong>12%</strong></span></div>
+          <div class="combat-center">
+            <span class="combat-stat win">WIN <strong>58%</strong></span>
+            <span class="combat-stat tie">TIE <strong>8%</strong></span>
+            <span class="combat-stat loss">LOSS <strong>22%</strong></span>
+            <span class="combat-phase">vs Patches the Pirate</span>
+          </div>
+          <div class="combat-side right"><span class="combat-stat died">ELIM <strong>4%</strong></span></div>
+        </div>
+      </div>
+      <div class="preview-grid">
+        <section class="panel session-panel capture-mouse">
+          <header class="panel-head">
+            <div class="session-head-copy"><h2>Millhouse Manastorm</h2></div>
+            <span class="chip live">Live</span>
+          </header>
+          <div class="mmr-block">
+            <p class="session-section-label">MMR</p>
+            <div class="mmr-grid">
+              <div><span>Start</span><strong>8,420</strong></div>
+              <div><span>Current</span><strong>8,547</strong></div>
+            </div>
+          </div>
+          <div class="stat-pills">
+            <span>6 games</span><span>Avg place 3.2</span><span class="delta-up">+127</span>
+          </div>
+          <div class="session-dynamic capture-mouse">
+            <div class="buff-grid">
+              <div class="buff-tag buff-gems"><div class="buff-art" style="width:40px;height:40px;border-radius:10px;background:#5a3a14"></div><div class="buff-copy"><span>Blood gems</span><strong>+4 / +4</strong></div></div>
+              <div class="buff-tag buff-elemental"><div class="buff-art" style="width:40px;height:40px;border-radius:10px;background:#1a4060"></div><div class="buff-copy"><span>Elementals</span><strong>+2 / +2</strong></div></div>
+              <div class="buff-tag buff-pirate"><div class="buff-art" style="width:40px;height:40px;border-radius:10px;background:#604020"></div><div class="buff-copy"><span>Pirates</span><strong>+3 / +2</strong></div></div>
+            </div>
+          </div>
+          <div class="session-games capture-mouse">
+            <p class="session-section-label">Latest Games</p>
+            <div class="session-games-cols"><span>Hero</span><span>Place</span><span>MMR</span></div>
+            <div class="session-game"><span class="session-game-hero"><span class="session-game-hero-name">Millhouse</span></span><span class="session-game-place place-1">1st</span><span class="session-game-delta delta-up">+42</span></div>
+            <div class="session-game"><span class="session-game-hero"><span class="session-game-hero-name">Millhouse</span></span><span class="session-game-place">3rd</span><span class="session-game-delta delta-up">+18</span></div>
+          </div>
+        </section>
+        <div></div>
+        <section class="panel pool-panel capture-mouse">
+          <header class="pool-nav no-drag">
+            <div class="pool-nav-top">
+              <p class="pool-kicker"><strong>Recruit Phase</strong><span>Tavern 5</span></p>
+            </div>
+            <div class="pool-mode-toggle"><button class="active">Pool</button><button>Strategies</button></div>
+            <div class="pool-tabs"><button class="tier-tab active">5</button><button class="tribe-tab tribe-beast">Beast</button></div>
+          </header>
+          <div class="pool-list" style="padding:8px">
+            <div class="pool-group-head tribe-beast">Beast</div>
+            <div class="pool-row"><span class="pool-row-name">Turquoise Skitterer</span><span class="pool-cost">4</span></div>
+            <div class="pool-row"><span class="pool-row-name">Ravaging Scorpid</span><span class="pool-cost">5</span></div>
+            <div class="pool-group-head tribe-murloc">Murloc</div>
+            <div class="pool-row"><span class="pool-row-name">Bassgill</span><span class="pool-cost">3</span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script>
+    const themes = ['hearth','crown','coliseum','warband','voidreach'];
+    const labels = { hearth:'Tavern Hearth', crown:"Titan's Crown", coliseum:'Tribe Coliseum', warband:'Warband Front', voidreach:'Void Reach' };
+    const tabs = document.getElementById('tabs');
+    themes.forEach((t) => {
+      const b = document.createElement('button');
+      b.textContent = labels[t];
+      b.onclick = () => {
+        document.documentElement.dataset.theme = t;
+        tabs.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+      };
+      if (t === 'hearth') b.classList.add('on');
+      tabs.appendChild(b);
+    });
+  </script>
+</body>
+</html>
