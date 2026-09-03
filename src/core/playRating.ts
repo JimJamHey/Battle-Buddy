@@ -218,13 +218,11 @@ export function resultCaptureRects(
   client: CaptureRect,
   regions?: RatingCaptureSettings
 ): CaptureRect[] {
-  if (regions) {
-    return [
-      captureRectFromPct(client, regions.results),
-      ratingCaptureRect(client, regions.play)
-    ]
-  }
-  return [ratingNumberPlaqueRect(client), ratingCaptureRect(client)]
+  const r = regions ?? DEFAULT_RATING_CAPTURE
+  return [
+    captureRectFromPct(client, r.results),
+    ratingCaptureRect(client, r.play)
+  ]
 }
 
 export function parseResultsPlacement(text: string): number | null {
