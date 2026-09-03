@@ -41,6 +41,67 @@ export const COMBAT_KITS: Record<string, KitEntry> = {
     triggers: [
       { when: 'startOfCombat', effects: [{ op: 'setHealth', health: 1, target: 'randomEnemy' }] }
     ]
+  },
+  // Diremuck Forager — highest-Attack Murloc from hand at start of combat.
+  BG27_556: {
+    triggers: [
+      {
+        when: 'startOfCombat',
+        effects: [{ op: 'summonFromHand', count: 1, tribe: 'Murloc', select: 'highestAttack' }]
+      }
+    ]
+  },
+  BG27_556_G: {
+    triggers: [
+      {
+        when: 'startOfCombat',
+        effects: [{ op: 'summonFromHand', count: 1, tribe: 'Murloc', select: 'highestAttack' }]
+      }
+    ]
+  },
+  // Piloted Whirl-O-Tron — SoC: copy the two leftmost deathrattles from the friendly board.
+  // Text: "Start of Combat: Copy your two left-most Deathrattles (except other Whirl-O-Trons)."
+  BG21_HERO_030_Buddy: {
+    triggers: [
+      { when: 'startOfCombat', effects: [{ op: 'copyLeftDeathrattles', count: 2 }] }
+    ]
+  },
+  BG21_HERO_030_Buddy_G: {
+    triggers: [
+      { when: 'startOfCombat', effects: [{ op: 'copyLeftDeathrattles', count: 4 }] }
+    ]
+  },
+  // Elementium Squirrel Bomb — DR: deal 4 damage per own Mech that died this combat.
+  // Text: "Deathrattle: Deal 4 damage to a random enemy minion for each of your Mechs that died this combat."
+  // 'damageDead' op scales by deaths at runtime; tribe='Mech' filters to Mechs only.
+  TB_BaconShop_HERO_17_Buddy: {
+    triggers: [
+      { when: 'deathrattle', effects: [{ op: 'damageDead', attack: 4, tribe: 'Mech' }] }
+    ]
+  },
+  TB_BaconShop_HERO_17_Buddy_G: {
+    triggers: [
+      { when: 'deathrattle', effects: [{ op: 'damageDead', attack: 8, tribe: 'Mech' }] }
+    ]
+  },
+  // Deflect-o-Bot — buff self when a Mech is summoned during combat.
+  BGS_071: {
+    triggers: [
+      {
+        when: 'onSummon',
+        summonTribe: 'Mech',
+        effects: [{ op: 'buff', target: 'self', attack: 2, keywords: ['divineShield'] }]
+      }
+    ]
+  },
+  BGS_071_G: {
+    triggers: [
+      {
+        when: 'onSummon',
+        summonTribe: 'Mech',
+        effects: [{ op: 'buff', target: 'self', attack: 4, keywords: ['divineShield'] }]
+      }
+    ]
   }
 }
 
@@ -79,6 +140,12 @@ export function kitCoversGap(kit: CombatKit, gap: string): boolean {
   if (gap === 'Rally') return kit.triggers.some((row) => row.when === 'rally')
   if (gap === 'Start of Combat') return kit.triggers.some((row) => row.when === 'startOfCombat')
   if (gap === 'Avenge') return kit.triggers.some((row) => row.when === 'avenge')
+  if (gap === 'On Summon') return kit.triggers.some((row) => row.when === 'onSummon')
+  if (gap === 'Copy Deathrattle') {
+    return kit.triggers.some((row) =>
+      row.effects.some((fx) => fx.op === 'copyLeftDeathrattles')
+    )
+  }
   return false
 }
 
@@ -91,5 +158,9 @@ function resolveKitEntry(cardId: string): KitEntry | undefined {
 }
 
 function sameTrigger(a: CombatTriggerSet, b: CombatTriggerSet): boolean {
-  return a.when === b.when && (a.avenge ?? null) === (b.avenge ?? null)
+  return (
+    a.when === b.when &&
+    (a.avenge ?? null) === (b.avenge ?? null) &&
+    (a.summonTribe ?? null) === (b.summonTribe ?? null)
+  )
 }

@@ -10,25 +10,33 @@ export interface OverlayPos {
   y: number
 }
 
-/** Pool panel width as a percent of the overlay viewport (18–38). */
-export interface OverlayPoolLayout extends OverlayPos {
+/** Side panel width as a percent of the overlay viewport (12–36). */
+export interface OverlaySizedPanel extends OverlayPos {
   w: number
 }
 
+/** @deprecated use OverlaySizedPanel */
+export type OverlayPoolLayout = OverlaySizedPanel
+
 export interface OverlayLayout {
-  rail: OverlayPos
+  rail: OverlaySizedPanel
   combat: OverlayPos
-  pool: OverlayPoolLayout
+  pool: OverlaySizedPanel
 }
 
-export const DEFAULT_PANEL_WIDTH = 20
+export const DEFAULT_PANEL_WIDTH = 14
 /** @deprecated use DEFAULT_PANEL_WIDTH */
 export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 
+/** Bottom inset (px) so side panels clear friends, gold, reroll, and the settings cog. */
+export const OVERLAY_SAFE_BOTTOM_PX = 100
+/** Top inset for the pool panel turn/combat header. */
+export const OVERLAY_SAFE_TOP_POOL_PX = 56
+
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
-  rail: { x: 0.55, y: 5.5 },
+  rail: { x: 0, y: 5.5, w: DEFAULT_PANEL_WIDTH },
   combat: { x: 27, y: 1.4 },
-  pool: { x: 74, y: 3.2, w: DEFAULT_PANEL_WIDTH }
+  pool: { x: 100 - DEFAULT_PANEL_WIDTH, y: 3.2, w: DEFAULT_PANEL_WIDTH }
 }
 
 /** Percent of the Hearthstone client (0–100). Used for rating OCR crops. */
@@ -265,6 +273,7 @@ export interface TrackerStatus {
   cardsError: string | null
   displayMode: OverlayDisplayMode
   ratingOcr: RatingOcrStatus
+  appDataPath: string
 }
 
 export type UpdatePhase =
@@ -312,6 +321,8 @@ export interface CombatOdds {
   opponentName: string | null
   opponentPlayerId: number | null
   partial: boolean
+  /** Human-readable gap labels, e.g. ["friendly: Deathrattle", "opponent: Summon pool (Murloc)"] */
+  partialReasons: string[]
 }
 
 export const EMPTY_COMBAT: CombatOdds = {
@@ -329,7 +340,8 @@ export const EMPTY_COMBAT: CombatOdds = {
   takenMax: 0,
   opponentName: null,
   opponentPlayerId: null,
-  partial: false
+  partial: false,
+  partialReasons: []
 }
 
 export interface BootstrapStatus {

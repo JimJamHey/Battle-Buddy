@@ -6,14 +6,16 @@ export {
   parseCardCombat,
   simulateCombat,
   enrichCombatInput,
+  collectNamedSummonNames,
   combatInputHasGaps,
+  combatGapReport,
   lookupCombatKit,
   mergeCombatKits,
   COMBAT_KITS,
   COMBAT_QUICK_SAMPLES,
   COMBAT_FULL_SAMPLES
 } from './combatSim'
-export type { CombatInput, CombatMinion, CombatResult, CombatSide, DeathrattleSummon } from './combatSim'
+export type { CombatInput, CombatMinion, CombatResult, CombatSide, DeathrattleSummon, GapReport } from './combatSim'
 export { cardArtUrls, cardFaceUrls, cardGoldenRenderUrls, cardTavernRenderUrls, boardCardUrls, cardTileUrls, cardSlug, baseCardId, poolBaseId, isTrinketCardId, heroBuddyCardId, heroHasBuddy, goldenCardId, catalogFromCardsJson, catalogHeroesFromCardsJson, catalogSummonsFromCardsJson, isBattlegroundsPoolMinion, isBattlegroundsBuddy, isBattlegroundsTrinket, toBgMinion } from './cards'
 export { isBgHeroCardId, isBaconBobHero, isPickedBgHero, looksLikeHeroName, canonicalTribe, sortTribes, tribeSlug } from './heroes'
 export { groupPoolCards, minionsForTier, filterPoolGroups, filterGroupsByMechanic, mechanicsInGroups, poolCopies, groupLabel, isTierGroupTitle, showPoolTierBubbles, relatedTribes, splitGroupsByTier, cardAvailableInLobby, tribeAvailableInLobby } from './pool'
@@ -23,8 +25,20 @@ export { ensureWindowedGraphics } from './hsOptions'
 export { indexLeaderboard, leaderboardAccountId, leaderboardUrl, matchLobby, rowsFromPage } from './mmr'
 export { applyGameMmr, applyRatingObservation, averageFinish, bindCurrentMmr, dedupeGames, emptySession, ensureToday, gamesToday, gameMmrIsSettled, hydrateGameMmr, recordFinish, MAX_RECENT_GAMES } from './session'
 export { PoolTracker } from './poolTrack'
-export { parsePlayRating, parseRatingObservation, mergeRatingObservations, isSessionTotalDelta, acceptObservedRating, battleTagDiscriminator, ratingCaptureRect, ratingCaptureRects, resultCaptureRects, captureRectFromPct, clampPctRect, sanitizeRatingCapture } from './playRating'
-export { opponentCombatCaptureRect } from './combatCapture'
+export { parsePlayRating, parseRatingObservation, mergeRatingObservations, isSessionTotalDelta, acceptObservedRating, battleTagDiscriminator, ratingCaptureRect, ratingCaptureRects, resultCaptureRects, captureRectFromPct, clampPctRect, sanitizeRatingCapture, lobbyCaptureRect } from './playRating'
+export { opponentCombatCaptureRect, friendlyHandCaptureRect, opponentHandCaptureRect } from './combatCapture'
+export { combatInputNeedsHandOcr, combatInputNeedsHandStatOcr, matchCatalogCardsFromText, mergeHandOcr, parseStatsNearCardName } from './combatHand'
+export {
+  COMBAT_TRIGGERS,
+  COMBAT_KEYWORDS,
+  UNSUPPORTED_COMBAT_MECHANICS,
+  keywordsFromText,
+  cardTextIsCombatRelevant
+} from './combatMechanics'
+export { buildSummonPools, pickRandomSummon, summonPoolHasTribe } from './combatSummonPools'
+export type { SummonPools, SummonPoolBody } from './combatSummonPools'
+export { combatCoverageReport, combatCoverageForCard } from './combatCoverage'
+export type { CoverageReport, CoverageRow } from './combatCoverage'
 export {
   strategyCandidates,
   snapshotFromCatalog,
@@ -36,19 +50,24 @@ export {
   strategyCatalog
 } from './strategy'
 export type { StrategyComp, PoolSnapshot, PoolDiff, CuratedFile } from './strategy'
+export { loadPoolSnapshot, COMMITTED_POOL_BUILD, assertCommittedPoolBuild, poolBuildNumber } from './poolSnapshot'
 export { mergeLogConfig, trackerBanner } from './logConfig'
 export { resolveLogsDirectory } from './logPaths'
-export { shouldPollRating, ratingPollMode, ratingPollIntervalMs, type RatingPollMode } from './ratingPoll'
+export { shouldPollRating, ratingPollMode, ratingPollIntervalMs, isMenuScene, shouldHideOverlayForRating, ratingMenuSynced, type RatingPollMode } from './ratingPoll'
 export {
+  clampLeftDockedPanel,
   clampOverlayPos,
-  clampPoolLayout,
+  clampPanelWidth,
   clampPoolWidth,
+  clampRightDockedPanel,
+  clampSizedPanel,
+  clampPoolLayout,
+  DEFAULT_PANEL_WIDTH,
+  dockRightX,
   mergeOverlayLayout,
   migrateOverlayLayout,
   panelWidthStyle,
-  poolWidthStyle,
-  PANEL_MAX_WIDTH_PX,
-  PANEL_REFERENCE_WIDTH_PX
+  poolWidthStyle
 } from './layout'
 export { isNewerVersion, isPrerelease } from './version'
 export { curatedStrategies } from './curated'

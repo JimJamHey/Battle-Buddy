@@ -70,7 +70,10 @@ export function SessionRail({
         ) : null}
       </div>
       {selfRating(state) == null && !state.match.spectating ? (
-        <p className="hint">Stay on the Battlegrounds Play screen so we can read Rating from the client.</p>
+        <p className="hint">Open the Battlegrounds Play screen so we can read your rating.</p>
+      ) : null}
+      {state.status.ratingOcr?.failed ? (
+        <p className="hint">Could not read rating after the last game. Check the Play screen or set it in Settings.</p>
       ) : null}
       {state.status.ratingOcr?.failed ? (
         <p className="hint">Could not read Rating after the last game. Stay on the results or Play screen, or set it in Settings.</p>

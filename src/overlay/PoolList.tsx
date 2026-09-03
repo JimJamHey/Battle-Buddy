@@ -64,19 +64,19 @@ export function PoolList({
                   key={card.id}
                   onPointerEnter={() => warmHoverCard(card)}
                 >
-                  <span className="pool-slice" aria-hidden>
-                    <CardArt
-                      className="pool-tile"
-                      cardId={card.id}
-                      name={card.name}
-                      dbfId={card.dbfId}
-                      variant="tile"
-                      hideIfMissing
-                    />
-                  </span>
                   {showTierBubble ? <span className="pool-tier">{card.techLevel}</span> : null}
                   <span className="pool-name">{card.name}</span>
                   {card.kind === 'spell' ? <span className="pool-cost">{card.cost}</span> : null}
+                  <span className="pool-art" aria-hidden>
+                    <CardArt
+                      className="pool-face"
+                      cardId={card.id}
+                      name={card.name}
+                      dbfId={card.dbfId}
+                      variant="face"
+                      hideIfMissing
+                    />
+                  </span>
                 </div>
               )
             })}

@@ -8,6 +8,16 @@ const api = {
   pickFolder: (): Promise<string | null> => ipcRenderer.invoke('pick-folder'),
   refreshLeaderboard: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('refresh-leaderboard'),
   openLogs: (): Promise<void> => ipcRenderer.invoke('open-logs'),
+  openAppData: (): Promise<void> => ipcRenderer.invoke('open-app-data'),
+  openRatingOcrFolder: (): Promise<void> => ipcRenderer.invoke('open-rating-ocr-folder'),
+  refreshRating: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('refresh-rating'),
+  onOcrCapture: (callback: (active: boolean) => void) => {
+    const listener = (_event: unknown, active: boolean) => callback(Boolean(active))
+    ipcRenderer.on('ocr-capture', listener)
+    return () => {
+      ipcRenderer.removeListener('ocr-capture', listener)
+    }
+  },
   setClickThrough: (enabled: boolean) => ipcRenderer.send('click-through', enabled),
   setTier: (tier: number) => ipcRenderer.send('set-tier', tier),
   scanRating: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('scan-rating'),

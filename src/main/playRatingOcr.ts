@@ -97,27 +97,64 @@ async function ocrImage(path: string): Promise<string> {
   return text
 }
 
+/** OCR any screen region into plain text (Windows / macOS). */
+export async function ocrCaptureText(region: CaptureRect): Promise<string> {
+  const width = Math.round(region.width)
+  const height = Math.round(region.height)
+  if (width < 40 || height < 40) return ''
+  if (process.platform === 'darwin') {
+    return macOcrRegion(region.x, region.y, width, height)
+  }
+  if (process.platform !== 'win32') return ''
+  const pixels = captureGameClientBgra(region.x, region.y, width, height)
+  if (!pixels) return ''
+  const bmp = encodeBmp32(width, height, pixels)
+  const imagePath = join(tmpdir(), `battle-buddy-ocr-${process.pid}-${Date.now()}.bmp`)
+  await writeFile(imagePath, bmp)
+  try {
+    return await ocrImage(imagePath)
+  } finally {
+    await unlink(imagePath).catch(() => undefined)
+  }
+}
+
 async function saveDebugCrop(
   debugDir: string | undefined,
   width: number,
   height: number,
-  pixels: Buffer | null
+  pixels: Buffer | null,
+  name = 'rating-ocr-debug.bmp'
 ): Promise<string | null> {
-  if (!debugDir || !pixels) return null
+  if (!debugDir) return null
   try {
     await mkdir(debugDir, { recursive: true })
-    const path = join(debugDir, 'rating-ocr-debug.bmp')
-    await writeFile(path, encodeBmp32(width, height, pixels))
+    const path = join(debugDir, name)
+    if (pixels) {
+      await writeFile(path, encodeBmp32(width, height, pixels))
+      return path
+    }
+    await writeFile(path, encodeBmp32(1, 1, Buffer.from([0, 0, 0, 255])))
     return path
   } catch {
     return null
   }
 }
 
-async function ocrRegion(
+async function saveDebugText(debugDir: string | undefined, text: string): Promise<void> {
+  if (!debugDir) return
+  try {
+    await mkdir(debugDir, { recursive: true })
+    await writeFile(join(debugDir, 'rating-ocr-last.txt'), text, 'utf8')
+  } catch {
+    // ignore
+  }
+}
+
+async function ocrRatingRegion(
   region: CaptureRect,
   allowLoneDelta = false,
   debugDir?: string,
+  debugIndex = 0,
   allowLoneRating?: boolean
 ): Promise<RatingOcrCapture> {
   const width = Math.round(region.width)
@@ -138,10 +175,9 @@ async function ocrRegion(
   if (process.platform === 'darwin') {
     const text = await macOcrRegion(region.x, region.y, width, height)
     const observation = parseRatingObservation(text, parseOpts)
-    const error =
-      !text.trim() && process.platform === 'darwin'
-        ? 'No OCR text — grant Screen Recording to BattleBuddy in System Settings'
-        : null
+    const error = !text.trim()
+      ? 'No OCR text — grant Screen Recording to BattleBuddy in System Settings'
+      : null
     return { observation, rawText: text, error, debugCropPath: null }
   }
   if (process.platform !== 'win32') {
@@ -153,8 +189,9 @@ async function ocrRegion(
     }
   }
   const pixels = captureGameClientBgra(region.x, region.y, width, height)
+  const debugName = debugIndex === 0 ? 'rating-ocr-debug.bmp' : `rating-ocr-crop-${debugIndex + 1}.bmp`
   if (!pixels) {
-    const debugCropPath = await saveDebugCrop(debugDir, width, height, null)
+    const debugCropPath = await saveDebugCrop(debugDir, width, height, null, debugName)
     return {
       observation: { rating: null, delta: null },
       rawText: '',
@@ -162,13 +199,13 @@ async function ocrRegion(
       debugCropPath
     }
   }
+  const debugCropPath = await saveDebugCrop(debugDir, width, height, pixels, debugName)
   const bmp = encodeBmp32(width, height, pixels)
   const imagePath = join(tmpdir(), `battle-buddy-rating-${process.pid}-${Date.now()}.bmp`)
   await writeFile(imagePath, bmp)
   try {
     const rawText = await ocrImage(imagePath)
     const observation = parseRatingObservation(rawText, parseOpts)
-    const debugCropPath = await saveDebugCrop(debugDir, width, height, pixels)
     return {
       observation,
       rawText,
@@ -176,7 +213,6 @@ async function ocrRegion(
       debugCropPath
     }
   } catch (err) {
-    const debugCropPath = await saveDebugCrop(debugDir, width, height, pixels)
     return {
       observation: { rating: null, delta: null },
       rawText: '',
@@ -211,19 +247,19 @@ export async function readRatingObservation(
   // Lobby mode: OCR the large bare MMR number in the BG lobby screen
   if (mode === 'lobby') {
     const region = lobbyCaptureRect(client, capture.lobby)
-    return ocrRegion(region, false, opts?.debugDir, true)
+    return ocrRatingRegion(region, false, opts?.debugDir, 0, true)
   }
   const includeResults = mode === 'results' || Boolean(opts?.includeResults)
   const regions = includeResults
     ? resultCaptureRects(client, capture)
-    : ratingCaptureRects(client, capture.play)
+    : ratingCaptureRects(client)
   const parts: RatingObservation[] = []
   let rawText = ''
   let error: string | null = null
   let debugCropPath: string | null = null
   for (const [i, region] of regions.entries()) {
-    const plaque = includeResults && i === 0
-    const captured = await ocrRegion(region, plaque, opts?.debugDir)
+    const plaque = includeResults && i < 3
+    const captured = await ocrRatingRegion(region, plaque, opts?.debugDir, i)
     if (captured.rawText) rawText = [rawText, captured.rawText].filter(Boolean).join('\n')
     if (captured.error && !error) error = captured.error
     if (captured.debugCropPath) debugCropPath = captured.debugCropPath
@@ -234,11 +270,38 @@ export async function readRatingObservation(
         observed.placement != null
           ? observed
           : { ...observed, placement: mergeRatingObservations(parts).placement }
+      if (opts?.debugDir) {
+        await saveDebugText(
+          opts.debugDir,
+          [
+            `rating: ${merged.rating ?? '—'}`,
+            `delta: ${merged.delta ?? '—'}`,
+            `error: ${error ?? '—'}`,
+            '',
+            'raw:',
+            rawText || '(empty)'
+          ].join('\n')
+        )
+      }
       return { observation: merged, rawText, error, debugCropPath }
     }
   }
+  const observation = mergeRatingObservations(parts)
+  if (opts?.debugDir) {
+    await saveDebugText(
+      opts.debugDir,
+      [
+        `rating: ${observation.rating ?? '—'}`,
+        `delta: ${observation.delta ?? '—'}`,
+        `error: ${error ?? '—'}`,
+        '',
+        'raw:',
+        rawText || '(empty)'
+      ].join('\n')
+    )
+  }
   return {
-    observation: mergeRatingObservations(parts),
+    observation,
     rawText,
     error,
     debugCropPath

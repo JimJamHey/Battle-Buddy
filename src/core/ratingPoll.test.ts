@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ratingPollIntervalMs, ratingPollMode, shouldPollRating } from './ratingPoll'
+import {
+  ratingMenuSynced,
+  ratingPollIntervalMs,
+  ratingPollMode,
+  shouldHideOverlayForRating,
+  shouldPollRating
+} from './ratingPoll'
 
 describe('ratingPoll', () => {
   const base = {
@@ -11,7 +17,8 @@ describe('ratingPoll', () => {
     placement: null,
     playedAsSelf: true,
     lastGameSettled: true,
-    hasLastGame: false
+    hasLastGame: false,
+    menuRatingSynced: false
   }
 
   it('polls on the bacon menu while idle', () => {
@@ -20,6 +27,21 @@ describe('ratingPoll', () => {
       'idle'
     )
     expect(ratingPollIntervalMs('idle')).toBe(8000)
+    expect(shouldHideOverlayForRating('idle')).toBe(false)
+    expect(shouldHideOverlayForRating('postgame')).toBe(true)
+  })
+
+  it('polls on the hub / main menu before a match starts', () => {
+    expect(shouldPollRating({ ...base, scene: 'hub' })).toBe(true)
+    expect(shouldPollRating({ ...base, scene: 'unknown' })).toBe(true)
+  })
+
+  it('stops menu polling after the rating is synced', () => {
+    expect(shouldPollRating({ ...base, menuRatingSynced: true })).toBe(false)
+    const now = Date.now()
+    expect(ratingMenuSynced(5837, 5837, now)).toBe(true)
+    expect(ratingMenuSynced(5837, 5837, null)).toBe(false)
+    expect(ratingMenuSynced(5248, 5837, now)).toBe(false)
   })
 
   it('skips mid-match shop screens', () => {
@@ -50,11 +72,6 @@ describe('ratingPoll', () => {
         lastGameSettled: false
       })
     ).toBe(true)
-  })
-
-  it('polls the Play screen before logs have a bacon scene', () => {
-    expect(shouldPollRating({ ...base, scene: 'unknown' })).toBe(true)
-    expect(shouldPollRating({ ...base, scene: 'hub' })).toBe(false)
   })
 
   it('does not poll without Hearthstone or during log catchup', () => {

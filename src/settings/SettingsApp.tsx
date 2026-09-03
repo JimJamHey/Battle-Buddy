@@ -93,12 +93,18 @@ export function SettingsApp() {
               : 'Hearthstone found \u2014 open a Battlegrounds game to start tracking'
             : 'Waiting for Hearthstone\u2026'}
         </p>
-        {state.status.needsHearthstoneRestart ? (
-          <p className="status-bad">Restart Hearthstone to apply log settings</p>
-        ) : null}
+        <p className="hint">Install: {state.status.installPath || '—'}</p>
+        <p className="hint">
+          Live tracking: {state.status.logsLive ? 'yes' : 'no'}
+          {state.status.needsHearthstoneRestart ? ' — restart Hearthstone' : ''}
+        </p>
+        {state.status.cardsError ? <p className="status-bad">{state.status.cardsError}</p> : null}
         {state.status.banner ? <p className="status-bad">{state.status.banner}</p> : null}
         {state.status.lastError ? <p className="status-bad">{state.status.lastError}</p> : null}
         <div className="row" style={{ marginTop: 10 }}>
+          <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshLeaderboard()}>
+            Refresh leaderboard
+          </button>
           <button className="ghost danger" type="button" onClick={() => window.battleBuddy.quit()}>
             Quit BattleBuddy
           </button>
@@ -110,8 +116,8 @@ export function SettingsApp() {
         <h2>Updates</h2>
         <p className="hint">
           {checking
-            ? 'Checking for updates\u2026'
-            : `You\u2019re on v${state.update.currentVersion}.`}
+            ? 'Checking GitHub…'
+            : `Installed version v${state.update.currentVersion}.`}
         </p>
         <div className="row" style={{ marginTop: 10 }}>
           <button
@@ -160,7 +166,7 @@ export function SettingsApp() {
           />
         </label>
         <label className="toggle">
-          <span>Unlock overlay (drag panels)</span>
+          <span>Unlock combat bar position</span>
           <input
             type="checkbox"
             checked={state.settings.layoutUnlocked}
@@ -168,12 +174,12 @@ export function SettingsApp() {
           />
         </label>
         <p className="hint">
-          Drag panels anywhere on screen. Resize the minion pool from its bottom-right corner.
-          Panels scale down on 1080p. (Ctrl+Shift+L toggles this too.)
+          Session stats on the left, minion pool on the right. Drag the inner edge of a panel to
+          resize it. Unlock layout to reposition the combat bar (Ctrl+Shift+L).
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>
-            Reset layout
+            Reset panel widths
           </button>
         </div>
         <label htmlFor="opacity">Opacity ({state.settings.overlayOpacity}%)</label>
@@ -248,9 +254,24 @@ export function SettingsApp() {
           }}
         />
         <p className="hint">
-          If you\u2019re not on the leaderboard, enter your rating here so the session tracker can
-          show your +/\u2212 each game.
+          Used to match your games on the leaderboard. Your rating is read from the number under the
+          pink Rating label on the Battlegrounds Play screen.
         </p>
+        <div className="row" style={{ marginTop: 4 }}>
+          <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshRating()}>
+            Read rating from screen
+          </button>
+        </div>
+        {state.status.ratingOcr.at ? (
+          <p className="hint">
+            Last read:{' '}
+            {state.status.ratingOcr.rating != null
+              ? state.status.ratingOcr.rating.toLocaleString('en-US')
+              : 'no number found'}
+          </p>
+        ) : (
+          <p className="hint">Open the Battlegrounds Play screen, then use Read rating from screen.</p>
+        )}
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
           <input id="path" type="text" value={state.settings.hearthstonePath} readOnly />
@@ -265,11 +286,11 @@ export function SettingsApp() {
             Browse
           </button>
         </div>
-        {state.status.cardsError ? (
-          <p className="status-bad" style={{ marginTop: 8 }}>
-            Minion catalog failed to load: {state.status.cardsError}
-          </p>
-        ) : null}
+        <p className="hint">
+          {state.status.cardsError
+            ? `Minion catalog failed to load: ${state.status.cardsError}`
+            : 'Click tavern tiers 1–7 in the pool to peek other tiers.'}
+        </p>
       </section>
 
       <section className="card">

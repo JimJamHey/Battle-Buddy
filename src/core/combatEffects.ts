@@ -1,4 +1,6 @@
 /** Combat text stripped of HSXML. */
+import { keywordsFromText, unsupportedMechanicsInText } from './combatMechanics'
+
 export function plainCardText(text: string): string {
   return text
     .replace(/<[^>]+>/g, ' ')
@@ -18,10 +20,17 @@ const COUNT_WORDS: Record<string, number> = {
   six: 6
 }
 
-export type CombatTrigger = 'deathrattle' | 'avenge' | 'rally' | 'startOfCombat' | 'afterKill'
+export type CombatTrigger =
+  | 'deathrattle'
+  | 'avenge'
+  | 'rally'
+  | 'startOfCombat'
+  | 'afterKill'
+  | 'onSummon'
 
 export type CombatOp =
   | 'summon'
+  | 'summonRandom'
   | 'buff'
   | 'damage'
   | 'destroyKiller'
@@ -35,6 +44,8 @@ export type CombatOp =
   | 'shinyRing'
   | 'summonFromHand'
   | 'setHealth'
+  | 'copyLeftDeathrattles'
+  | 'damageDead'
 
 export type CombatTarget =
   | 'self'
@@ -49,6 +60,8 @@ export type CombatTarget =
   | 'leftMost'
   | 'tribe'
 
+export type HandSelect = 'random' | 'highestAttack' | 'leftmost'
+
 export interface CombatEffect {
   op: CombatOp
   count?: number
@@ -58,11 +71,15 @@ export interface CombatEffect {
   target?: CombatTarget
   tribe?: string
   name?: string
+  requiresSpace?: boolean
+  select?: HandSelect
 }
 
 export interface CombatTriggerSet {
   when: CombatTrigger
   avenge?: number
+  /** Tribe filter for `onSummon` listeners (e.g. Mech). */
+  summonTribe?: string
   effects: CombatEffect[]
 }
 
@@ -81,15 +98,7 @@ function countWord(raw: string): number {
 }
 
 function keywordsIn(blob: string): string[] {
-  const found: string[] = []
-  if (/divine shield/i.test(blob)) found.push('divineShield')
-  if (/\btaunt\b/i.test(blob)) found.push('taunt')
-  if (/\breborn\b/i.test(blob)) found.push('reborn')
-  if (/\bvenomous\b/i.test(blob)) found.push('venomous')
-  if (/\bpoisonous\b/i.test(blob)) found.push('poisonous')
-  if (/\bwindfury\b/i.test(blob)) found.push('windfury')
-  if (/\bstealth\b/i.test(blob)) found.push('stealth')
-  return found
+  return keywordsFromText(blob)
 }
 
 function tribeIn(blob: string): string | undefined {
@@ -123,6 +132,15 @@ function targetFrom(blob: string): CombatTarget {
 function parseSummon(clause: string): CombatEffect | null {
   if (!/summon/i.test(clause)) return null
   if (/\bcopy of\b/i.test(clause)) return null
+  const random = clause.match(
+    /summon(?:s)?\s+(\d+|a|an|one|two|three|four|five|six)?\s*random\s+(\w+)/i
+  )
+  if (random) {
+    const tribe = tribeIn(random[2] || clause)
+    if (tribe) {
+      return { op: 'summonRandom', count: countWord(random[1] ?? 'a'), tribe }
+    }
+  }
   const stats = clause.match(
     /summon(?:s)?\s+(\d+|a|an|one|two|three|four|five|six)\s+(?:[^./]{0,48}?)(\d+)\s*\/\s*(\d+)/i
   )
@@ -164,6 +182,18 @@ function parseSummon(clause: string): CombatEffect | null {
 }
 
 function parseBuff(clause: string): CombatEffect | null {
+  const atkAndKeyword = clause.match(
+    /gain \+(\d+) attack and (divine shield|reborn|taunt|venomous|poisonous|windfury)/i
+  )
+  if (atkAndKeyword) {
+    return {
+      op: 'buff',
+      attack: Number(atkAndKeyword[1]),
+      health: 0,
+      target: 'self',
+      keywords: keywordsIn(atkAndKeyword[2])
+    }
+  }
   const buff = clause.match(/\+(\d+)\s*\/\s*\+(\d+)/)
   if (!buff) {
     const atkOnly = clause.match(/gain \+(\d+) attack/i) || clause.match(/have \+(\d+) attack/i)
@@ -209,6 +239,21 @@ function parseDamage(clause: string): CombatEffect | null {
   }
 }
 
+function parseSummonFromHand(clause: string): CombatEffect {
+  const tribe = tribeIn(clause)
+  let select: HandSelect = 'random'
+  if (/highest-?attack/i.test(clause)) select = 'highestAttack'
+  else if (/left-?most/i.test(clause)) select = 'leftmost'
+  const countMatch = clause.match(/summon(?:s)?\s+(\d+|a|an|one|two|three|four|five|six)/i)
+  return {
+    op: 'summonFromHand',
+    count: countMatch ? countWord(countMatch[1]) : 1,
+    tribe,
+    select,
+    requiresSpace: /when you have space/i.test(clause)
+  }
+}
+
 function parseClause(clause: string): CombatEffect[] {
   const text = clause.trim()
   if (!text) return []
@@ -237,7 +282,7 @@ function parseClause(clause: string): CombatEffect[] {
   if (/give a different friendly \w+ reborn/i.test(text)) {
     return [{ op: 'giveKeyword', target: 'otherFriendly', keywords: ['reborn'], tribe: tribeIn(text) }]
   }
-  if (/summon(?:s)? .* from your hand/i.test(text)) return [{ op: 'summonFromHand', count: 1 }]
+  if (/summon(?:s)? .* from your hand/i.test(text)) return [parseSummonFromHand(text)]
   const summon = parseSummon(text)
   const damage = parseDamage(text)
   const buff = parseBuff(text)
@@ -305,6 +350,16 @@ export function parseCardCombat(text: string): CombatKit {
       effects: [{ op: 'damage', count: -2, target: 'adjacentEnemy' }]
     })
   }
+  const wheneverSummon = raw.match(
+    /whenever you summon (?:a |an )?(\w+)\s+during combat,?\s*(.+?)(?=(?:whenever|rally|deathrattle|start of combat|avenge|$))/i
+  )
+  if (wheneverSummon) {
+    const set = parseTriggered('onSummon', wheneverSummon[2])
+    if (set) {
+      set.summonTribe = tribeIn(`summon a ${wheneverSummon[1]}`)
+      triggers.push(set)
+    }
+  }
   return {
     triggers,
     extraDeathrattles,
@@ -347,30 +402,36 @@ export function combatParseGaps(text: string, mechanics: string[] = []): string[
     gaps.push('Start of Combat')
   }
   if ((/\bavenge\s*\(/i.test(raw) || mech('Avenge')) && !has('avenge')) gaps.push('Avenge')
+  if (/whenever you summon .+ during combat/i.test(raw) && !has('onSummon')) gaps.push('On Summon')
+  if (
+    /during combat/i.test(raw) &&
+    !/whenever you summon/i.test(raw) &&
+    !has('onSummon') &&
+    !has('rally') &&
+    !has('deathrattle') &&
+    !has('startOfCombat') &&
+    !has('avenge')
+  ) {
+    gaps.push('During Combat')
+  }
   for (const kind of ['deathrattle', 'rally', 'startOfCombat', 'avenge'] as const) {
     const body = triggerBody(raw, kind)
     if (body && has(kind) && bodyHasUnparsed(body)) gaps.push('Unparsed')
   }
   const blob = `${raw} ${mechanics.join(' ')}`
-  if (/\bfrenzy\b/i.test(blob)) gaps.push('Frenzy')
-  if (/\bmagnetic\b/i.test(blob)) gaps.push('Magnetic')
-  if (/\bspellcraft\b/i.test(blob)) gaps.push('Spellcraft')
-  if (/\bactivate\b/i.test(blob)) gaps.push('Activate')
-  if (/end of (?:your )?turn/i.test(blob)) gaps.push('End of Turn')
-  if (/copy.{0,40}deathrattle|gains?.{0,24}(?:a copy of |the )?deathrattle/i.test(blob)) {
-    gaps.push('Copy Deathrattle')
+  if (/summon(?:s)? a random\b/i.test(blob) && !kit.triggers.some((row) => row.effects.some((fx) => fx.op === 'summonRandom'))) {
+    gaps.push('Random summon')
   }
-  if (/summon(?:s)? a random\b/i.test(blob)) gaps.push('Random summon')
   const combatBlob = [
     triggerBody(raw, 'deathrattle'),
     triggerBody(raw, 'rally'),
     triggerBody(raw, 'startOfCombat'),
-    triggerBody(raw, 'avenge')
+    triggerBody(raw, 'avenge'),
+    raw.match(/whenever you summon .+ during combat,?\s*(.+)/i)?.[1] ?? ''
   ]
     .filter(Boolean)
     .join(' ')
-  if (/\bthis game\b/i.test(combatBlob)) gaps.push('This game')
-  if (/\bfor each\b/i.test(combatBlob)) gaps.push('Scaled')
+  gaps.push(...unsupportedMechanicsInText(blob, combatBlob))
   return [...new Set(gaps)]
 }
 

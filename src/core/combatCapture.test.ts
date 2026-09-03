@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { opponentCombatCaptureRect } from './combatCapture'
+import { friendlyHandCaptureRect, opponentCombatCaptureRect, opponentHandCaptureRect } from './combatCapture'
 
 describe('opponentCombatCaptureRect', () => {
   it('crops the upper combat board and stays above your minions', () => {
@@ -11,5 +11,12 @@ describe('opponentCombatCaptureRect', () => {
     expect(region.height).toBe(Math.round(1080 * 0.3))
     expect(region.y + region.height).toBeLessThan(20 + Math.round(1080 * 0.52))
     expect(region.x + region.width).toBeLessThanOrEqual(40 + 1920)
+  })
+})
+
+describe('opponentHandCaptureRect', () => {
+  it('sits above the friendly hand strip', () => {
+    const client = { x: 0, y: 0, width: 1920, height: 1080 }
+    expect(opponentHandCaptureRect(client).y).toBeLessThan(friendlyHandCaptureRect(client).y)
   })
 })

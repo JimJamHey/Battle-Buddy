@@ -4,7 +4,7 @@ import { parseCreating, parseEntityRef, parseNestedTag, parseTagChangeLine, pars
 import { cardTypeName, isTruthyTag, zoneName } from './tags'
 import type { CombatInput, CombatMinion, CombatSide } from './combatSim'
 
-export type CombatEvent = 'start' | 'end' | null
+export type CombatEvent = 'start' | 'update' | 'end' | null
 
 export interface TrackedEntity {
   id: number
@@ -69,6 +69,9 @@ export class BoardTracker {
   private opponentLobbyId: number | null = null
   private opponentName: string | null = null
   private pending = false
+  private snapshotLocked = false
+  private handKeyAtLock = ''
+  private boardKeyAtLock = ''
   private detectedHandPlayer: number | null = null
 
   reset(): void {
@@ -80,7 +83,14 @@ export class BoardTracker {
     this.opponentLobbyId = null
     this.opponentName = null
     this.pending = false
+    this.snapshotLocked = false
+    this.handKeyAtLock = ''
+    this.boardKeyAtLock = ''
     this.detectedHandPlayer = null
+  }
+
+  isSnapshotLocked(): boolean {
+    return this.snapshotLocked
   }
 
   getDetectedHandPlayer(): number | null {
@@ -163,26 +173,18 @@ export class BoardTracker {
       this.noteHand(this.ensure(this.lastId))
     }
 
-    if (/BLOCK_START\s+BlockType=ATTACK/i.test(payload) && this.inCombat && this.pending) {
+    if (/BLOCK_START\s+BlockType=ATTACK/i.test(payload) && this.inCombat) {
+      const firstLock = !this.snapshotLocked
+      this.snapshotLocked = true
       this.freeze(friendlyPlayerId, playerName)
+      this.handKeyAtLock = this.handTrinketKey(friendlyPlayerId, playerName)
+      this.boardKeyAtLock = this.boardKey(friendlyPlayerId, playerName)
       this.pending = false
-      event = event ?? 'start'
+      return firstLock ? 'start' : null
     }
 
-    if (this.pending && this.inCombat && this.boardsLookReady(friendlyPlayerId)) {
-      this.freeze(friendlyPlayerId, playerName)
-      this.pending = false
-      event = event ?? 'start'
-    }
-
-    if (
-      this.inCombat &&
-      this.frozen &&
-      this.incompleteFreeze() &&
-      this.boardsLookReady(friendlyPlayerId)
-    ) {
-      this.freeze(friendlyPlayerId, playerName)
-      event = event ?? 'start'
+    if (this.inCombat && (this.pending || this.canUpgradeSnapshot(friendlyPlayerId, playerName))) {
+      event = this.refreshFreezeIfChanged(friendlyPlayerId, playerName) ?? event
     }
 
     return event
@@ -229,6 +231,9 @@ export class BoardTracker {
       } else if (!on && this.inCombat && fromTaskList) {
         this.inCombat = false
         this.pending = false
+        this.snapshotLocked = false
+        this.handKeyAtLock = ''
+        this.boardKeyAtLock = ''
         this.frozen = null
         this.opponentPlayerId = null
         this.opponentLobbyId = null
@@ -239,12 +244,10 @@ export class BoardTracker {
     if (tag === 'STEP' && /COMBAT/i.test(value) && !this.inCombat) {
       this.inCombat = true
       this.pending = true
+      this.snapshotLocked = false
+      this.handKeyAtLock = ''
+      this.boardKeyAtLock = ''
       this.frozen = null
-    }
-    if (this.pending && this.inCombat && this.boardsLookReady(friendlyPlayerId)) {
-      this.freeze(friendlyPlayerId, playerName)
-      this.pending = false
-      return 'start'
     }
     return null
   }
@@ -258,6 +261,98 @@ export class BoardTracker {
   private incompleteFreeze(): boolean {
     if (!this.frozen) return false
     return this.frozen.friendly.minions.length === 0 || this.frozen.opponent.minions.length === 0
+  }
+
+  /** After lock: upgrade empty boards or when hand/trinket log lines arrive. */
+  private canUpgradeSnapshot(
+    friendlyPlayerId: number | null,
+    playerName: (id: number) => string
+  ): boolean {
+    if (!this.frozen) return false
+    if (!this.snapshotLocked) return true
+    if (this.incompleteFreeze()) return true
+    if (this.handTrinketKey(friendlyPlayerId, playerName) !== this.handKeyAtLock) return true
+    return this.boardKey(friendlyPlayerId, playerName) !== this.boardKeyAtLock
+  }
+
+  private boardKey(friendlyPlayerId: number | null, playerName: (id: number) => string): string {
+    const { self, opp } = this.combatSides(friendlyPlayerId)
+    if (self == null || opp == null) return ''
+    const displayId = this.opponentLobbyId ?? this.opponentPlayerId ?? opp
+    const named = this.opponentName && !/^(lady deathwhisper|kel'?thuzad|bob)$/i.test(this.opponentName)
+      ? this.opponentName
+      : null
+    const oppName = named || playerName(displayId)
+    const row = (m: CombatMinion) =>
+      [
+        m.cardId,
+        m.attack,
+        m.health,
+        m.taunt,
+        m.divineShield,
+        m.poisonous,
+        m.venomous,
+        m.reborn,
+        m.windfury,
+        m.deathrattle
+      ].join(':')
+    const pack = (side: CombatSide) => side.minions.map(row)
+    return JSON.stringify({
+      friendly: pack(this.side(self, playerName(friendlyPlayerId ?? self))),
+      opponent: pack({ ...this.side(opp, oppName), playerId: displayId })
+    })
+  }
+
+  private handTrinketKey(
+    friendlyPlayerId: number | null,
+    playerName: (id: number) => string
+  ): string {
+    const { self, opp } = this.combatSides(friendlyPlayerId)
+    if (self == null || opp == null) return ''
+    const displayId = this.opponentLobbyId ?? this.opponentPlayerId ?? opp
+    const named = this.opponentName && !/^(lady deathwhisper|kel'?thuzad|bob)$/i.test(this.opponentName)
+      ? this.opponentName
+      : null
+    const oppName = named || playerName(displayId)
+    const pack = (side: CombatSide) => ({
+      hand: (side.hand ?? []).map((m) => `${m.cardId}:${m.attack}/${m.health}`),
+      trinkets: (side.trinkets ?? []).map((m) => `${m.cardId}:${m.attack}/${m.health}`)
+    })
+    return JSON.stringify({
+      friendly: pack(this.side(self, playerName(friendlyPlayerId ?? self))),
+      opponent: pack({ ...this.side(opp, oppName), playerId: displayId })
+    })
+  }
+
+  private snapshotKey(input: CombatInput): string {
+    return JSON.stringify(input)
+  }
+
+  private refreshFreezeIfChanged(
+    friendlyPlayerId: number | null,
+    playerName: (id: number) => string
+  ): CombatEvent | null {
+    if (!this.boardsLookReady(friendlyPlayerId)) return null
+    const { self, opp } = this.combatSides(friendlyPlayerId)
+    if (self == null || opp == null || self === opp) return null
+    const displayId = this.opponentLobbyId ?? this.opponentPlayerId ?? opp
+    const named = this.opponentName && !/^(lady deathwhisper|kel'?thuzad|bob)$/i.test(this.opponentName)
+      ? this.opponentName
+      : null
+    const name = named || playerName(displayId)
+    const next: CombatInput = {
+      friendly: this.side(self, playerName(friendlyPlayerId ?? self)),
+      opponent: { ...this.side(opp, name), playerId: displayId }
+    }
+    const key = this.snapshotKey(next)
+    if (this.frozen && this.snapshotKey(this.frozen) === key) return null
+    const first = !this.frozen
+    this.frozen = next
+    if (this.snapshotLocked) {
+      this.handKeyAtLock = this.handTrinketKey(friendlyPlayerId, playerName)
+      this.boardKeyAtLock = this.boardKey(friendlyPlayerId, playerName)
+    }
+    return first ? 'start' : 'update'
   }
 
   private fillSideNames(side: CombatSide, byCardId?: Map<string, string>): CombatSide {

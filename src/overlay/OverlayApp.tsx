@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { DEFAULT_OVERLAY_LAYOUT, DEFAULT_RATING_CAPTURE, OVERLAY_SAFE_BOTTOM_PX, OVERLAY_SAFE_TOP_POOL_PX, type OverlayLayout, type OverlayPos, type OverlaySnapshot, type RatingCaptureSettings } from '../core/types'
 import {
-  DEFAULT_OVERLAY_LAYOUT,
-  DEFAULT_PANEL_WIDTH,
-  DEFAULT_RATING_CAPTURE,
-  type OverlayLayout,
-  type OverlayPos,
-  type OverlaySnapshot,
-  type RatingCaptureSettings
-} from '../core/types'
-import { clampPoolWidth, panelWidthStyle, poolWidthStyle } from '../core/layout'
+  clampLeftDockedPanel,
+  clampPanelWidth,
+  clampRightDockedPanel,
+  panelWidthStyle,
+  poolWidthStyle
+} from '../core/layout'
 import { groupPoolCards, minionsForTier } from '../core/pool'
 import { formatBuffValue } from '../core/buffs'
 import { gamesToday, MAX_RECENT_GAMES } from '../core/session'
@@ -33,6 +31,9 @@ export function OverlayApp() {
   const [capture, setCapture] = useState<RatingCaptureSettings>(DEFAULT_RATING_CAPTURE)
   const dragging = useRef(false)
   const [hoverGame, setHoverGame] = useState<number | null>(null)
+  const [ocrCapture, setOcrCapture] = useState(false)
+
+  useEffect(() => window.battleBuddy.onOcrCapture(setOcrCapture), [])
 
   useEffect(() => {
     void window.battleBuddy.getState().then(setState)
@@ -93,14 +94,14 @@ export function OverlayApp() {
     window.battleBuddy.setClickThrough(!inside)
   }
 
-  const movePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
+  const movePanel = (key: 'combat', pos: OverlayPos) => {
     dragging.current = true
     setLayout((prev) => {
       if (key === 'pool') return { ...prev, pool: { ...prev.pool, ...pos } }
       return { ...prev, [key]: pos }
     })
   }
-  const savePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
+  const savePanel = (key: 'combat', pos: OverlayPos) => {
     setLayout((prev) => {
       const next =
         key === 'pool' ? { ...prev, pool: { ...prev.pool, ...pos } } : { ...prev, [key]: pos }
@@ -110,13 +111,21 @@ export function OverlayApp() {
       return next
     })
   }
-  const resizePool = (widthPct: number) => {
+  const resizePanel = (key: 'pool' | 'rail', widthPct: number) => {
     dragging.current = true
-    setLayout((prev) => ({ ...prev, pool: { ...prev.pool, w: clampPoolWidth(widthPct) } }))
+    const w = clampPanelWidth(widthPct)
+    setLayout((prev) => ({
+      ...prev,
+      [key]: key === 'rail' ? clampLeftDockedPanel({ ...prev.rail, w }) : clampRightDockedPanel({ ...prev.pool, w })
+    }))
   }
-  const savePoolWidth = (widthPct: number) => {
+  const savePanelWidth = (key: 'pool' | 'rail', widthPct: number) => {
     setLayout((prev) => {
-      const next = { ...prev, pool: { ...prev.pool, w: clampPoolWidth(widthPct) } }
+      const w = clampPanelWidth(widthPct)
+      const next = {
+        ...prev,
+        [key]: key === 'rail' ? clampLeftDockedPanel({ ...prev.rail, w }) : clampRightDockedPanel({ ...prev.pool, w })
+      }
       void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
         dragging.current = false
       })
@@ -126,8 +135,12 @@ export function OverlayApp() {
 
   return (
     <div
-      className={`overlay-root ${unlocked ? 'unlocked' : ''}`}
-      style={{ opacity: state.settings.overlayOpacity / 100 }}
+      className={`overlay-root ${unlocked ? 'unlocked' : ''} ${live ? 'live-match' : 'menu-idle'} ${ocrCapture ? 'ocr-capture' : ''}`}
+      style={{
+        opacity: state.settings.overlayOpacity / 100,
+        ['--overlay-safe-bottom' as string]: `${OVERLAY_SAFE_BOTTOM_PX}px`,
+        ['--overlay-safe-top-pool' as string]: `${OVERLAY_SAFE_TOP_POOL_PX}px`
+      }}
     >
       <div className="toast-stack">
         <UpdateBanner update={state.update} compact />
@@ -135,7 +148,7 @@ export function OverlayApp() {
       </div>
       {unlocked ? (
         <div className="layout-hint interactive capture-mouse" role="status">
-          Drag a panel to place it · drag the pool corner to resize · Ctrl+Shift+L to lock
+          Drag combat odds to place · drag inner edge to resize · Ctrl+Shift+L to lock
         </div>
       ) : null}
 
@@ -179,7 +192,7 @@ export function OverlayApp() {
           ) : live && (state.match.heroName || state.match.heroCardId) ? (
             <div className="combat-bar waiting">Waiting for combat</div>
           ) : (
-            <div className="combat-bar placeholder">Combat odds — drag to place</div>
+            <div className="combat-bar placeholder">Combat odds — unlock layout to reposition</div>
           )}
           {showLastShot && state.lastOpponentShot ? (
             <LastSeenOpponent shot={state.lastOpponentShot} />
@@ -189,19 +202,26 @@ export function OverlayApp() {
 
       {showSession || unlocked ? (
         <DraggablePanel
-          className="rail"
+          className="rail sized"
+          dockClassName="rail-dock"
           pos={layout.rail}
+          anchor="left"
+          draggable={false}
           unlocked={unlocked}
-          width={panelWidthStyle(DEFAULT_PANEL_WIDTH)}
-          onMove={(pos) => movePanel('rail', pos)}
-          onMoveEnd={(pos) => savePanel('rail', pos)}
+          width={panelWidthStyle(layout.rail.w)}
+          panelWidthPct={layout.rail.w}
+          resizable
+          resizeWhenLocked
+          resizeEdge="inner"
+          onResize={(widthPct) => resizePanel('rail', widthPct)}
+          onResizeEnd={(widthPct) => savePanelWidth('rail', widthPct)}
           onInteract={interact}
         >
           {showSession ? (
             <SessionRail state={state} live={live} watching={watching} onHoverGame={setHoverGame} />
           ) : (
             <section className="panel session-panel">
-              <p className="hint">Session — drag Move to place</p>
+              <p className="hint">Session stats</p>
             </section>
           )}
           {state.match.buffs?.length ? (
@@ -221,16 +241,19 @@ export function OverlayApp() {
       ) : null}
 
       <DraggablePanel
-        className="pool"
+        className="pool sized"
+        dockClassName="pool-dock"
         pos={layout.pool}
+        anchor="right"
+        draggable={false}
         unlocked={unlocked}
         width={poolWidthStyle(layout.pool.w)}
         panelWidthPct={layout.pool.w}
         resizable
-        onMove={(pos) => movePanel('pool', pos)}
-        onMoveEnd={(pos) => savePanel('pool', pos)}
-        onResize={resizePool}
-        onResizeEnd={savePoolWidth}
+        resizeWhenLocked
+        resizeEdge="inner"
+        onResize={(widthPct) => resizePanel('pool', widthPct)}
+        onResizeEnd={(widthPct) => savePanelWidth('pool', widthPct)}
         onInteract={interact}
       >
         {state.minions.length ? (

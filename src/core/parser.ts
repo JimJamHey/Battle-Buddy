@@ -227,6 +227,10 @@ export class BattlegroundsParser {
     }
   }
 
+  isCombatSnapshotLocked(): boolean {
+    return this.boards.isSnapshotLocked()
+  }
+
   getFriendlyBoard(): SeenMinion[] {
     const pid = this.match.friendlyPlayerId
     if (pid == null) return []

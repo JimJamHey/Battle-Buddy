@@ -90,7 +90,10 @@ export function parseTagChangeLine(line: string): TagChangeHit | null {
   const namedMatch = bracketInner ? null : line.match(/Entity=(.+?)\s+tag=/i)
   const playerMatch = line.match(/\bplayer=(\d+)/i)
   const idMatch = (bracketInner ?? line).match(/\bid=(\d+)/i)
-  const entityId = idMatch ? Number(idMatch[1]) : undefined
+  let entityId = idMatch ? Number(idMatch[1]) : undefined
+  if (!entityId && namedMatch && /^\d+$/.test(namedMatch[1].trim())) {
+    entityId = Number(namedMatch[1].trim())
+  }
   const entityName = namedMatch?.[1]?.trim() || parseEntityName(bracketInner ?? line)
   const playerId = playerMatch ? Number(playerMatch[1]) : undefined
   return {

@@ -38,10 +38,17 @@ import {
   shouldPollRating,
   ratingPollMode,
   ratingPollIntervalMs,
+  isMenuScene,
+  shouldHideOverlayForRating,
+  ratingMenuSynced,
   isEndGameDisconnect,
   simulateCombat,
   enrichCombatInput,
   combatInputHasGaps,
+  combatGapReport,
+  combatInputNeedsHandOcr,
+  combatInputNeedsHandStatOcr,
+  mergeHandOcr,
   COMBAT_QUICK_SAMPLES,
   COMBAT_FULL_SAMPLES,
   strategyCatalog,
@@ -79,7 +86,9 @@ import { createGameHost, pinOverlayToGame, followGameWindow, isOverlayForeground
 import { detectBattleNetRegion } from '../platform/battleNet'
 import { loadCardCatalog, readCachedCardCatalog } from './cards'
 import { appIcon } from './icon'
+import { buildSummonPools } from '../core/combatSummonPools'
 import { captureOpponentBoardDataUrl } from './combatShot'
+import { readCombatHandsFromScreen } from './combatOcr'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
 import { LogTailer } from './logTailer'
 import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
@@ -103,6 +112,7 @@ let summons: Record<string, { attack: number; health: number; count: number }> =
 let combat: CombatOdds = { ...EMPTY_COMBAT }
 let lastCombatKey = ''
 let simGen = 0
+let combatSnapshotFlight: Promise<void> = Promise.resolve()
 let lastBoards: SeenBoard[] = []
 let lastOpponentShot: OpponentCombatShot | null = null
 let lastFriendlyBoard: SeenMinion[] = []
@@ -249,7 +259,8 @@ function status(): TrackerStatus {
     cardCount: minions.length,
     cardsError: minions.length ? null : lastError,
     displayMode,
-    ratingOcr: { ...ratingOcr, failed: ratingOcrFailed }
+    ratingOcr: { ...ratingOcr, failed: ratingOcrFailed },
+    appDataPath: userData()
   }
 }
 
@@ -290,6 +301,7 @@ function noteObservedRating(
   observation: { rating: number | null; delta: number | null },
   opts?: { settled?: boolean }
 ): void {
+  const onMenu = !match.gameActive && isMenuScene(currentScene)
   let rating = observation.rating
   let delta = observation.delta
   if (awaitingPostGameMmr && rating == null && delta != null) {
@@ -308,12 +320,14 @@ function noteObservedRating(
     }
   }
   observation = { rating, delta }
+  const previousRating = settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null
   if (
     rating != null &&
+    !(onMenu && rating >= 1000 && rating <= 30000) &&
     !acceptObservedRating(rating, {
-      previous: settings.currentMmr ?? session.games.at(-1)?.mmrAfter ?? null,
+      previous: previousRating,
       battleTag: settings.battleTag,
-      resync: !match.gameActive || awaitingPostGameMmr
+      resync: onMenu || awaitingPostGameMmr
     })
   ) {
     rating = null
@@ -336,6 +350,10 @@ function noteObservedRating(
   if (rating != null && settings.currentMmr !== rating) {
     settings = { ...settings, currentMmr: rating }
     void saveSettings(userData(), settings)
+    changed = true
+  }
+  if (rating != null && !match.gameActive && gamesToday(session).length === 0 && session.startMmr !== rating) {
+    session = { ...session, startMmr: rating }
     changed = true
   }
   const next = applyRatingObservation(session, observation, opts)
@@ -383,7 +401,8 @@ function ratingPollContext() {
     placement: match.placement,
     playedAsSelf,
     lastGameSettled: last ? gameMmrIsSettled(last) : true,
-    hasLastGame: Boolean(last)
+    hasLastGame: Boolean(last),
+    menuRatingSynced: ratingMenuSynced(settings.currentMmr, ratingOcr.rating, ratingOcr.at)
   }
 }
 
@@ -402,23 +421,28 @@ function noteRatingOcrCapture(
   }
 }
 
-function pollPlayRating(force = false): Promise<void> {
-  const run = () => pollPlayRatingBody(force)
-  const task = playRatingTail.then(run, run)
-  playRatingTail = task.then(() => undefined, () => undefined)
-  return task
+async function withOverlayHiddenForOcr<T>(
+  hideOverlay: boolean,
+  hidePool: boolean,
+  fn: () => Promise<T>
+): Promise<T> {
+  const win = overlayWindow
+  const wasVisible = Boolean(win && !win.isDestroyed() && win.isVisible())
+  try {
+    if (hideOverlay && wasVisible && win && !win.isDestroyed()) win.hide()
+    else if (hidePool && win && !win.isDestroyed()) {
+      win.webContents.send('ocr-capture', true)
+      await new Promise((resolve) => setTimeout(resolve, 48))
+    }
+    return await fn()
+  } finally {
+    if (hidePool && win && !win.isDestroyed()) win.webContents.send('ocr-capture', false)
+    if (hideOverlay && wasVisible && win && !win.isDestroyed()) win.showInactive()
+  }
 }
 
-async function pollPlayRatingBody(force = false): Promise<void> {
-  if (process.platform !== 'win32' && process.platform !== 'darwin') {
-    ratingOcr = {
-      ...EMPTY_RATING_OCR,
-      at: Date.now(),
-      error: 'Rating OCR is only supported on Windows and macOS'
-    }
-    broadcast()
-    return
-  }
+async function pollPlayRating(force = false): Promise<void> {
+  if ((process.platform !== 'win32' && process.platform !== 'darwin') || playRatingBusy) return
   const ctx = ratingPollContext()
   if (!force && !shouldPollRating(ctx)) return
   const mode = ratingPollMode({
@@ -427,12 +451,13 @@ async function pollPlayRatingBody(force = false): Promise<void> {
     hasLastGame: ctx.hasLastGame
   })
   const wantResults =
-    !force &&
-    (mode === 'postgame' ||
-      Boolean(playedAsSelf && match.placement && match.placement > 0 && match.gameActive))
+    mode === 'postgame' ||
+    Boolean(playedAsSelf && match.placement && match.placement > 0 && match.gameActive)
   const now = Date.now()
   const minGap = ratingPollIntervalMs(mode)
   if (!force && now - lastPlayRatingAt < minGap) return
+  // Background menu polling hid the pool every few seconds and caused visible flicker.
+  if (mode === 'idle' && !force) return
   lastPlayRatingAt = now
   ratingOcr = {
     ...ratingOcr,
@@ -448,18 +473,15 @@ async function pollPlayRatingBody(force = false): Promise<void> {
   if (!bounds) {
     ratingOcr = {
       ...ratingOcr,
-      at: Date.now(),
-      raw: null,
-      rating: null,
-      delta: null,
+      at: now,
       error: 'Could not read the Hearthstone window bounds',
-      failed: ratingOcrFailed,
-      debugCropPath: null
+      failed: ratingOcrFailed
     }
-    broadcast()
     return
   }
   playRatingBusy = true
+  const hideOverlay = shouldHideOverlayForRating(mode)
+  const hidePool = mode === 'idle' && force
   try {
     // Use lobby OCR only when freshly entering the BG lobby (within 30s of scene-change).
     // Recurring idle polls fall back to 'play' (the Play-widget region) since the user may
@@ -469,16 +491,16 @@ async function pollPlayRatingBody(force = false): Promise<void> {
       mode === 'postgame' ? 'results' :
       mode === 'idle' && freshBaconEntry ? 'lobby' :
       'play'
-    const capture = await readRatingObservation(bounds, {
-      includeResults: wantResults,
-      idleOnly: mode === 'idle',
-      debugDir: join(userData(), 'rating-ocr'),
-      capture: settings.ratingCapture,
-      mode: ocrMode
-    })
+    const capture = await withOverlayHiddenForOcr(hideOverlay, hidePool, () =>
+      readRatingObservation(bounds, {
+        includeResults: wantResults,
+        debugDir: join(userData(), 'rating-ocr'),
+        capture: settings.ratingCapture,
+        mode: ocrMode
+      })
+    )
     const observed = capture.observation
     noteRatingOcrCapture(capture, observed)
-    broadcast()
     const place = observed.placement ?? match.placement
     if (
       playedAsSelf &&
@@ -510,7 +532,6 @@ async function pollPlayRatingBody(force = false): Promise<void> {
       error: err instanceof Error ? err.message : String(err),
       failed: ratingOcrFailed
     }
-    broadcast()
   } finally {
     playRatingBusy = false
   }
@@ -704,14 +725,11 @@ function bindTailer(): LogTailer {
           void saveSettings(userData(), settings)
         }
       }
-      if (result.combatEvent === 'start' && match.inCombat) {
-        const boards = parser.getCombat()
-        if (boards) {
-          rememberBoard(boards.opponent, match.turn)
-          lastFriendlyBoard = toSeenMinions(boards.friendly.minions)
-          runCombatSim(boards)
-          scheduleOpponentCombatShot(boards.opponent, match.turn)
-        }
+      if (
+        (result.combatEvent === 'start' || result.combatEvent === 'update') &&
+        match.inCombat
+      ) {
+        enqueueCombatSnapshot(result.combatEvent === 'start' && parser.isCombatSnapshotLocked())
       }
       if (result.combatEvent === 'end' || !match.inCombat) {
         if (combat.active || combat.simulating) {
@@ -734,9 +752,10 @@ function bindTailer(): LogTailer {
       const scene = sceneFromMode(mode)
       currentScene = scene
       if (scene === 'gameplay') return
-      if (scene === 'bacon' || scene === 'hub') {
+        if (scene === 'bacon' || scene === 'hub') {
         leaveMatchToMenu(scene === 'hub')
-        if (scene === 'bacon') { lastBaconSceneAt = Date.now(); void pollPlayRating(true) }
+        if (scene === 'bacon') lastBaconSceneAt = Date.now()
+        void pollPlayRating(true)
       }
     },
     (line) => {
@@ -1038,46 +1057,86 @@ async function grabOpponentCombatShot(
   }
 }
 
-function runCombatSim(input: CombatInput): void {
+function enqueueCombatSnapshot(finalSnapshot: boolean): void {
+  combatSnapshotFlight = combatSnapshotFlight
+    .then(() => handleCombatSnapshot(finalSnapshot))
+    .catch((err) => {
+      console.error('combat snapshot failed', err)
+    })
+}
+
+async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
+  let boards = parser.getCombat()
+  if (!boards) return
+  let ocrPartial = false
+  const ocrReasons: string[] = []
+  if (finalSnapshot) {
+    const probe = enrichCombatInput(boards, minions)
+    const needs = combatInputNeedsHandOcr(probe, minions)
+    if (needs.friendly || needs.opponent) {
+      const client = await host.getClientBounds()
+      if (!client) {
+        ocrPartial = true
+        ocrReasons.push('Hand OCR unavailable (no client bounds)')
+      } else if (!match.inCombat) {
+        return
+      } else {
+        const hands = await readCombatHandsFromScreen(client, minions)
+        if (!match.inCombat) return
+        boards = parser.getCombat()
+        if (!boards) return
+        const statNeeds = combatInputNeedsHandStatOcr(probe, minions)
+        if (needs.friendly) {
+          if (hands.friendly.length) boards = mergeHandOcr(boards, { friendly: hands.friendly })
+          else { ocrPartial = true; ocrReasons.push('friendly: Hand not detected by OCR') }
+          if (statNeeds.friendly && hands.statsUncertain.friendly) {
+            ocrPartial = true; ocrReasons.push('friendly: Hand stats not printed (using base stats)')
+          }
+        }
+        if (needs.opponent) {
+          if (hands.opponent.length) boards = mergeHandOcr(boards, { opponent: hands.opponent })
+          else { ocrPartial = true; ocrReasons.push('opponent: Hand not detected by OCR') }
+          if (statNeeds.opponent && hands.statsUncertain.opponent) {
+            ocrPartial = true; ocrReasons.push('opponent: Hand stats not printed (using base stats)')
+          }
+        }
+      }
+    }
+  }
+  if (!match.inCombat || !boards) return
+  rememberBoard(boards.opponent, match.turn)
+  lastFriendlyBoard = toSeenMinions(boards.friendly.minions)
+  runCombatSim(boards, ocrPartial, ocrReasons)
+  if (finalSnapshot) scheduleOpponentCombatShot(boards.opponent, match.turn)
+}
+
+function runCombatSim(input: CombatInput, ocrPartial = false, ocrReasons: string[] = []): void {
   const enriched = enrichCombatInput(input, minions)
-  const partial = combatInputHasGaps(enriched, minions)
-  const key = JSON.stringify(enriched)
+  const pools = buildSummonPools(minions, match.availableTribes)
+  const gapReport = combatGapReport(enriched, minions, pools)
+  const partial = gapReport.partial || ocrPartial
+  const partialReasons = [...gapReport.reasons, ...ocrReasons]
+  const key = JSON.stringify({ board: enriched, partial })
   if (key === lastCombatKey) return
   lastCombatKey = key
   const gen = ++simGen
-  combat = {
-    ...EMPTY_COMBAT,
+  const baseCombat = {
     active: true,
-    simulating: true,
-    partial,
     opponentName: enriched.opponent.name,
-    opponentPlayerId: enriched.opponent.playerId
+    opponentPlayerId: enriched.opponent.playerId,
+    partial,
+    partialReasons,
   }
+  combat = { ...EMPTY_COMBAT, ...baseCombat, simulating: true }
   scheduleBroadcast()
-  const quick = simulateCombat(enriched, summons, COMBAT_QUICK_SAMPLES)
+  const quick = simulateCombat(enriched, summons, COMBAT_QUICK_SAMPLES, undefined, pools)
   if (gen !== simGen) return
-  combat = {
-    ...EMPTY_COMBAT,
-    ...quick,
-    active: true,
-    simulating: true,
-    partial,
-    opponentName: enriched.opponent.name,
-    opponentPlayerId: enriched.opponent.playerId
-  }
+  combat = { ...EMPTY_COMBAT, ...quick, ...baseCombat, simulating: true }
   scheduleBroadcast()
   setImmediate(() => {
     if (gen !== simGen || lastCombatKey !== key) return
-    const full = simulateCombat(enriched, summons, COMBAT_FULL_SAMPLES)
-    combat = {
-      ...EMPTY_COMBAT,
-      ...full,
-      active: true,
-      simulating: false,
-      partial,
-      opponentName: enriched.opponent.name,
-      opponentPlayerId: enriched.opponent.playerId
-    }
+    const full = simulateCombat(enriched, summons, COMBAT_FULL_SAMPLES, undefined, pools)
+    combat = { ...EMPTY_COMBAT, ...full, ...baseCombat, simulating: false }
     scheduleBroadcast()
   })
 }
@@ -1139,6 +1198,7 @@ async function tickOverlay(): Promise<void> {
 async function tickOverlayBody(): Promise<void> {
   if (bootstrap.phase !== 'ready') return
   const hwnd = await host.findHearthstone()
+  const hsJustFound = hwnd != null && !hsFound
   hsFound = hwnd != null
   if (hsWasFound && !hsFound) void ensureWindowedOptions()
   hsWasFound = hsFound
@@ -1149,6 +1209,7 @@ async function tickOverlayBody(): Promise<void> {
     hsFocused = overlayWindow.isFocused()
   }
   if (shouldPollRating(ratingPollContext())) void pollPlayRating(false)
+  if (hsJustFound && shouldPollRating(ratingPollContext())) void pollPlayRating(true)
 
   const win = overlayWindow
   if (!win || win.isDestroyed()) return
@@ -1393,6 +1454,22 @@ function registerIpc(): void {
   ipcMain.handle('open-logs', async (e) => {
     if (!fromAppWindow(e.sender)) return
     if (currentLogsDir) await shell.openPath(currentLogsDir)
+  })
+  ipcMain.handle('open-app-data', async (e) => {
+    if (!fromAppWindow(e.sender)) return
+    await shell.openPath(userData())
+  })
+  ipcMain.handle('open-rating-ocr-folder', async (e) => {
+    if (!fromAppWindow(e.sender)) return
+    const dir = join(userData(), 'rating-ocr')
+    await mkdir(dir, { recursive: true })
+    await shell.openPath(dir)
+  })
+  ipcMain.handle('refresh-rating', async (e) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
+    lastPlayRatingAt = 0
+    await pollPlayRating(true)
+    return snapshot()
   })
   ipcMain.on('click-through', (e, enabled: boolean) => {
     if (e.sender !== overlayWindow?.webContents) return
