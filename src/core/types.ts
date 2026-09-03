@@ -276,6 +276,10 @@ export interface MemoryProbeReport {
   assemblyCSharpImage: string | null
   imageName: string | null
   offsets: MonoStructOffsets | null
+  /** Ratings read from the client, when the object walk got that far. */
+  rating: { solo: number | null; duos: number | null } | null
+  /** Stage that stopped the object walk, when the runtime itself resolved. */
+  ratingFailure: string | null
   failure: MemoryProbeFailure | null
   diagnostics: string[]
   at: number

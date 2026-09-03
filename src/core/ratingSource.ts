@@ -11,8 +11,16 @@ import type { MemoryProbeReport } from './types'
  */
 export function describeProbe(probe: MemoryProbeReport): string {
   switch (probe.failure) {
-    case null:
-      return `Found Hearthstone's runtime (${probe.imageName ?? 'Assembly-CSharp'}, ${probe.assemblyCount} assemblies). Rating field not mapped yet — still reading from screen.`
+    case null: {
+      if (probe.rating && probe.rating.solo != null) {
+        const duos = probe.rating.duos != null ? `, duos ${probe.rating.duos.toLocaleString('en-US')}` : ''
+        return `Reading your rating from the game: ${probe.rating.solo.toLocaleString('en-US')}${duos}.`
+      }
+      if (probe.ratingFailure === 'no-dependency-builder' || probe.ratingFailure === 'no-netcache') {
+        return 'Found the game\u2019s runtime, but the rating is not loaded yet. Open the Battlegrounds menu and check again.'
+      }
+      return `Found the game\u2019s runtime (${probe.assemblyCount} assemblies) but could not reach the rating${probe.ratingFailure ? ` (${probe.ratingFailure})` : ''}. Still reading from screen.`
+    }
     case 'not-windows':
       return 'Reading the game\u2019s memory is Windows-only right now.'
     case 'no-process':

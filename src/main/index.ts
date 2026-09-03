@@ -93,7 +93,7 @@ import { readCombatHandsFromScreen } from './combatOcr'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
 import { LogTailer } from './logTailer'
 import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
-import { probeRatingMemory } from './ratingMemory'
+import { closeRatingMemory, probeRatingMemory, readLiveRating } from './ratingMemory'
 import { describeProbe } from '../core/ratingSource'
 import { loadSession, loadSettings, saveSession, saveSettings } from './persist'
 import { AppUpdater } from './updater'
@@ -463,6 +463,28 @@ async function pollPlayRating(force = false): Promise<void> {
   const now = Date.now()
   const minGap = ratingPollIntervalMs(mode)
   if (!force && now - lastPlayRatingAt < minGap) return
+
+  /*
+   * Prefer the client's own value. Reading it costs no screen capture, needs no
+   * particular screen to be open, and cannot be confused by overlay text — so
+   * when it works there is no reason to fall through to OCR at all.
+   */
+  const fromMemory = readLiveRating()
+  if (fromMemory?.solo != null) {
+    lastPlayRatingAt = now
+    ratingOcr = {
+      ...ratingOcr,
+      at: now,
+      raw: 'memory',
+      rating: fromMemory.solo,
+      delta: null,
+      error: null,
+      failed: false
+    }
+    noteObservedRating({ rating: fromMemory.solo, delta: null }, { settled: true })
+    return
+  }
+
   // Background menu polling hid the pool every few seconds and caused visible flicker.
   if (mode === 'idle' && !force) return
   lastPlayRatingAt = now
@@ -1599,6 +1621,7 @@ app.on('window-all-closed', () => {
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll()
+  closeRatingMemory()
   if (overlayTickTimer) clearInterval(overlayTickTimer)
   if (logsAttachTimer) clearInterval(logsAttachTimer)
   void tailer?.stop()

@@ -18,6 +18,7 @@
 
 import { cachedReader, deadlineReader } from '../core/processMemory'
 import { probeMonoRuntime } from '../core/mono'
+import { readBattlegroundsRating, type BattlegroundsRating } from '../core/hearthstoneRating'
 import { describeProbe } from '../core/ratingSource'
 import type { MemoryProbeReport } from '../core/types'
 import { findMonoModule, ProcessMemory, type ProcessModule } from '../platform/winMemory'
@@ -42,6 +43,8 @@ function emptyReport(failure: MemoryProbeReport['failure']): MemoryProbeReport {
     assemblyCSharpImage: null,
     imageName: null,
     offsets: null,
+    rating: null,
+    ratingFailure: null,
     failure,
     diagnostics: [],
     at: Date.now()
@@ -90,7 +93,20 @@ export function probeRatingMemory(): MemoryProbeReport {
     const started = Date.now()
     const reader = deadlineReader(cachedReader(memory), PROBE_BUDGET_MS)
     const result = probeMonoRuntime(reader, mono.base, mono.size)
-    const timedOut = result.failure != null && Date.now() - started >= PROBE_BUDGET_MS
+    const diagnostics = [...result.diagnostics]
+
+    // Only worth walking managed objects once the runtime itself resolved.
+    let rating: BattlegroundsRating | null = null
+    let ratingFailure: string | null = null
+    if (result.runtime) {
+      const read = readBattlegroundsRating(reader, result.runtime.assemblyCSharpImage)
+      diagnostics.push(...read.diagnostics)
+      rating = read.rating
+      ratingFailure = read.failure
+    }
+
+    const timedOut =
+      (result.failure != null || ratingFailure != null) && Date.now() - started >= PROBE_BUDGET_MS
 
     return {
       supported: true,
@@ -104,8 +120,10 @@ export function probeRatingMemory(): MemoryProbeReport {
         : null,
       imageName: result.runtime?.imageName ?? null,
       offsets: result.runtime?.offsets ?? null,
+      rating,
+      ratingFailure,
       failure: timedOut ? 'timeout' : result.failure,
-      diagnostics: result.diagnostics,
+      diagnostics,
       at: Date.now()
     }
   } finally {
@@ -114,3 +132,74 @@ export function probeRatingMemory(): MemoryProbeReport {
 }
 
 export { describeProbe }
+
+/**
+ * Resolved runtime for the live client. The Boehm collector Mono uses here is
+ * non-moving, so once resolved these pointers stay valid for the process lifetime
+ * and each poll only costs the object walk rather than a full calibration.
+ */
+let live: { pid: number; memory: ProcessMemory; image: bigint } | null = null
+
+function disposeLive(): void {
+  live?.memory.close()
+  live = null
+}
+
+/** Budget for a steady-state rating read, which skips calibration. */
+const READ_BUDGET_MS = 400
+
+/**
+ * Reads the current rating straight from the client, or null when unavailable.
+ *
+ * Cheap enough to poll: the expensive calibration happens once per game process.
+ */
+export function readLiveRating(): BattlegroundsRating | null {
+  if (process.platform !== 'win32') return null
+
+  const pid = gameProcessId()
+  if (!pid) {
+    disposeLive()
+    return null
+  }
+  if (live && live.pid !== pid) disposeLive()
+
+  if (!live) {
+    const memory = ProcessMemory.open(pid)
+    if (!memory) return null
+    if (memory.isWow64()) {
+      memory.close()
+      return null
+    }
+    const mono = findMonoModule(memory.modules())
+    if (!mono) {
+      memory.close()
+      return null
+    }
+    const probe = probeMonoRuntime(
+      deadlineReader(cachedReader(memory), PROBE_BUDGET_MS),
+      mono.base,
+      mono.size
+    )
+    if (!probe.runtime) {
+      memory.close()
+      return null
+    }
+    live = { pid, memory, image: probe.runtime.assemblyCSharpImage }
+  }
+
+  // A fresh page cache per read: the rating changes, so cached pages would go stale.
+  const result = readBattlegroundsRating(
+    deadlineReader(cachedReader(live.memory), READ_BUDGET_MS),
+    live.image
+  )
+  if (result.rating == null && result.failure === 'no-jobs-class') {
+    // The image pointer no longer resolves — the client likely restarted.
+    disposeLive()
+  }
+  return result.rating
+}
+
+/** Releases the cached process handle. Call on shutdown. */
+export function closeRatingMemory(): void {
+  disposeLive()
+}
