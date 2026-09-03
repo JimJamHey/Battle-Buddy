@@ -2688,11 +2688,13 @@ html[data-theme='voidreach'] .settings-root {
   html[data-theme='crown'] .panel,
   html[data-theme='crown'] .combat-bar,
   html[data-theme='crown'] .pool-panel,
+  html[data-theme='crown'] .settings-root .card,
   html[data-theme='crown'] .panel::before,
   html[data-theme='crown'] .combat-bar::before,
   html[data-theme='voidreach'] .panel,
   html[data-theme='voidreach'] .combat-bar,
   html[data-theme='voidreach'] .pool-panel,
+  html[data-theme='voidreach'] .settings-root .card,
   html[data-theme='voidreach'] .panel::before,
   html[data-theme='voidreach'] .combat-bar::before {
     animation: none;

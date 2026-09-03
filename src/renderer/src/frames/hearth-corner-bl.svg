@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88">
-  <defs>
+<g transform="scale(1,-1) translate(0,-88)">
+<defs>
     <linearGradient id="h-wood-v" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#6b4418"/>
       <stop offset="50%" stop-color="#5a3a14"/>
