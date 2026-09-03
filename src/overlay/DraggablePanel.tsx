@@ -20,6 +20,7 @@ export function DraggablePanel({
   width,
   panelWidthPct = 0,
   anchor = 'free',
+  centerX = false,
   draggable = true,
   resizable = false,
   resizeWhenLocked = false,
@@ -38,6 +39,8 @@ export function DraggablePanel({
   width?: string
   panelWidthPct?: number
   anchor?: PanelAnchor
+  /** Position using pos.x as the horizontal center (translateX -50%). */
+  centerX?: boolean
   draggable?: boolean
   resizable?: boolean
   resizeWhenLocked?: boolean
@@ -56,6 +59,7 @@ export function DraggablePanel({
   const posRef = useRef(pos)
   const widthRef = useRef(panelWidthPct)
   const anchorRef = useRef(anchor)
+  const centerXRef = useRef(centerX)
   const onMoveRef = useRef(onMove)
   const onMoveEndRef = useRef(onMoveEnd)
   const onResizeRef = useRef(onResize)
@@ -64,6 +68,7 @@ export function DraggablePanel({
   posRef.current = pos
   widthRef.current = panelWidthPct
   anchorRef.current = anchor
+  centerXRef.current = centerX
   onMoveRef.current = onMove
   onMoveEndRef.current = onMoveEnd
   onResizeRef.current = onResize
@@ -79,6 +84,13 @@ export function DraggablePanel({
       const root = panelRef.current?.closest('.overlay-root')
       const sized = dockRef.current ?? panelRef.current
       const widthPct = measuredPanelWidthPct(sized, root ?? null, widthRef.current)
+      if (centerXRef.current) {
+        const half = Math.max(0, widthPct / 2)
+        return {
+          x: Math.min(100 - half, Math.max(half, next.x)),
+          y: Math.min(88, Math.max(0, next.y))
+        }
+      }
       return clampOverlayPos(next, widthPct)
     }
 
@@ -174,7 +186,9 @@ export function DraggablePanel({
       ? { right: '0', left: 'auto', ...(docked ? {} : { top: `${pos.y}%` }), ...widthVars }
       : anchor === 'left'
         ? { left: '0', ...(docked ? {} : { top: `${pos.y}%` }), ...widthVars }
-        : { left: `${pos.x}%`, top: `${pos.y}%`, width }
+        : centerX
+          ? { left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translateX(-50%)', width }
+          : { left: `${pos.x}%`, top: `${pos.y}%`, width }
 
   const innerResize =
     canResize &&

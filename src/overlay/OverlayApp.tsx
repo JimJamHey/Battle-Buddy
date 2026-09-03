@@ -144,6 +144,7 @@ export function OverlayApp() {
       {unlocked ? (
         <div className="layout-hint interactive capture-mouse" role="status">
           Drag combat odds to place · drag inner edge to resize · Ctrl+Shift+L to lock
+          Session stays left · pool stays right · combat defaults to top center
         </div>
       ) : null}
 
@@ -174,6 +175,7 @@ export function OverlayApp() {
           className="combat-float"
           pos={layout.combat}
           unlocked={unlocked}
+          centerX
           onMove={(pos) => movePanel('combat', pos)}
           onMoveEnd={(pos) => savePanel('combat', pos)}
           onInteract={interact}

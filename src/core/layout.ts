@@ -111,6 +111,10 @@ export function migrateOverlayLayout(layout: OverlayLayout): OverlayLayout {
   if (merged.rail.w === 26) {
     merged = { ...merged, rail: { ...merged.rail, w: DEFAULT_PANEL_WIDTH } }
   }
+  // Old combat x was the left edge (~27). Centered combat uses x as the midpoint.
+  if (merged.combat.x > 20 && merged.combat.x < 35 && merged.combat.y < 5) {
+    merged = { ...merged, combat: { ...merged.combat, x: 50 } }
+  }
   merged = {
     ...merged,
     rail: shrinkLegacyWidePanel(merged.rail),

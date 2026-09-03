@@ -210,7 +210,8 @@ p {
   --overlay-panel-min: clamp(10rem, 12.5vw, 18rem);
   --overlay-panel-max: clamp(13rem, 18vw, 24rem);
   --overlay-combat-width: clamp(16rem, 40vw, 42rem);
-  --overlay-combat-vw: 48;
+  --overlay-combat-max: 520px;
+  --overlay-combat-vw: 42;
   --overlay-pool-max-h: clamp(20rem, 68vh, 56rem);
   --overlay-tier-min: clamp(1.3rem, 2.6vh, 2.2rem);
   --overlay-row-min: clamp(1.9rem, 4.4vh, 3.4rem);
@@ -235,6 +236,104 @@ p {
   position: absolute;
   z-index: 2;
   overflow: visible;
+}
+
+.float-panel.sized {
+  width: var(--panel-width-vw, 14vw);
+  min-width: 10rem;
+  max-width: 32vw;
+}
+
+/* Side panels: session left, pool right. Without this, docks collapse into flow. */
+.panel-dock {
+  position: absolute;
+  z-index: 2;
+  overflow: visible;
+}
+
+.panel-dock.docked {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: var(--panel-width-vw, 14vw);
+  min-width: 10rem;
+  max-width: 32vw;
+}
+
+.panel-dock.anchor-right.docked {
+  right: 0;
+  left: auto;
+}
+
+.panel-dock.anchor-left.docked {
+  left: 0;
+}
+
+.panel-dock.has-resize-edge .float-panel.sized {
+  width: 100%;
+  max-width: none;
+}
+
+.float-panel.sized.docked {
+  position: relative;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+  max-width: none;
+}
+
+.panel-dock.rail-dock.docked,
+.panel-dock.pool-dock.docked {
+  bottom: var(--overlay-safe-bottom, 100px);
+}
+
+.panel-dock.rail-dock.docked {
+  top: 0.5%;
+}
+
+.panel-dock.pool-dock.docked {
+  top: var(--overlay-safe-top-pool, 56px);
+}
+
+.overlay-root.ocr-capture .panel-dock.pool-dock {
+  opacity: 0;
+  pointer-events: none;
+  transition: none;
+}
+
+.panel-dock.rail-dock {
+  overflow: hidden;
+}
+
+.panel-dock-free .float-panel {
+  position: relative;
+  left: auto;
+  top: auto;
+}
+
+.float-panel.pool.sized > .pool-panel,
+.panel-dock.pool-dock .float-panel.pool > .pool-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.float-panel.rail.sized > .session-panel,
+.panel-dock.rail-dock .float-panel.rail > .session-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .float-panel.unlocked {
@@ -287,6 +386,58 @@ p {
 
 .overlay-root:not(.unlocked) .resize-grip {
   display: none;
+}
+
+.resize-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  z-index: 120;
+  touch-action: none;
+  pointer-events: auto;
+}
+
+.resize-edge-outside {
+  width: 8px;
+  background: transparent;
+}
+
+.resize-edge-outside::after {
+  content: '';
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(224, 192, 122, 0.35);
+  transition: background 140ms ease, width 140ms ease, opacity 140ms ease;
+  opacity: 0.55;
+}
+
+.resize-edge-right {
+  right: -8px;
+}
+
+.resize-edge-right::after {
+  right: 3px;
+}
+
+.resize-edge-left {
+  left: -8px;
+}
+
+.resize-edge-left::after {
+  left: 3px;
+}
+
+.resize-edge-outside:hover::after,
+.panel-dock:hover .resize-edge-outside::after,
+.resize-edge-outside:active::after {
+  opacity: 1;
+  width: 3px;
+  background: rgba(224, 192, 122, 0.85);
 }
 
 .overlay-root .rating-capture-box .resize-grip {

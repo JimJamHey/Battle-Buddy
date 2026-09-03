@@ -37,9 +37,14 @@ export async function loadSettings(userData: string): Promise<AppSettings> {
     if (saved.showRatingCaptureRegions === true) saved.showRatingCaptureRegions = false
     if (saved.layoutUnlocked === true) saved.layoutUnlocked = false
   }
+  // Rev 2: dock CSS was missing and combat sat off-center — reset layout to defaults.
+  if (rev < 2) {
+    saved.overlayLayout = DEFAULT_SETTINGS.overlayLayout
+    saved.layoutUnlocked = false
+  }
   const next = sanitizeSettings(DEFAULT_SETTINGS, saved)
-  if (rev < 1) {
-    await writeJson(paths(userData).settings, { ...next, settingsRev: 1 })
+  if (rev < 2) {
+    await writeJson(paths(userData).settings, { ...next, settingsRev: 2 })
   }
   return next
 }

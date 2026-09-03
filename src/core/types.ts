@@ -35,7 +35,8 @@ export const OVERLAY_SAFE_TOP_POOL_PX = 56
 
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
   rail: { x: 0, y: 5.5, w: DEFAULT_PANEL_WIDTH },
-  combat: { x: 27, y: 1.4 },
+  /** x is the horizontal center of the combat bar (0–100). */
+  combat: { x: 50, y: 1.4 },
   pool: { x: 100 - DEFAULT_PANEL_WIDTH, y: 3.2, w: DEFAULT_PANEL_WIDTH }
 }
 

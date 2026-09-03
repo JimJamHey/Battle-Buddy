@@ -18,6 +18,10 @@ describe('overlay layout', () => {
     expect(moved.pool).toEqual(DEFAULT_OVERLAY_LAYOUT.pool)
   })
 
+  it('defaults combat to the horizontal center', () => {
+    expect(DEFAULT_OVERLAY_LAYOUT.combat.x).toBe(50)
+  })
+
   it('docks session on the left and pool on the right', () => {
     const next = migrateOverlayLayout({
       ...DEFAULT_OVERLAY_LAYOUT,
@@ -66,6 +70,14 @@ describe('overlay layout', () => {
     })
     expect(next.pool).toEqual({ x: 86, y: 3.2, w: 14 })
     expect(next.rail).toEqual({ x: 0, y: 5.5, w: 14 })
+  })
+
+  it('centers legacy left-edge combat bars', () => {
+    const next = migrateOverlayLayout({
+      ...DEFAULT_OVERLAY_LAYOUT,
+      combat: { x: 27, y: 1.4 }
+    })
+    expect(next.combat).toEqual({ x: 50, y: 1.4 })
   })
 
   it('clamps pool width into a usable range', () => {
