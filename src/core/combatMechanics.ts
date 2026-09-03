@@ -67,8 +67,7 @@ export function unsupportedMechanicsInText(blob: string, combatTriggerBlob = '')
   const gaps: string[] = []
   const combined = `${blob} ${combatTriggerBlob}`
   for (const [pattern, label] of UNSUPPORTED_COMBAT_PATTERNS) {
-    const onTrigger = label === 'This game' || label === 'Scaled'
-    if (pattern.test(onTrigger ? combatTriggerBlob : combined)) gaps.push(label)
+    if (pattern.test(combined)) gaps.push(label)
   }
   return [...new Set(gaps)]
 }

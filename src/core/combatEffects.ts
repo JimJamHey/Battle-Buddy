@@ -417,12 +417,7 @@ export function combatParseGaps(text: string, mechanics: string[] = []): string[
   for (const kind of ['deathrattle', 'rally', 'startOfCombat', 'avenge'] as const) {
     const body = triggerBody(raw, kind)
     if (body && has(kind) && bodyHasUnparsed(body)) gaps.push('Unparsed')
-    // "for each" in a parsed trigger means the sim uses a fixed value — mark Scaled
-    if (body && has(kind) && /\bfor each\b/i.test(body)) gaps.push('Scaled')
   }
-  // "whenever … during combat" on-summon body
-  const onSummonBody = raw.match(/whenever you summon .+ during combat,?\s*(.+)/i)?.[1] ?? ''
-  if (onSummonBody && has('onSummon') && /\bfor each\b/i.test(onSummonBody)) gaps.push('Scaled')
   const blob = `${raw} ${mechanics.join(' ')}`
   if (/summon(?:s)? a random\b/i.test(blob) && !kit.triggers.some((row) => row.effects.some((fx) => fx.op === 'summonRandom'))) {
     gaps.push('Random summon')
