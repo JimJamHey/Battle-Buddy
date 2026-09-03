@@ -42,8 +42,8 @@ const MIN_RATING = 0
 const MAX_RATING = 30000
 
 /** Search bounds. The real target sits ~6 hops from the root. */
-const MAX_DEPTH = 12
-const MAX_VISITS = 60000
+const MAX_DEPTH = 16
+const MAX_VISITS = 120000
 
 export interface BattlegroundsRating {
   solo: number | null
@@ -75,26 +75,38 @@ function neighbours(reader: MemoryReader, object: bigint): bigint[] {
   return instancePointers(reader, object)
 }
 
+export interface RatingSearchResult {
+  address: bigint | null
+  visited: number
+  depth: number
+  /** Class names seen, most frequent first — the trail to inspect when this fails. */
+  sample: string[]
+}
+
 /**
  * Breadth-first search for the rating object, starting from the static root.
  * Returns its address, or null when the search is exhausted or bounded out.
  */
-export function findRatingObject(
-  reader: MemoryReader,
-  root: bigint
-): { address: bigint | null; visited: number; depth: number } {
+export function findRatingObject(reader: MemoryReader, root: bigint): RatingSearchResult {
   const seen = new Set<bigint>([root])
+  const classCounts = new Map<string, number>()
   let frontier = [root]
   let visited = 0
+
+  const sample = (): string[] =>
+    [...classCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([name, count]) => `${name}×${count}`)
 
   for (let depth = 0; depth < MAX_DEPTH && frontier.length; depth++) {
     const next: bigint[] = []
     for (const object of frontier) {
       visited++
-      if (visited > MAX_VISITS) return { address: null, visited, depth }
-      if (classNameOf(reader, object) === RATING_CLASS) {
-        return { address: object, visited, depth }
-      }
+      if (visited > MAX_VISITS) return { address: null, visited, depth, sample: sample() }
+      const name = classNameOf(reader, object)
+      if (name === RATING_CLASS) return { address: object, visited, depth, sample: sample() }
+      if (name) classCounts.set(name, (classCounts.get(name) ?? 0) + 1)
       for (const child of neighbours(reader, object)) {
         if (!isPlausiblePointer(child) || seen.has(child)) continue
         seen.add(child)
@@ -103,7 +115,7 @@ export function findRatingObject(
     }
     frontier = next
   }
-  return { address: null, visited, depth: MAX_DEPTH }
+  return { address: null, visited, depth: MAX_DEPTH, sample: sample() }
 }
 
 /**
@@ -131,7 +143,10 @@ export function readBattlegroundsRating(
 
   const found = findRatingObject(reader, builder)
   diagnostics.push(`object search: ${found.visited} objects, depth ${found.depth}`)
-  if (found.address == null) return { rating: null, failure: 'not-found', diagnostics }
+  if (found.address == null) {
+    if (found.sample.length) diagnostics.push(`saw: ${found.sample.join(', ')}`)
+    return { rating: null, failure: 'not-found', diagnostics }
+  }
 
   const solo = plausible(readObjectInt(reader, found.address, RATING_FIELD))
   const duos = plausible(readObjectInt(reader, found.address, DUOS_RATING_FIELD))

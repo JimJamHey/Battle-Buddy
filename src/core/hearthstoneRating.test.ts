@@ -113,6 +113,21 @@ class Heap implements MemoryReader {
     return cls
   }
 
+  /**
+   * Generic instance class, as `List<T>` or `Dictionary<K,V>` produce. The field
+   * table is populated on the inflated class, but the count only exists on the
+   * generic definition it was inflated from — offset 0x100 here is unrelated data.
+   */
+  genericClass(name: string, fields: Array<[string, number]>): bigint {
+    const definition = this.monoClass(`${name}$definition`, '', fields)
+    const cls = this.monoClass(name, '', fields)
+    this.i32(cls + 0x100n, 0x5eed) // junk where field_count would be on a plain class
+    const generic = this.alloc(0x40)
+    this.ptr(generic, definition)
+    this.ptr(cls + 0xf0n, generic)
+    return cls
+  }
+
   /** Managed instance of `cls`: header word 0 points at a vtable whose [0] is the class. */
   instance(cls: bigint, size = 0x80): bigint {
     const vtable = this.alloc(0x80)
@@ -178,16 +193,18 @@ function buildHearthstone(
     ['<DuosRating>k__BackingField', 0x14]
   ])
   const otherCacheClass = h.monoClass('NetCacheGoldBalance', '', [['<Balance>k__BackingField', 0x10]])
-  const mapClass = h.monoClass('Map`2', '', [['valueSlots', 0x10]])
+  // Containers on the real path are generic instances, which is what previously
+  // stopped the walk dead: their field count is not where a plain class keeps it.
+  const mapClass = h.genericClass('Map`2', [['valueSlots', 0x10]])
   const netCacheClass = h.monoClass('NetCache', '', [['m_netCache', 0x10]])
   const entryClass = h.monoClass('ServiceEntry', '', [
     ['<ServiceTypeName>k__BackingField', 0x10],
     ['<Service>k__BackingField', 0x18]
   ])
-  const servicesClass = h.monoClass('Dictionary`2', '', [['_entries', 0x10]])
+  const servicesClass = h.genericClass('Dictionary`2', [['_entries', 0x10]])
   const locatorClass = h.monoClass('ServiceLocator', '', [['m_services', 0x10]])
   const jobClass = h.monoClass('JobDependency', '', [['m_serviceLocator', 0x10]])
-  const listClass = h.monoClass('List`1', '', [['_items', 0x10]])
+  const listClass = h.genericClass('List`1', [['_items', 0x10]])
   const jobsClass = h.monoClass('HearthstoneJobs', 'Hearthstone', [['s_dependencyBuilder', 0x00]])
 
   const image = h.image([

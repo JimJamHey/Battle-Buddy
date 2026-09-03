@@ -227,7 +227,7 @@ p {
   --overlay-combat-vw: 42;
   --overlay-pool-max-h: clamp(20rem, 68vh, 56rem);
   --overlay-tier-min: clamp(1.1rem, 1.6vh, 1.5rem);
-  --overlay-row-min: clamp(1.5rem, 2.2vh, 2rem);
+  --overlay-row-min: clamp(1.85rem, 2.85vh, 2.5rem);
   --overlay-nav-gap: clamp(0.3rem, 0.7vh, 0.6rem);
   --overlay-nav-pad: clamp(0.4rem, 0.9vh, 0.7rem);
   /*
@@ -2042,7 +2042,8 @@ html[data-theme='voidreach'] .buff-tag {
   border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(8, 10, 20, 0.78);
-  color: var(--muted);
+  color: var(--text);
+  opacity: 0.92;
   font-size: 12px;
   font-weight: 750;
 }
@@ -2078,8 +2079,9 @@ html[data-theme='voidreach'] .buff-tag {
   padding: 0 6px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  opacity: 0.95;
   font-size: 11px;
   font-weight: 700;
 }
@@ -2144,16 +2146,17 @@ html[data-theme='voidreach'] .buff-tag {
   padding: 0 8px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--muted);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  opacity: 0.95;
   font-size: 11px;
   font-weight: 700;
 }
 
 .mechanic-tab.active {
-  color: #041016;
-  background: linear-gradient(180deg, #a5f3fc, #22d3ee);
-  border-color: #67e8f9;
+  color: var(--overlay-select-ink);
+  background: var(--overlay-select);
+  border-color: var(--overlay-select);
 }
 
 .pool-empty {
@@ -2185,11 +2188,11 @@ html[data-theme='voidreach'] .buff-tag {
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #eef2ff;
-  background: rgba(49, 46, 129, 0.55);
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.5);
   padding: 6px 10px;
   margin: 0;
-  border-left: 3px solid #818cf8;
+  border-left: 3px solid var(--overlay-select);
 }
 
 .pool-group-head.tier-head {
@@ -2920,7 +2923,7 @@ html[data-theme='voidreach'] .settings-root .card {
     --overlay-combat-vw: 40;
     --overlay-pool-max-h: min(62vh, 540px);
     --overlay-tier-min: 20px;
-    --overlay-row-min: 28px;
+    --overlay-row-min: 30px;
   }
 }
 

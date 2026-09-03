@@ -38,6 +38,17 @@ const FIELD_SIZE = 0x20n
 const FIELD_NAME = 0x08n
 const FIELD_OFFSET = 0x18n
 
+/**
+ * `field_count` lives on MonoClassDef, so it is only meaningful for plain class
+ * definitions. A generic instance such as `List<T>` or `Dictionary<K,V>` is a
+ * MonoClassGenericInst, where that slot holds something else entirely — reading it
+ * there yields a nonsense count and the class appears to have no fields at all.
+ * The real count comes from the generic class's container definition.
+ */
+const CLASS_GENERIC_CLASS = 0xf0n
+/** MonoGenericClass::container_class is the first member. */
+const GENERIC_CLASS_CONTAINER = 0n
+
 const RUNTIME_INFO_DOMAIN_VTABLES = 0x08n
 /** Static field storage sits after MonoVTable's trailing variable-length vtable array. */
 const VTABLE_ARRAY_START = 0x48n
@@ -125,22 +136,42 @@ export function findClass(
   return found
 }
 
-/** Reads a class's field table. Field offsets are relative to the object base. */
-export function readFields(reader: MemoryReader, monoClass: bigint): MonoField[] {
-  if (!isPlausiblePointer(monoClass)) return []
-  const count = readI32(reader, monoClass + CLASS_FIELD_COUNT)
-  const fields = readPtr(reader, monoClass + CLASS_FIELDS)
-  if (count == null || fields == null) return []
-  if (count <= 0 || count > MAX_FIELDS || !isPlausiblePointer(fields)) return []
-
+function readFieldTable(reader: MemoryReader, fields: bigint, count: number): MonoField[] {
   const out: MonoField[] = []
   for (let i = 0; i < count; i++) {
     const base = fields + BigInt(i) * FIELD_SIZE
-    const name = readCString(reader, readPtr(reader, base + FIELD_NAME) ?? 0n, 256)
+    const name = readCString(reader, readPtr(reader, base + FIELD_NAME) ?? 0n, 128)
     const offset = readI32(reader, base + FIELD_OFFSET)
     if (name && offset != null && offset >= 0) out.push({ name, offset })
   }
   return out
+}
+
+/**
+ * Reads a class's field table. Field offsets are relative to the object base.
+ *
+ * The count is resolved for both plain and generic classes: whichever source
+ * yields a table with readable field names wins, so no `class_kind` bitfield has
+ * to be decoded to tell them apart.
+ */
+export function readFields(reader: MemoryReader, monoClass: bigint): MonoField[] {
+  if (!isPlausiblePointer(monoClass)) return []
+  const fields = readPtr(reader, monoClass + CLASS_FIELDS)
+  if (fields == null || !isPlausiblePointer(fields)) return []
+
+  const direct = readI32(reader, monoClass + CLASS_FIELD_COUNT)
+  if (direct != null && direct > 0 && direct <= MAX_FIELDS) {
+    const table = readFieldTable(reader, fields, direct)
+    if (table.length) return table
+  }
+
+  const genericClass = readPtr(reader, monoClass + CLASS_GENERIC_CLASS)
+  if (genericClass == null || !isPlausiblePointer(genericClass)) return []
+  const container = readPtr(reader, genericClass + GENERIC_CLASS_CONTAINER)
+  if (container == null || !isPlausiblePointer(container)) return []
+  const inherited = readI32(reader, container + CLASS_FIELD_COUNT)
+  if (inherited == null || inherited <= 0 || inherited > MAX_FIELDS) return []
+  return readFieldTable(reader, fields, inherited)
 }
 
 /** Looks up one field's offset within an object of `monoClass`. */
