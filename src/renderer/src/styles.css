@@ -473,7 +473,8 @@ p {
 .combat-side {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .combat-side.right {
@@ -510,6 +511,12 @@ p {
   text-decoration: none;
   color: #fbbf24;
   font-weight: 800;
+  cursor: help;
+}
+
+/* Dim numbers while the quick (48-sample) sim is still running */
+.combat-bar--quick .combat-stat--quick strong {
+  opacity: 0.65;
 }
 
 .combat-dmg {

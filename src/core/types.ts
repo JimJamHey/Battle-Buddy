@@ -296,6 +296,8 @@ export interface CombatOdds {
   opponentName: string | null
   opponentPlayerId: number | null
   partial: boolean
+  /** Human-readable gap labels, e.g. ["friendly: Deathrattle", "opponent: Summon pool (Murloc)"] */
+  partialReasons: string[]
 }
 
 export const EMPTY_COMBAT: CombatOdds = {
@@ -313,7 +315,8 @@ export const EMPTY_COMBAT: CombatOdds = {
   takenMax: 0,
   opponentName: null,
   opponentPlayerId: null,
-  partial: false
+  partial: false,
+  partialReasons: []
 }
 
 export interface BootstrapStatus {

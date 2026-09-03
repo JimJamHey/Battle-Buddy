@@ -45,6 +45,7 @@ import {
   simulateCombat,
   enrichCombatInput,
   combatInputHasGaps,
+  combatGapReport,
   combatInputNeedsHandOcr,
   combatInputNeedsHandStatOcr,
   mergeHandOcr,
@@ -1026,6 +1027,7 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
   let boards = parser.getCombat()
   if (!boards) return
   let ocrPartial = false
+  const ocrReasons: string[] = []
   if (finalSnapshot) {
     const probe = enrichCombatInput(boards, minions)
     const needs = combatInputNeedsHandOcr(probe, minions)
@@ -1033,6 +1035,7 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
       const client = await host.getClientBounds()
       if (!client) {
         ocrPartial = true
+        ocrReasons.push('Hand OCR unavailable (no client bounds)')
       } else if (!match.inCombat) {
         return
       } else {
@@ -1043,13 +1046,17 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
         const statNeeds = combatInputNeedsHandStatOcr(probe, minions)
         if (needs.friendly) {
           if (hands.friendly.length) boards = mergeHandOcr(boards, { friendly: hands.friendly })
-          else ocrPartial = true
-          if (statNeeds.friendly && hands.statsUncertain.friendly) ocrPartial = true
+          else { ocrPartial = true; ocrReasons.push('friendly: Hand not detected by OCR') }
+          if (statNeeds.friendly && hands.statsUncertain.friendly) {
+            ocrPartial = true; ocrReasons.push('friendly: Hand stats not printed (using base stats)')
+          }
         }
         if (needs.opponent) {
           if (hands.opponent.length) boards = mergeHandOcr(boards, { opponent: hands.opponent })
-          else ocrPartial = true
-          if (statNeeds.opponent && hands.statsUncertain.opponent) ocrPartial = true
+          else { ocrPartial = true; ocrReasons.push('opponent: Hand not detected by OCR') }
+          if (statNeeds.opponent && hands.statsUncertain.opponent) {
+            ocrPartial = true; ocrReasons.push('opponent: Hand stats not printed (using base stats)')
+          }
         }
       }
     }
@@ -1057,51 +1064,37 @@ async function handleCombatSnapshot(finalSnapshot: boolean): Promise<void> {
   if (!match.inCombat || !boards) return
   rememberBoard(boards.opponent, match.turn)
   lastFriendlyBoard = toSeenMinions(boards.friendly.minions)
-  runCombatSim(boards, ocrPartial)
+  runCombatSim(boards, ocrPartial, ocrReasons)
   if (finalSnapshot) scheduleOpponentCombatShot(boards.opponent, match.turn)
 }
 
-function runCombatSim(input: CombatInput, ocrPartial = false): void {
+function runCombatSim(input: CombatInput, ocrPartial = false, ocrReasons: string[] = []): void {
   const enriched = enrichCombatInput(input, minions)
   const pools = buildSummonPools(minions, match.availableTribes)
-  const partial = combatInputHasGaps(enriched, minions, pools) || ocrPartial
-  const key = JSON.stringify({ board: enriched, partial, ocrPartial })
+  const gapReport = combatGapReport(enriched, minions, pools)
+  const partial = gapReport.partial || ocrPartial
+  const partialReasons = [...gapReport.reasons, ...ocrReasons]
+  const key = JSON.stringify({ board: enriched, partial })
   if (key === lastCombatKey) return
   lastCombatKey = key
   const gen = ++simGen
-  combat = {
-    ...EMPTY_COMBAT,
+  const baseCombat = {
     active: true,
-    simulating: true,
-    partial,
     opponentName: enriched.opponent.name,
-    opponentPlayerId: enriched.opponent.playerId
+    opponentPlayerId: enriched.opponent.playerId,
+    partial,
+    partialReasons,
   }
+  combat = { ...EMPTY_COMBAT, ...baseCombat, simulating: true }
   scheduleBroadcast()
   const quick = simulateCombat(enriched, summons, COMBAT_QUICK_SAMPLES, undefined, pools)
   if (gen !== simGen) return
-  combat = {
-    ...EMPTY_COMBAT,
-    ...quick,
-    active: true,
-    simulating: true,
-    partial,
-    opponentName: enriched.opponent.name,
-    opponentPlayerId: enriched.opponent.playerId
-  }
+  combat = { ...EMPTY_COMBAT, ...quick, ...baseCombat, simulating: true }
   scheduleBroadcast()
   setImmediate(() => {
     if (gen !== simGen || lastCombatKey !== key) return
     const full = simulateCombat(enriched, summons, COMBAT_FULL_SAMPLES, undefined, pools)
-    combat = {
-      ...EMPTY_COMBAT,
-      ...full,
-      active: true,
-      simulating: false,
-      partial,
-      opponentName: enriched.opponent.name,
-      opponentPlayerId: enriched.opponent.playerId
-    }
+    combat = { ...EMPTY_COMBAT, ...full, ...baseCombat, simulating: false }
     scheduleBroadcast()
   })
 }

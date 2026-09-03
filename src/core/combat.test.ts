@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   COMBAT_KITS,
   collectNamedSummonNames,
+  combatGapReport,
   combatInputHasGaps,
   combatParseGaps,
   enrichCombatInput,
@@ -831,6 +832,69 @@ describe('board tracker', () => {
 })
 
 describe('combat gaps', () => {
+  it('reports structured gap reasons and sides via combatGapReport', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(1, 1, { cardId: 'BG99_DR', name: 'DR Test', deathrattle: true })]),
+      opponent: side(2, [minion(1, 1, { cardId: 'BG99_FR', name: 'Frenzy Test' })])
+    }
+    const catalog = [
+      { id: 'BG99_DR', name: 'DR Test', text: '', mechanics: ['Deathrattle'] },
+      { id: 'BG99_FR', name: 'Frenzy Test', text: '', mechanics: ['Frenzy'] }
+    ]
+    const report = combatGapReport(input, catalog, {})
+    expect(report.partial).toBe(true)
+    expect(report.sides).toContain('friendly')
+    expect(report.sides).toContain('opponent')
+    expect(report.reasons.some((r) => r.startsWith('friendly:'))).toBe(true)
+    expect(report.reasons.some((r) => r.startsWith('opponent:'))).toBe(true)
+  })
+
+  it('flags unresolved named summon as partial with reason', () => {
+    const input = enrichCombatInput(
+      {
+        friendly: side(1, [
+          minion(1, 1, {
+            kit: {
+              triggers: [{ when: 'deathrattle', effects: [{ op: 'summon', count: 1, name: 'Ghost Cat' }] }],
+              extraDeathrattles: 0,
+              cleave: false
+            }
+          })
+        ]),
+        opponent: side(2, [minion(1, 1)])
+      },
+      []
+    )
+    expect(collectNamedSummonNames(input).has('ghost cat')).toBe(true)
+    const report = combatGapReport(input, [], {})
+    expect(report.partial).toBe(true)
+    expect(report.reasons.some((r) => /ghost cat/i.test(r))).toBe(true)
+  })
+
+  it('flags a real-looking card id not in catalog as partial', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(1, 1, { cardId: 'BG_UNKNOWN_CARD' })]),
+      opponent: side(2, [minion(1, 1)])
+    }
+    const report = combatGapReport(input, [], {})
+    expect(report.partial).toBe(true)
+    expect(report.reasons.some((r) => /unknown card/i.test(r))).toBe(true)
+  })
+
+  it('does not flag short placeholder card ids as unknown', () => {
+    const input: CombatInput = {
+      friendly: side(1, [minion(1, 1, { cardId: 'X' })]),
+      opponent: side(2, [minion(1, 1)])
+    }
+    expect(combatGapReport(input, [], {}).partial).toBe(false)
+  })
+
+  it('flags scaled effects inside parsed triggers', () => {
+    expect(combatParseGaps('Deathrattle: Deal 1 damage for each friendly Beast.')).toContain('Scaled')
+    expect(combatParseGaps('Start of Combat: Give your minions +1 Attack for each friendly Mech.')).toContain('Scaled')
+    expect(combatParseGaps('Deathrattle: Deal 5 damage to the enemy hero.')).not.toContain('Scaled')
+  })
+
   it('flags unmodeled combat scripts as partial', () => {
     const input: CombatInput = {
       friendly: side(1, [minion(1, 1, { cardId: 'FR', name: 'Frenzy Bot' })]),

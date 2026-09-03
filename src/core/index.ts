@@ -8,13 +8,14 @@ export {
   enrichCombatInput,
   collectNamedSummonNames,
   combatInputHasGaps,
+  combatGapReport,
   lookupCombatKit,
   mergeCombatKits,
   COMBAT_KITS,
   COMBAT_QUICK_SAMPLES,
   COMBAT_FULL_SAMPLES
 } from './combatSim'
-export type { CombatInput, CombatMinion, CombatResult, CombatSide, DeathrattleSummon } from './combatSim'
+export type { CombatInput, CombatMinion, CombatResult, CombatSide, DeathrattleSummon, GapReport } from './combatSim'
 export { cardArtUrls, cardFaceUrls, cardGoldenRenderUrls, cardTavernRenderUrls, boardCardUrls, cardTileUrls, cardSlug, baseCardId, poolBaseId, isTrinketCardId, heroBuddyCardId, heroHasBuddy, goldenCardId, catalogFromCardsJson, catalogHeroesFromCardsJson, catalogSummonsFromCardsJson, isBattlegroundsPoolMinion, isBattlegroundsBuddy, isBattlegroundsTrinket, toBgMinion } from './cards'
 export { isBgHeroCardId, isBaconBobHero, isPickedBgHero, looksLikeHeroName, canonicalTribe, sortTribes, tribeSlug } from './heroes'
 export { groupPoolCards, minionsForTier, filterPoolGroups, filterGroupsByMechanic, mechanicsInGroups, poolCopies, groupLabel, isTierGroupTitle, showPoolTierBubbles, relatedTribes, splitGroupsByTier, cardAvailableInLobby, tribeAvailableInLobby } from './pool'
