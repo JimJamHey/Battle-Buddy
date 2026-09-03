@@ -990,42 +990,105 @@ export function enrichCombatInput(input: CombatInput, catalog: CatalogCard[]): C
   return { ...enriched, named }
 }
 
+export type GapReport = {
+  partial: boolean
+  reasons: string[]
+  /** Which sides contribute gaps: 'friendly', 'opponent', or both */
+  sides: ('friendly' | 'opponent')[]
+}
+
+export function combatGapReport(
+  input: CombatInput,
+  catalog: { id: string; name: string; text?: string; mechanics?: string[]; techLevel?: number }[],
+  summonPools: SummonPools = {}
+): GapReport {
+  const byId = new Map(catalog.map((card) => [card.id, card]))
+  const byName = new Map(catalog.map((card) => [card.name.toLowerCase(), card]))
+
+  const sideReasons = (minions: CombatMinion[], label: 'friendly' | 'opponent') => {
+    const reasons: string[] = []
+    for (const m of minions) {
+      const mReasons = cardRowGaps(m, byId, byName)
+      for (const r of mReasons) reasons.push(`${label}: ${r}`)
+    }
+    return reasons
+  }
+
+  const friendlyRows = [
+    ...input.friendly.minions,
+    ...(input.friendly.hand ?? []),
+    ...(input.friendly.trinkets ?? [])
+  ]
+  const opponentRows = [
+    ...input.opponent.minions,
+    ...(input.opponent.hand ?? []),
+    ...(input.opponent.trinkets ?? [])
+  ]
+
+  const reasons: string[] = [
+    ...sideReasons(friendlyRows, 'friendly'),
+    ...sideReasons(opponentRows, 'opponent'),
+    ...combatPoolGapReasons(input, summonPools),
+    ...namedSummonGapReasons(input),
+  ]
+
+  const sides: ('friendly' | 'opponent')[] = []
+  if (reasons.some((r) => r.startsWith('friendly:'))) sides.push('friendly')
+  if (reasons.some((r) => r.startsWith('opponent:'))) sides.push('opponent')
+
+  return { partial: reasons.length > 0, reasons, sides }
+}
+
 export function combatInputHasGaps(
   input: CombatInput,
   catalog: { id: string; name: string; text?: string; mechanics?: string[]; techLevel?: number }[],
   summonPools: SummonPools = {}
 ): boolean {
-  const byId = new Map(catalog.map((card) => [card.id, card]))
-  const byName = new Map(catalog.map((card) => [card.name.toLowerCase(), card]))
-  const rows = [
-    ...input.friendly.minions,
-    ...input.opponent.minions,
-    ...(input.friendly.hand ?? []),
-    ...(input.opponent.hand ?? []),
-    ...(input.friendly.trinkets ?? []),
-    ...(input.opponent.trinkets ?? [])
-  ]
-  if (rows.some((m) => cardRowHasGaps(m, byId, byName))) return true
-  return combatSidesNeedSummonPools(input, summonPools)
+  return combatGapReport(input, catalog, summonPools).partial
 }
 
-function cardRowHasGaps(
+/** Returns true if a cardId looks like a real Hearthstone card (not a test placeholder or bare token). */
+function looksLikeRealCardId(cardId: string): boolean {
+  if (!cardId || cardId.startsWith('token:')) return false
+  // Real HS card ids contain at least one underscore and use alphanumeric segments
+  return /^[A-Z]{2,}[\w]+_\w+/i.test(cardId)
+}
+
+function cardRowGaps(
   m: CombatMinion,
   byId: Map<string, { id: string; name: string; text?: string; mechanics?: string[] }>,
   byName: Map<string, { id: string; name: string; text?: string; mechanics?: string[] }>
-): boolean {
+): string[] {
   const card = catalogCard(m.cardId, m.name, byId, byName)
+  const hasKit = (m.kit?.triggers.length ?? 0) > 0
+  // Real card ID we can't find in catalog and has no pre-built kit — flag as possibly missing scripts
+  if (!card && looksLikeRealCardId(m.cardId) && !hasKit) {
+    if (m.deathrattle) return ['Unknown card with deathrattle']
+    return ['Unknown card']
+  }
   const text = card?.text ?? ''
   const kit = m.kit ?? kitFor(m.cardId || m.name, text, card)
   const gaps = combatParseGaps(text, card?.mechanics ?? []).filter((gap) => !kitCoversGap(kit, gap))
-  if (gaps.length > 0) return true
-  if (m.deathrattle && !kit.triggers.some((row) => row.when === 'deathrattle')) return true
-  return false
+  if (gaps.length > 0) return gaps
+  if (m.deathrattle && !kit.triggers.some((row) => row.when === 'deathrattle')) return ['Deathrattle']
+  return []
 }
 
-function combatSidesNeedSummonPools(input: CombatInput, summonPools: SummonPools): boolean {
+/** Gaps from missing named summon catalog entries (would silently produce a 1/1). */
+function namedSummonGapReasons(input: CombatInput): string[] {
+  const named = input.named ?? {}
+  const reasons: string[] = []
+  for (const key of collectNamedSummonNames(input)) {
+    if (!named[key]) reasons.push(`Unresolved summon: ${key}`)
+  }
+  return reasons
+}
+
+/** Gaps from missing tribe summon pools. */
+function combatPoolGapReasons(input: CombatInput, summonPools: SummonPools): string[] {
   const tierFor = (side: CombatSide) => Math.max(1, side.tavernTier ?? 1)
-  const needsPool = (side: CombatSide) => {
+  const reasons: string[] = []
+  const checkSide = (side: CombatSide, label: string) => {
     const tier = tierFor(side)
     const scan = [...side.minions, ...(side.hand ?? []), ...(side.trinkets ?? [])]
     for (const m of scan) {
@@ -1035,14 +1098,13 @@ function combatSidesNeedSummonPools(input: CombatInput, summonPools: SummonPools
         for (const fx of row.effects) {
           if (fx.op !== 'summonRandom' || !fx.tribe) continue
           const pool = summonPools[fx.tribe.toLowerCase()]?.filter((body) => body.techLevel <= tier) ?? []
-          if (!pool.length) return true
+          if (!pool.length) reasons.push(`${label}: Summon pool (${fx.tribe})`)
         }
       }
     }
-    return false
   }
-  return (
-    needsPool(input.friendly) ||
-    needsPool(input.opponent)
-  )
+  checkSide(input.friendly, 'friendly')
+  checkSide(input.opponent, 'opponent')
+  return reasons
 }
+
