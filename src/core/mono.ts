@@ -11,6 +11,19 @@
  * that the resulting reads produce known-good data (for example, that the domain's
  * assembly list actually contains `Assembly-CSharp`). A mis-calibrated offset then
  * fails loudly instead of silently yielding a garbage rating.
+ *
+ * Remaining work to reach the rating, for whoever picks this up next. The target is
+ * `NetCacheBaconRatingInfo`, which holds both queues as auto-properties, so the
+ * Mono-level field names carry the compiler's backing-field decoration:
+ *   `<Rating>k__BackingField` (solo) and `<DuosRating>k__BackingField` (duos).
+ * `NetCache` has no static instance to read; it is reached through the service
+ * locator at `Hearthstone.HearthstoneJobs::s_dependencyBuilder`, whose first item
+ * exposes `m_serviceLocator.m_services`. Entries there carry a
+ * `<ServiceTypeName>k__BackingField` string to match on `"NetCache"` and a
+ * `<Service>k__BackingField` pointing at the instance. Its `m_netCache` map stores
+ * values as `object`, so the rating entry is identified by reading each element's
+ * runtime class name off its vtable rather than by key. That whole path lives in
+ * `Assembly-CSharp`, which is why this module stops there.
  */
 
 import { readExports, resolveRipRelativeGlobal } from './pe'
@@ -29,16 +42,20 @@ export const TARGET_ASSEMBLY = 'Assembly-CSharp'
 const GSLIST_DATA = 0n
 const GSLIST_NEXT = 8n
 
-/**
- * Candidate byte offsets of `MonoDomain::domain_assemblies`. Mono has moved this
- * field across releases; we probe rather than pin. Ordered by observed likelihood.
+/*
+ * Candidate offsets, most likely first. The leading value in each list is the
+ * 64-bit layout reported for the Unity 2022.3 / 6000.x Mono builds Hearthstone
+ * ships; the rest cover older and neighbouring layouts. Probing rather than
+ * pinning is what keeps a client patch from silently returning a wrong number.
  */
-const DOMAIN_ASSEMBLIES_CANDIDATES = [0xc8, 0xa0, 0xb0, 0xd0, 0xe0, 0x90, 0xa8, 0xb8, 0xc0]
 
-/** Candidate offsets of `MonoAssembly::aname.name` (the `const char *`). */
+/** `MonoDomain::domain_assemblies` (GSList head). */
+const DOMAIN_ASSEMBLIES_CANDIDATES = [0xa0, 0xc8, 0xb0, 0xd0, 0xe0, 0x90, 0xa8, 0xb8, 0xc0]
+
+/** `MonoAssembly::aname.name` (the `const char *`). */
 const ASSEMBLY_NAME_CANDIDATES = [0x10, 0x18, 0x08, 0x20, 0x28]
 
-/** Candidate offsets of `MonoAssembly::image`. */
+/** `MonoAssembly::image`. */
 const ASSEMBLY_IMAGE_CANDIDATES = [0x60, 0x58, 0x50, 0x68, 0x48, 0x70]
 
 /** Candidate offsets of the `char *` name fields on `MonoImage`. */
