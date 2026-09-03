@@ -35,6 +35,9 @@ import {
   ensureToday,
   recordFinish,
   sceneFromMode,
+  shouldPollRating,
+  ratingPollMode,
+  ratingPollIntervalMs,
   isEndGameDisconnect,
   simulateCombat,
   enrichCombatInput,
@@ -62,6 +65,8 @@ import {
   type StrategyCompView,
   type TrackerStatus,
   type BootstrapStatus,
+  type RatingOcrStatus,
+  type Scene,
   EMPTY_COMBAT,
   EMPTY_MATCH,
   LOADING_BOOTSTRAP,
@@ -106,12 +111,27 @@ let recordedThisMatch = false
 let playedAsSelf = false
 let logCatchup = false
 let playRatingBusy = false
+let playRatingTail: Promise<void> = Promise.resolve()
 let lastPlayRatingAt = 0
 let combatShotTimer: NodeJS.Timeout | null = null
 let combatShotGen = 0
 let mmrPollTimer: NodeJS.Timeout | null = null
 let awaitingPostGameMmr = false
 let postGameAt = 0
+let lastBaconSceneAt = 0
+let ratingOcrFailed = false
+let currentScene: Scene = 'unknown'
+const SETTLEMENT_MAX_MS = 5 * 60 * 1000
+const EMPTY_RATING_OCR: RatingOcrStatus = {
+  at: null,
+  raw: null,
+  rating: null,
+  delta: null,
+  error: null,
+  failed: false,
+  debugCropPath: null
+}
+let ratingOcr: RatingOcrStatus = { ...EMPTY_RATING_OCR }
 let boardRows: LeaderboardEntry[] = []
 let selectedTier = 0
 let clickThrough = true
@@ -228,7 +248,8 @@ function status(): TrackerStatus {
     cardsReady: minions.length > 0,
     cardCount: minions.length,
     cardsError: minions.length ? null : lastError,
-    displayMode
+    displayMode,
+    ratingOcr: { ...ratingOcr, failed: ratingOcrFailed }
   }
 }
 
@@ -342,20 +363,122 @@ function noteObservedRating(
   if (changed) scheduleBroadcast()
 }
 
-async function pollPlayRating(force = false): Promise<void> {
-  if ((process.platform !== 'win32' && process.platform !== 'darwin') || playRatingBusy || !hsFound) return
+function lastSessionGame() {
+  return session.games.at(-1) ?? null
+}
+
+function lastGameSettled(): boolean {
+  const last = lastSessionGame()
+  return last ? gameMmrIsSettled(last) : true
+}
+
+function ratingPollContext() {
+  const last = lastSessionGame()
+  return {
+    hsFound,
+    logCatchup,
+    gameActive: match.gameActive,
+    scene: currentScene,
+    awaitingPostGameMmr,
+    placement: match.placement,
+    playedAsSelf,
+    lastGameSettled: last ? gameMmrIsSettled(last) : true,
+    hasLastGame: Boolean(last)
+  }
+}
+
+function noteRatingOcrCapture(
+  capture: { rawText: string; error: string | null; debugCropPath: string | null },
+  observation: { rating: number | null; delta: number | null }
+): void {
+  ratingOcr = {
+    at: Date.now(),
+    raw: capture.rawText.trim().slice(0, 400) || null,
+    rating: observation.rating,
+    delta: observation.delta,
+    error: capture.error,
+    failed: ratingOcrFailed,
+    debugCropPath: capture.debugCropPath
+  }
+}
+
+function pollPlayRating(force = false): Promise<void> {
+  const run = () => pollPlayRatingBody(force)
+  const task = playRatingTail.then(run, run)
+  playRatingTail = task.then(() => undefined, () => undefined)
+  return task
+}
+
+async function pollPlayRatingBody(force = false): Promise<void> {
+  if (process.platform !== 'win32' && process.platform !== 'darwin') {
+    ratingOcr = {
+      ...EMPTY_RATING_OCR,
+      at: Date.now(),
+      error: 'Rating OCR is only supported on Windows and macOS'
+    }
+    broadcast()
+    return
+  }
+  const ctx = ratingPollContext()
+  if (!force && !shouldPollRating(ctx)) return
+  const mode = ratingPollMode({
+    awaitingPostGameMmr,
+    lastGameSettled: ctx.lastGameSettled,
+    hasLastGame: ctx.hasLastGame
+  })
   const wantResults =
-    awaitingPostGameMmr || Boolean(playedAsSelf && match.placement && match.placement > 0)
-  if (match.gameActive && !wantResults) return
+    !force &&
+    (mode === 'postgame' ||
+      Boolean(playedAsSelf && match.placement && match.placement > 0 && match.gameActive))
   const now = Date.now()
-  const minGap = wantResults ? 900 : 2500
+  const minGap = ratingPollIntervalMs(mode)
   if (!force && now - lastPlayRatingAt < minGap) return
   lastPlayRatingAt = now
+  ratingOcr = {
+    ...ratingOcr,
+    at: now,
+    raw: null,
+    rating: null,
+    delta: null,
+    error: 'Scanning…',
+    failed: ratingOcrFailed
+  }
+  broadcast()
   const bounds = await host.getClientBounds()
-  if (!bounds) return
+  if (!bounds) {
+    ratingOcr = {
+      ...ratingOcr,
+      at: Date.now(),
+      raw: null,
+      rating: null,
+      delta: null,
+      error: 'Could not read the Hearthstone window bounds',
+      failed: ratingOcrFailed,
+      debugCropPath: null
+    }
+    broadcast()
+    return
+  }
   playRatingBusy = true
   try {
-    const observed = await readRatingObservation(bounds, { includeResults: wantResults })
+    // Use lobby OCR only when freshly entering the BG lobby (within 30s of scene-change).
+    // Recurring idle polls fall back to 'play' (the Play-widget region) since the user may
+    // have navigated to a sub-screen where the lobby MMR number is no longer visible.
+    const freshBaconEntry = currentScene === 'bacon' && Date.now() - lastBaconSceneAt < 30_000
+    const ocrMode =
+      mode === 'postgame' ? 'results' :
+      mode === 'idle' && freshBaconEntry ? 'lobby' :
+      'play'
+    const capture = await readRatingObservation(bounds, {
+      includeResults: wantResults,
+      idleOnly: mode === 'idle',
+      debugDir: join(userData(), 'rating-ocr'),
+      capture: settings.ratingCapture,
+      mode: ocrMode
+    })
+    const observed = capture.observation
+    noteRatingOcrCapture(capture, observed)
+    broadcast()
     const place = observed.placement ?? match.placement
     if (
       playedAsSelf &&
@@ -372,10 +495,22 @@ async function pollPlayRating(force = false): Promise<void> {
         matchKey: null
       })
     }
-    const settled = awaitingPostGameMmr && now - postGameAt > 12_000
-    if (observed.rating != null || observed.delta != null) noteObservedRating(observed, { settled })
-  } catch {
-    /* Play-screen OCR is best-effort */
+    const settled = mode === 'postgame' && now - postGameAt > 12_000
+    if (observed.rating != null || observed.delta != null) {
+      noteObservedRating(observed, { settled })
+      if (lastGameSettled()) {
+        ratingOcrFailed = false
+        awaitingPostGameMmr = false
+      }
+    }
+  } catch (err) {
+    ratingOcr = {
+      ...ratingOcr,
+      at: Date.now(),
+      error: err instanceof Error ? err.message : String(err),
+      failed: ratingOcrFailed
+    }
+    broadcast()
   } finally {
     playRatingBusy = false
   }
@@ -437,7 +572,9 @@ function snapshot(): OverlaySnapshot {
 function broadcast(): void {
   const snap = snapshot()
   for (const win of [settingsWindow, overlayWindow]) {
-    if (win && !win.isDestroyed()) win.webContents.send('state', snap)
+    if (win && !win.isDestroyed() && !win.isMinimized()) {
+      win.webContents.send('state', snap)
+    }
   }
 }
 
@@ -595,10 +732,11 @@ function bindTailer(): LogTailer {
       const mode = parseLoadingScreenScene(line)
       if (!mode) return
       const scene = sceneFromMode(mode)
+      currentScene = scene
       if (scene === 'gameplay') return
       if (scene === 'bacon' || scene === 'hub') {
         leaveMatchToMenu(scene === 'hub')
-        if (scene === 'bacon' && awaitingPostGameMmr) void pollPlayRating(true)
+        if (scene === 'bacon') { lastBaconSceneAt = Date.now(); void pollPlayRating(true) }
       }
     },
     (line) => {
@@ -638,12 +776,25 @@ function scheduleLogAttach(): void {
   logsAttachTimer = setInterval(attempt, 5000)
 }
 
+// Self-scheduling tick: adapts interval based on whether HS is running.
+// When HS is absent we poll at 800ms to reduce Win32 EnumWindows pressure
+// (which is the main cause of mouse stutter when the launcher is open).
 function startOverlayTick(): void {
   if (overlayTickTimer) return
-  const interval = process.platform === 'darwin' ? 250 : 200
-  overlayTickTimer = setInterval(() => {
-    void tickOverlay()
-  }, interval)
+  const tick = () => {
+    overlayTickTimer = null
+    void tickOverlay().finally(() => {
+      if (overlayTickTimer) return // stopped via will-quit
+      const interval = hsFound
+        ? (process.platform === 'darwin' ? 250 : 200)
+        : 800
+      overlayTickTimer = setTimeout(tick, interval)
+    })
+  }
+  const interval = hsFound
+    ? (process.platform === 'darwin' ? 250 : 200)
+    : 800
+  overlayTickTimer = setTimeout(tick, interval)
   void tickOverlay()
 }
 
@@ -757,26 +908,50 @@ function applyLatestMmr(): void {
 function beginPostGameMmr(): void {
   if (logCatchup) return
   awaitingPostGameMmr = true
+  ratingOcrFailed = false
   postGameAt = Date.now()
-  pollMmrAfterGame(40)
+  scheduleMmrSettlement()
   void pollPlayRating(true)
 }
 
-function pollMmrAfterGame(attempts: number): void {
+function scheduleMmrSettlement(): void {
   if (mmrPollTimer) clearTimeout(mmrPollTimer)
-  void Promise.all([maybeRefreshLeaderboard(true), pollPlayRating(true)]).then(() => {
+  const elapsed = Date.now() - postGameAt
+  const last = lastSessionGame()
+  const settled = Boolean(last && gameMmrIsSettled(last))
+  if (settled && elapsed > 12_000) {
+    awaitingPostGameMmr = false
+    ratingOcrFailed = false
+    return
+  }
+  if (elapsed > SETTLEMENT_MAX_MS && !settled) {
+    awaitingPostGameMmr = false
+    ratingOcrFailed = true
+    ratingOcr = { ...ratingOcr, failed: true, at: Date.now() }
+    scheduleBroadcast()
+    return
+  }
+  if (!awaitingPostGameMmr && settled) return
+  void Promise.all([
+    maybeRefreshLeaderboard(elapsed < 30_000),
+    pollPlayRating(true)
+  ]).then(() => {
     applyLatestMmr()
     scheduleBroadcast()
-    if (attempts <= 1 || !awaitingPostGameMmr) {
-      if (attempts <= 1) awaitingPostGameMmr = false
-      return
-    }
-    const last = session.games[session.games.length - 1]
-    if (last && gameMmrIsSettled(last) && Date.now() - postGameAt > 12_000) {
+    const game = lastSessionGame()
+    const done = Boolean(game && gameMmrIsSettled(game) && Date.now() - postGameAt > 12_000)
+    if (done) {
       awaitingPostGameMmr = false
+      ratingOcrFailed = false
       return
     }
-    mmrPollTimer = setTimeout(() => pollMmrAfterGame(attempts - 1), 1_500)
+    if (!awaitingPostGameMmr && (!game || gameMmrIsSettled(game))) return
+    const mode = ratingPollMode({
+      awaitingPostGameMmr,
+      lastGameSettled: game ? gameMmrIsSettled(game) : true,
+      hasLastGame: Boolean(game)
+    })
+    mmrPollTimer = setTimeout(() => scheduleMmrSettlement(), mode === 'postgame' ? 1500 : 8000)
   })
 }
 
@@ -845,18 +1020,22 @@ async function grabOpponentCombatShot(
   side: CombatInput['opponent'],
   turn: number
 ): Promise<void> {
-  if (gen !== combatShotGen || !match.inCombat) return
-  const client = await host.getClientBounds()
-  if (!client || gen !== combatShotGen || !match.inCombat) return
-  const image = captureOpponentBoardDataUrl(opponentCombatCaptureRect(client))
-  if (!image || gen !== combatShotGen) return
-  lastOpponentShot = {
-    playerId: side.playerId,
-    name: side.name,
-    turn,
-    image
+  try {
+    if (gen !== combatShotGen || !match.inCombat) return
+    const client = await host.getClientBounds()
+    if (!client || gen !== combatShotGen || !match.inCombat) return
+    const image = captureOpponentBoardDataUrl(opponentCombatCaptureRect(client))
+    if (!image || gen !== combatShotGen) return
+    lastOpponentShot = {
+      playerId: side.playerId,
+      name: side.name,
+      turn,
+      image
+    }
+    scheduleBroadcast()
+  } catch (err) {
+    lastError = err instanceof Error ? err.message : String(err)
   }
-  scheduleBroadcast()
 }
 
 function runCombatSim(input: CombatInput): void {
@@ -969,7 +1148,7 @@ async function tickOverlayBody(): Promise<void> {
   } else if (!hsFocused && overlayWindow && !overlayWindow.isDestroyed()) {
     hsFocused = overlayWindow.isFocused()
   }
-  if (match.gameActive || awaitingPostGameMmr) void pollPlayRating(false)
+  if (shouldPollRating(ratingPollContext())) void pollPlayRating(false)
 
   const win = overlayWindow
   if (!win || win.isDestroyed()) return
@@ -1095,6 +1274,12 @@ function createSettingsWindow(): BrowserWindow {
     win.show()
     broadcast()
   })
+  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.error('settings failed to load', code, desc, url)
+  })
+  if (isDev()) {
+    win.webContents.openDevTools({ mode: 'detach' })
+  }
   win.on('closed', () => {
     settingsWindow = null
     if (process.platform !== 'darwin') app.quit()
@@ -1178,6 +1363,7 @@ function registerIpc(): void {
     }
     await saveSettings(userData(), settings)
     if (patch?.layoutUnlocked != null) applyClickThrough(true)
+    if (patch?.ratingCapture) void pollPlayRating(true)
     if (regionChanged) {
       boardRows = await loadLeaderboardCache(userData(), settings.region)
       void maybeRefreshLeaderboard(true)
@@ -1197,6 +1383,11 @@ function registerIpc(): void {
   ipcMain.handle('refresh-leaderboard', async (e) => {
     if (!fromAppWindow(e.sender)) return snapshot()
     await maybeRefreshLeaderboard(true)
+    return snapshot()
+  })
+  ipcMain.handle('scan-rating', async (e) => {
+    if (!fromAppWindow(e.sender)) return snapshot()
+    await pollPlayRating(true)
     return snapshot()
   })
   ipcMain.handle('open-logs', async (e) => {

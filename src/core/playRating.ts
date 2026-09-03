@@ -1,3 +1,5 @@
+import { DEFAULT_RATING_CAPTURE, type PctRect, type RatingCaptureSettings } from './types'
+
 export interface CaptureRect {
   x: number
   y: number
@@ -60,7 +62,7 @@ const SIGN = '([+\\-])'
 
 export function parseRatingObservation(
   text: string,
-  opts?: { allowLoneDelta?: boolean; allowSmallLoneDelta?: boolean }
+  opts?: { allowLoneDelta?: boolean; allowSmallLoneDelta?: boolean; allowLoneRating?: boolean }
 ): RatingObservation {
   if (!text) return { rating: null, delta: null }
   const raw = text
@@ -103,6 +105,10 @@ export function parseRatingObservation(
     const lone = raw.match(new RegExp(`(?:^|[^\\d])${SIGN}\\s*(\\d{2,3})\\b`))
     if (lone) delta = asDelta(Number(lone[1] + lone[2]), false, opts?.allowSmallLoneDelta)
   }
+  if (rating == null && opts?.allowLoneRating && !/\bgold\b/i.test(raw)) {
+    const lone = raw.match(/\b(\d{1,2}[,\s]\d{3}|\d{4,5})\b/)
+    if (lone) rating = asRating(Number(lone[1].replace(/[^\d]/g, '')))
+  }
   const placement = parseResultsPlacement(raw)
   return placement != null ? { rating, delta, placement } : { rating, delta }
 }
@@ -134,57 +140,72 @@ export function isSessionTotalDelta(
   return delta === before - start
 }
 
-/** Upper-right Battlegrounds Play widget, where "Rating NNNN" sits. */
-export function ratingCaptureRect(client: CaptureRect): CaptureRect {
+function clampPct(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min
+  return Math.min(max, Math.max(min, n))
+}
+
+export function clampPctRect(region: unknown, fallback: PctRect): PctRect {
+  const src = region && typeof region === 'object' ? (region as Partial<PctRect>) : {}
+  const w = clampPct(Number(src.w ?? fallback.w), 8, 80)
+  const h = clampPct(Number(src.h ?? fallback.h), 6, 70)
   return {
-    x: client.x + Math.round(client.width * 0.56),
-    y: client.y + Math.round(client.height * 0.05),
-    width: Math.max(160, Math.round(client.width * 0.3)),
-    height: Math.max(90, Math.round(client.height * 0.28))
+    x: clampPct(Number(src.x ?? fallback.x), 0, 100 - w),
+    y: clampPct(Number(src.y ?? fallback.y), 0, 100 - h),
+    w,
+    h
   }
 }
 
-export function ratingCaptureRects(client: CaptureRect): CaptureRect[] {
-  const primary = ratingCaptureRect(client)
-  return [
-    primary,
-    {
-      x: client.x + Math.round(client.width * 0.5),
-      y: client.y + Math.round(client.height * 0.03),
-      width: Math.max(180, Math.round(client.width * 0.38)),
-      height: Math.max(110, Math.round(client.height * 0.34))
-    },
-    {
-      x: client.x + Math.round(client.width * 0.42),
-      y: client.y + Math.round(client.height * 0.08),
-      width: Math.max(200, Math.round(client.width * 0.46)),
-      height: Math.max(120, Math.round(client.height * 0.36))
-    }
-  ]
+export function sanitizeRatingCapture(raw?: Partial<RatingCaptureSettings> | null): RatingCaptureSettings {
+  return {
+    play: clampPctRect(raw?.play, DEFAULT_RATING_CAPTURE.play),
+    results: clampPctRect(raw?.results, DEFAULT_RATING_CAPTURE.results),
+    lobby: clampPctRect(raw?.lobby, DEFAULT_RATING_CAPTURE.lobby)
+  }
+}
+
+/** Top-center BG lobby MMR display (large bare number, no "Rating:" label). */
+export function lobbyCaptureRect(
+  client: CaptureRect,
+  lobby: PctRect = DEFAULT_RATING_CAPTURE.lobby
+): CaptureRect {
+  return captureRectFromPct(client, lobby)
+}
+
+export function captureRectFromPct(client: CaptureRect, region: PctRect): CaptureRect {
+  const r = clampPctRect(region, DEFAULT_RATING_CAPTURE.play)
+  return {
+    x: client.x + Math.round(client.width * (r.x / 100)),
+    y: client.y + Math.round(client.height * (r.y / 100)),
+    width: Math.max(40, Math.round(client.width * (r.w / 100))),
+    height: Math.max(40, Math.round(client.height * (r.h / 100)))
+  }
+}
+
+/** Upper-right Battlegrounds Play widget, where "Rating NNNN" sits. */
+export function ratingCaptureRect(
+  client: CaptureRect,
+  play: PctRect = DEFAULT_RATING_CAPTURE.play
+): CaptureRect {
+  return captureRectFromPct(client, play)
+}
+
+export function ratingCaptureRects(
+  client: CaptureRect,
+  play: PctRect = DEFAULT_RATING_CAPTURE.play
+): CaptureRect[] {
+  return [ratingCaptureRect(client, play)]
 }
 
 /** Center plaque on the Battlegrounds results screen — avoid gold and the quest bar. */
-export function resultCaptureRects(client: CaptureRect): CaptureRect[] {
+export function resultCaptureRects(
+  client: CaptureRect,
+  regions: RatingCaptureSettings = DEFAULT_RATING_CAPTURE
+): CaptureRect[] {
   return [
-    {
-      x: client.x + Math.round(client.width * 0.3),
-      y: client.y + Math.round(client.height * 0.48),
-      width: Math.max(260, Math.round(client.width * 0.4)),
-      height: Math.max(90, Math.round(client.height * 0.22))
-    },
-    {
-      x: client.x + Math.round(client.width * 0.32),
-      y: client.y + Math.round(client.height * 0.54),
-      width: Math.max(240, Math.round(client.width * 0.36)),
-      height: Math.max(72, Math.round(client.height * 0.16))
-    },
-    {
-      x: client.x + Math.round(client.width * 0.26),
-      y: client.y + Math.round(client.height * 0.4),
-      width: Math.max(280, Math.round(client.width * 0.48)),
-      height: Math.max(120, Math.round(client.height * 0.28))
-    },
-    ...ratingCaptureRects(client)
+    captureRectFromPct(client, regions.results),
+    ratingCaptureRect(client, regions.play)
   ]
 }
 

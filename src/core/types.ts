@@ -10,16 +10,46 @@ export interface OverlayPos {
   y: number
 }
 
+/** Pool panel width as a percent of the overlay viewport (18–38). */
+export interface OverlayPoolLayout extends OverlayPos {
+  w: number
+}
+
 export interface OverlayLayout {
   rail: OverlayPos
   combat: OverlayPos
-  pool: OverlayPos
+  pool: OverlayPoolLayout
 }
+
+export const DEFAULT_PANEL_WIDTH = 20
+/** @deprecated use DEFAULT_PANEL_WIDTH */
+export const DEFAULT_POOL_WIDTH = DEFAULT_PANEL_WIDTH
 
 export const DEFAULT_OVERLAY_LAYOUT: OverlayLayout = {
   rail: { x: 0.55, y: 5.5 },
   combat: { x: 27, y: 1.4 },
-  pool: { x: 71.5, y: 3.2 }
+  pool: { x: 74, y: 3.2, w: DEFAULT_PANEL_WIDTH }
+}
+
+/** Percent of the Hearthstone client (0–100). Used for rating OCR crops. */
+export interface PctRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export interface RatingCaptureSettings {
+  play: PctRect
+  results: PctRect
+  lobby: PctRect
+}
+
+/** Matches the old hardcoded Play-widget and results-plaque crops. */
+export const DEFAULT_RATING_CAPTURE: RatingCaptureSettings = {
+  play: { x: 56, y: 5, w: 30, h: 28 },
+  results: { x: 30, y: 48, w: 40, h: 22 },
+  lobby: { x: 36, y: 3, w: 28, h: 12 }
 }
 
 export interface AppSettings {
@@ -35,6 +65,8 @@ export interface AppSettings {
   showSessionOnOverlay: boolean
   showLobbyOnOverlay: boolean
   overlayLayout: OverlayLayout
+  showRatingCaptureRegions: boolean
+  ratingCapture: RatingCaptureSettings
   currentMmr: number | null
   theme: ThemeId
 }
@@ -52,6 +84,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showSessionOnOverlay: true,
   showLobbyOnOverlay: false,
   overlayLayout: DEFAULT_OVERLAY_LAYOUT,
+  showRatingCaptureRegions: true,
+  ratingCapture: DEFAULT_RATING_CAPTURE,
   currentMmr: null,
   theme: 'buddy'
 }
@@ -204,6 +238,16 @@ export interface BgMinion {
 
 export type OverlayDisplayMode = 'unknown' | 'windowed' | 'borderless' | 'exclusive'
 
+export interface RatingOcrStatus {
+  at: number | null
+  raw: string | null
+  rating: number | null
+  delta: number | null
+  error: string | null
+  failed: boolean
+  debugCropPath: string | null
+}
+
 export interface TrackerStatus {
   hearthstoneFound: boolean
   hearthstoneFocused: boolean
@@ -220,6 +264,7 @@ export interface TrackerStatus {
   cardCount: number
   cardsError: string | null
   displayMode: OverlayDisplayMode
+  ratingOcr: RatingOcrStatus
 }
 
 export type UpdatePhase =

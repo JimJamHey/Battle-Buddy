@@ -12,6 +12,7 @@ export function SettingsApp() {
   const tagTimer = useRef<number | null>(null)
 
   useEffect(() => {
+    if (!window.battleBuddy) return
     void window.battleBuddy.getState().then(setState)
     return window.battleBuddy.onState(setState)
   }, [])
@@ -27,7 +28,7 @@ export function SettingsApp() {
 
   if (!state || state.bootstrap.phase === 'loading') {
     const progress = state?.bootstrap.progress ?? 8
-    const message = state?.bootstrap.message ?? 'Starting…'
+    const message = state?.bootstrap.message ?? 'Starting\u2026'
     return (
       <div className="settings-root settings-loading">
         <header className="settings-hero">
@@ -35,7 +36,7 @@ export function SettingsApp() {
             <img className="settings-logo" src={logoUrl} alt="" />
             <div>
               <p className="eyebrow">BattleBuddy</p>
-              <h1>Starting…</h1>
+              <h1>Starting\u2026</h1>
             </div>
           </div>
         </header>
@@ -86,46 +87,31 @@ export function SettingsApp() {
       <section className="card">
         <h2>Status</h2>
         <p className={statusClass}>
-          {state.status.hearthstoneFound ? 'Hearthstone found' : 'Waiting for Hearthstone'}
-          {state.status.hearthstoneFocused ? ' · focused' : ''}
+          {state.status.hearthstoneFound
+            ? state.status.logsLive
+              ? 'Connected \u2014 tracking your games'
+              : 'Hearthstone found \u2014 open a Battlegrounds game to start tracking'
+            : 'Waiting for Hearthstone\u2026'}
         </p>
-        <p className="hint">Install: {state.status.installPath || '—'}</p>
-        <p className="hint">Logs: {state.status.logsDirectory || '—'}</p>
-        <p className="hint">
-          Live tracking: {state.status.logsLive ? 'yes' : 'no'}
-          {state.status.needsHearthstoneRestart ? ' — restart Hearthstone' : ''}
-        </p>
-        <p className="hint">
-          Cards: {state.status.cardCount} · Leaderboard: {state.status.leaderboardCount} players cached
-        </p>
-        {state.status.cardsError ? <p className="status-bad">{state.status.cardsError}</p> : null}
+        {state.status.needsHearthstoneRestart ? (
+          <p className="status-bad">Restart Hearthstone to apply log settings</p>
+        ) : null}
         {state.status.banner ? <p className="status-bad">{state.status.banner}</p> : null}
         {state.status.lastError ? <p className="status-bad">{state.status.lastError}</p> : null}
         <div className="row" style={{ marginTop: 10 }}>
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.openLogs()}>
-            Open logs folder
-          </button>
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshLeaderboard()}>
-            Refresh leaderboard
-          </button>
           <button className="ghost danger" type="button" onClick={() => window.battleBuddy.quit()}>
             Quit BattleBuddy
           </button>
         </div>
-        <p className="hint">Close this window or Quit to exit. Minimize it to keep the overlay running.</p>
+        <p className="hint">Minimize this window to keep the overlay running in the background.</p>
       </section>
 
       <section className="card">
         <h2>Updates</h2>
         <p className="hint">
           {checking
-            ? 'Checking GitHub…'
-            : state.update.phase === 'unavailable'
-              ? `You're on v${state.update.currentVersion}.`
-              : `Installed version v${state.update.currentVersion}.`}
-          {state.update.canInstall
-            ? ' Installed copies check the rolling test release as well as numbered tags.'
-            : ''}
+            ? 'Checking for updates\u2026'
+            : `You\u2019re on v${state.update.currentVersion}.`}
         </p>
         <div className="row" style={{ marginTop: 10 }}>
           <button
@@ -134,7 +120,7 @@ export function SettingsApp() {
             disabled={checking}
             onClick={() => void window.battleBuddy.checkUpdate()}
           >
-            {checking ? 'Checking…' : 'Check for updates'}
+            {checking ? 'Checking\u2026' : 'Check for updates'}
           </button>
         </div>
       </section>
@@ -182,11 +168,8 @@ export function SettingsApp() {
           />
         </label>
         <p className="hint">
-          {state.status.displayMode === 'exclusive'
-            ? 'Hearthstone is in fullscreen — switching it so the overlay can sit on the game.'
-            : state.status.displayMode === 'borderless'
-              ? 'Borderless fullscreen — overlay follows the game window.'
-              : 'Windowed — overlay follows the Hearthstone window in any size.'}
+          Drag panels anywhere on screen. Resize the minion pool from its bottom-right corner.
+          Panels scale down on 1080p. (Ctrl+Shift+L toggles this too.)
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>
@@ -221,6 +204,10 @@ export function SettingsApp() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Account</h2>
         <label htmlFor="region">Leaderboard region</label>
         <select
           id="region"
@@ -245,9 +232,24 @@ export function SettingsApp() {
           }}
           onBlur={() => commitTag(tagDraft)}
         />
+        <p className="hint">Used to find your rating on the leaderboard.</p>
+        <label htmlFor="current-mmr">Current rating (optional seed)</label>
+        <input
+          id="current-mmr"
+          type="number"
+          min={0}
+          max={30000}
+          step={1}
+          placeholder="e.g. 5200"
+          value={state.settings.currentMmr ?? ''}
+          onChange={(e) => {
+            const raw = e.target.value.trim()
+            patch({ currentMmr: raw === '' ? null : Number(raw) })
+          }}
+        />
         <p className="hint">
-          Rating is read from the Battlegrounds Play screen after a game. Other players’ ratings are
-          not available in the client.
+          If you\u2019re not on the leaderboard, enter your rating here so the session tracker can
+          show your +/\u2212 each game.
         </p>
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
@@ -263,19 +265,19 @@ export function SettingsApp() {
             Browse
           </button>
         </div>
-        <p className="hint">
-          {state.status.cardsError
-            ? `Minion catalog failed to load: ${state.status.cardsError}`
-            : 'Combat odds on top. Hands and trinkets are included when Power.log prints them. Click tavern 1–7 to peek a tier.'}
-        </p>
+        {state.status.cardsError ? (
+          <p className="status-bad" style={{ marginTop: 8 }}>
+            Minion catalog failed to load: {state.status.cardsError}
+          </p>
+        ) : null}
       </section>
 
       <section className="card">
         <h2>Today</h2>
         <p>
-          {today.length} games
-          {avg != null ? ` · avg place ${avg}` : ''}
-          {state.session.startMmr != null ? ` · start ${formatMmr(state.session.startMmr)}` : ''}
+          {today.length} game{today.length !== 1 ? 's' : ''}
+          {avg != null ? ` \u00b7 avg place ${avg}` : ''}
+          {state.session.startMmr != null ? ` \u00b7 start ${formatMmr(state.session.startMmr)}` : ''}
         </p>
         {today.length ? (
           <ol className="games">
@@ -285,9 +287,9 @@ export function SettingsApp() {
               .map((game, i) => (
                 <li key={`${game.endedAt}-${i}`}>
                   <span className={placeClass(game.placement)}>{ordinal(game.placement)}</span>
-                  {game.heroName ? <span> · {game.heroName}</span> : null}
-                  <span> · turn {game.turn}</span>
-                  {game.mmrDelta != null ? <span> · {formatDelta(game.mmrDelta)}</span> : null}
+                  {game.heroName ? <span> \u00b7 {game.heroName}</span> : null}
+                  <span> \u00b7 turn {game.turn}</span>
+                  {game.mmrDelta != null ? <span> \u00b7 {formatDelta(game.mmrDelta)}</span> : null}
                 </li>
               ))}
           </ol>

@@ -56,6 +56,9 @@ describe('parsePlayRating', () => {
     expect(
       isSessionTotalDelta(73, { startMmr: 5216, games: [{ mmrBefore: 5073 }] })
     ).toBe(false)
+    expect(parseRatingObservation('5601', { allowLoneRating: true })).toEqual({ rating: 5601, delta: null })
+    expect(parseRatingObservation('5,248', { allowLoneRating: true })).toEqual({ rating: 5248, delta: null })
+    expect(parseRatingObservation('5601')).toEqual({ rating: null, delta: null })
     expect(parseRatingObservation('+71', { allowLoneDelta: true })).toEqual({ rating: null, delta: 71 })
     expect(parseRatingObservation('+3', { allowLoneDelta: true })).toEqual({ rating: null, delta: null })
     expect(acceptObservedRating(1234, { previous: 5216, battleTag: 'TestPlayer#1234' })).toBe(false)
@@ -82,9 +85,16 @@ describe('ratingCaptureRect', () => {
     const client = { x: 0, y: 0, width: 1920, height: 1080 }
     const rects = resultCaptureRects(client)
     expect(rects[0]?.y).toBeGreaterThanOrEqual(Math.round(1080 * 0.45))
-    for (const region of rects.slice(0, 3)) {
-      expect(region.y + region.height).toBeLessThan(Math.round(1080 * 0.78))
-    }
+    expect((rects[0]?.y ?? 0) + (rects[0]?.height ?? 0)).toBeLessThan(Math.round(1080 * 0.78))
+  })
+
+  it('uses a custom Play-screen crop when provided', () => {
+    const client = { x: 0, y: 0, width: 1920, height: 1080 }
+    const region = ratingCaptureRect(client, { x: 70, y: 8, w: 18, h: 14 })
+    expect(region.x).toBe(Math.round(1920 * 0.7))
+    expect(region.y).toBe(Math.round(1080 * 0.08))
+    expect(region.width).toBe(Math.round(1920 * 0.18))
+    expect(region.height).toBe(Math.round(1080 * 0.14))
   })
 })
 

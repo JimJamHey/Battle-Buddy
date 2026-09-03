@@ -1,6 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { DEFAULT_OVERLAY_LAYOUT, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
+import {
+  DEFAULT_OVERLAY_LAYOUT,
+  DEFAULT_PANEL_WIDTH,
+  DEFAULT_RATING_CAPTURE,
+  type OverlayLayout,
+  type OverlayPos,
+  type OverlaySnapshot,
+  type RatingCaptureSettings
+} from '../core/types'
+import { clampPoolWidth, panelWidthStyle, poolWidthStyle } from '../core/layout'
 import { groupPoolCards, minionsForTier } from '../core/pool'
 import { formatBuffValue } from '../core/buffs'
 import { gamesToday, MAX_RECENT_GAMES } from '../core/session'
@@ -13,6 +22,7 @@ import { CombatBar } from './CombatBar'
 import { DraggablePanel } from './DraggablePanel'
 import { LastSeenOpponent } from './LastSeen'
 import { PoolBrowser } from './PoolBrowser'
+import { RatingCaptureGuide } from './RatingCaptureGuide'
 import { SessionRail } from './SessionRail'
 import { SeenBoardCard } from './SeenBoard'
 import { useClickThrough } from './useClickThrough'
@@ -20,6 +30,7 @@ import { useClickThrough } from './useClickThrough'
 export function OverlayApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
   const [layout, setLayout] = useState<OverlayLayout>(DEFAULT_OVERLAY_LAYOUT)
+  const [capture, setCapture] = useState<RatingCaptureSettings>(DEFAULT_RATING_CAPTURE)
   const dragging = useRef(false)
   const [hoverGame, setHoverGame] = useState<number | null>(null)
 
@@ -33,8 +44,13 @@ export function OverlayApp() {
     setLayout(state.settings.overlayLayout)
   }, [state?.settings.overlayLayout])
 
+  useEffect(() => {
+    if (!state || dragging.current) return
+    setCapture(state.settings.ratingCapture ?? DEFAULT_RATING_CAPTURE)
+  }, [state?.settings.ratingCapture])
+
   const unlocked = Boolean(state?.settings.layoutUnlocked)
-  useClickThrough()
+  useClickThrough(!unlocked)
 
   useEffect(() => {
     if (!state) return
@@ -79,11 +95,28 @@ export function OverlayApp() {
 
   const movePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
     dragging.current = true
-    setLayout((prev) => ({ ...prev, [key]: pos }))
+    setLayout((prev) => {
+      if (key === 'pool') return { ...prev, pool: { ...prev.pool, ...pos } }
+      return { ...prev, [key]: pos }
+    })
   }
   const savePanel = (key: keyof OverlayLayout, pos: OverlayPos) => {
     setLayout((prev) => {
-      const next = { ...prev, [key]: pos }
+      const next =
+        key === 'pool' ? { ...prev, pool: { ...prev.pool, ...pos } } : { ...prev, [key]: pos }
+      void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
+        dragging.current = false
+      })
+      return next
+    })
+  }
+  const resizePool = (widthPct: number) => {
+    dragging.current = true
+    setLayout((prev) => ({ ...prev, pool: { ...prev.pool, w: clampPoolWidth(widthPct) } }))
+  }
+  const savePoolWidth = (widthPct: number) => {
+    setLayout((prev) => {
+      const next = { ...prev, pool: { ...prev.pool, w: clampPoolWidth(widthPct) } }
       void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
         dragging.current = false
       })
@@ -102,8 +135,30 @@ export function OverlayApp() {
       </div>
       {unlocked ? (
         <div className="layout-hint interactive capture-mouse" role="status">
-          Drag a panel to place it · Ctrl+Shift+L to lock
+          Drag a panel to place it · drag the pool corner to resize · Ctrl+Shift+L to lock
         </div>
+      ) : null}
+
+      {state.settings.showRatingCaptureRegions ? (
+        <RatingCaptureGuide
+          capture={capture}
+          ocr={state.status.ratingOcr}
+          onChange={(next) => {
+            dragging.current = true
+            setCapture(next)
+          }}
+          onChangeEnd={(next) => {
+            setCapture(next)
+            void window.battleBuddy.setSettings({ ratingCapture: next }).finally(() => {
+              dragging.current = false
+            })
+          }}
+          onInteract={interact}
+          onScan={async () => {
+            const next = await window.battleBuddy.scanRating()
+            setState(next)
+          }}
+        />
       ) : null}
 
       {showCombat ? (
@@ -137,7 +192,7 @@ export function OverlayApp() {
           className="rail"
           pos={layout.rail}
           unlocked={unlocked}
-          width="min(368px, 32vw)"
+          width={panelWidthStyle(DEFAULT_PANEL_WIDTH)}
           onMove={(pos) => movePanel('rail', pos)}
           onMoveEnd={(pos) => savePanel('rail', pos)}
           onInteract={interact}
@@ -169,9 +224,13 @@ export function OverlayApp() {
         className="pool"
         pos={layout.pool}
         unlocked={unlocked}
-        width="min(368px, 32vw)"
+        width={poolWidthStyle(layout.pool.w)}
+        panelWidthPct={layout.pool.w}
+        resizable
         onMove={(pos) => movePanel('pool', pos)}
         onMoveEnd={(pos) => savePanel('pool', pos)}
+        onResize={resizePool}
+        onResizeEnd={savePoolWidth}
         onInteract={interact}
       >
         {state.minions.length ? (

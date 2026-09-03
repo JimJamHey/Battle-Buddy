@@ -10,6 +10,7 @@ const api = {
   openLogs: (): Promise<void> => ipcRenderer.invoke('open-logs'),
   setClickThrough: (enabled: boolean) => ipcRenderer.send('click-through', enabled),
   setTier: (tier: number) => ipcRenderer.send('set-tier', tier),
+  scanRating: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('scan-rating'),
   quit: () => ipcRenderer.send('quit-app'),
   checkUpdate: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('update-check'),
   downloadUpdate: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('update-download'),

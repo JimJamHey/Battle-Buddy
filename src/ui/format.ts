@@ -1,10 +1,22 @@
 import { looksLikeHeroName } from '../core/heroes'
 import { isPlaceholderName } from '../core/parser'
-import type { CombatOdds, LobbyMmrRow, OverlaySnapshot, UpdateState } from '../core/types'
+import type { CombatOdds, LobbyMmrRow, OverlaySnapshot, RatingOcrStatus, UpdateState } from '../core/types'
 
 export function formatMmr(value: number | null | undefined): string {
   if (value == null) return '—'
   return value.toLocaleString('en-US')
+}
+
+export function ratingOcrLabel(ocr: RatingOcrStatus | null | undefined): string {
+  if (!ocr?.at && !ocr?.error) return 'Not scanned yet'
+  if (ocr.error === 'Scanning…') return 'Scanning…'
+  if (ocr.rating != null) {
+    const delta = ocr.delta == null ? '' : ` (${ocr.delta > 0 ? '+' : ''}${ocr.delta})`
+    return `Read ${ocr.rating.toLocaleString('en-US')}${delta}`
+  }
+  if (ocr.raw) return `Saw “${ocr.raw.slice(0, 80)}” — not a rating`
+  if (ocr.error) return ocr.error
+  return 'No rating in this crop'
 }
 
 export function formatPct(value: number): string {

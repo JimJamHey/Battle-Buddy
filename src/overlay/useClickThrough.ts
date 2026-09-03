@@ -1,8 +1,12 @@
 import { useEffect } from 'react'
 
 /** Overlay owns click-through: pass through unless the cursor is over `.capture-mouse`. */
-export function useClickThrough(): void {
+export function useClickThrough(enabled = true): void {
   useEffect(() => {
+    if (!enabled) {
+      window.battleBuddy.setClickThrough(false)
+      return
+    }
     let last = true
     const send = (pass: boolean) => {
       if (pass === last) return
@@ -18,14 +22,12 @@ export function useClickThrough(): void {
     window.addEventListener('mousemove', onMove)
     window.addEventListener('pointermove', onMove)
     document.addEventListener('mouseleave', passThrough)
-    window.addEventListener('blur', passThrough)
     send(true)
     return () => {
       send(true)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('pointermove', onMove)
       document.removeEventListener('mouseleave', passThrough)
-      window.removeEventListener('blur', passThrough)
     }
-  }, [])
+  }, [enabled])
 }

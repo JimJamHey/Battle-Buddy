@@ -56,13 +56,13 @@ function loadApi(): CaptureApi {
   const koffi = require('koffi') as Koffi
   const user32 = koffi.load('user32.dll')
   const gdi32 = koffi.load('gdi32.dll')
-  const RECT = koffi.struct('RECT', {
+  const RECT = koffi.struct('CaptureRECT', {
     left: 'long',
     top: 'long',
     right: 'long',
     bottom: 'long'
   })
-  const BITMAPINFOHEADER = koffi.struct('BITMAPINFOHEADER', {
+  const BITMAPINFOHEADER = koffi.struct('CaptureBITMAPINFOHEADER', {
     biSize: 'uint32',
     biWidth: 'int32',
     biHeight: 'int32',
@@ -78,7 +78,7 @@ function loadApi(): CaptureApi {
   api = {
     FindWindowW: user32.func('void* __stdcall FindWindowW(str16 className, str16 windowName)'),
     IsWindow: user32.func('bool __stdcall IsWindow(void *hWnd)'),
-    GetWindowRect: user32.func('bool __stdcall GetWindowRect(void *hWnd, _Out_ RECT *lpRect)'),
+    GetWindowRect: user32.func('bool __stdcall GetWindowRect(void *hWnd, _Out_ CaptureRECT *lpRect)'),
     PrintWindow: user32.func('bool __stdcall PrintWindow(void *hwnd, void *hdcBlt, uint32 nFlags)'),
     GetDC: user32.func('void* __stdcall GetDC(void *hWnd)'),
     ReleaseDC: user32.func('int32 __stdcall ReleaseDC(void *hWnd, void *hDC)'),
@@ -89,7 +89,7 @@ function loadApi(): CaptureApi {
       'bool __stdcall BitBlt(void *hdc, int32 x, int32 y, int32 cx, int32 cy, void *src, int32 x1, int32 y1, uint32 rop)'
     ),
     GetDIBits: gdi32.func(
-      'int32 __stdcall GetDIBits(void *hdc, void *hbm, uint32 start, uint32 lines, void *bits, _Inout_ BITMAPINFOHEADER *info, uint32 usage)'
+      'int32 __stdcall GetDIBits(void *hdc, void *hbm, uint32 start, uint32 lines, void *bits, _Inout_ CaptureBITMAPINFOHEADER *info, uint32 usage)'
     ),
     DeleteObject: gdi32.func('bool __stdcall DeleteObject(void *ho)'),
     DeleteDC: gdi32.func('bool __stdcall DeleteDC(void *hdc)'),

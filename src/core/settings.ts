@@ -1,6 +1,7 @@
-import { clampOverlayPos, mergeOverlayLayout, migrateOverlayLayout } from './layout'
+import { clampOverlayPos, clampPoolLayout, mergeOverlayLayout, migrateOverlayLayout } from './layout'
+import { sanitizeRatingCapture } from './playRating'
 import { resolveTheme } from './theme'
-import { DEFAULT_SETTINGS, type AppSettings, type OverlayLayout, type Region } from './types'
+import { DEFAULT_RATING_CAPTURE, DEFAULT_SETTINGS, type AppSettings, type OverlayLayout, type Region } from './types'
 
 const REGIONS = new Set<Region>(['US', 'EU', 'AP'])
 
@@ -13,7 +14,7 @@ function clampLayout(layout: OverlayLayout): OverlayLayout {
   return {
     rail: clampOverlayPos(layout.rail),
     combat: clampOverlayPos(layout.combat),
-    pool: clampOverlayPos(layout.pool)
+    pool: clampPoolLayout(layout.pool)
   }
 }
 
@@ -31,6 +32,10 @@ export function sanitizeSettings(base: AppSettings, patch: Partial<AppSettings> 
   if (typeof patch.keepFullscreenOverlay === 'boolean') next.keepFullscreenOverlay = patch.keepFullscreenOverlay
   if (typeof patch.showSessionOnOverlay === 'boolean') next.showSessionOnOverlay = patch.showSessionOnOverlay
   next.showLobbyOnOverlay = false
+  if (typeof patch.showRatingCaptureRegions === 'boolean') {
+    next.showRatingCaptureRegions = patch.showRatingCaptureRegions
+  }
+  next.ratingCapture = sanitizeRatingCapture(patch.ratingCapture ?? next.ratingCapture ?? DEFAULT_RATING_CAPTURE)
   if (patch.overlayLayout) {
     next.overlayLayout = clampLayout(
       migrateOverlayLayout(mergeOverlayLayout(next.overlayLayout, patch.overlayLayout))
