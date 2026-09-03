@@ -29,7 +29,7 @@
   font-feature-settings: "ss01" 1, "kern" 1;
 }
 
-html[data-theme='classic'] {
+html[data-theme='hearth'] {
   --bg: #120e09;
   --bg-elevated: #1c1610;
   --panel: rgba(22, 16, 10, 0.94);
@@ -49,48 +49,99 @@ html[data-theme='classic'] {
   --overlay-accent-line: rgba(215, 181, 106, 0.5);
   --overlay-edge-a: #e4c278;
   --overlay-edge-b: #8a5a22;
+  --radius: 10px;
 }
 
-html[data-theme='cthulhu'] {
-  --bg: #04070a;
-  --bg-elevated: #0a1216;
-  --panel: rgba(4, 10, 12, 0.95);
-  --panel-solid: #0a1418;
-  --text: #e7fff6;
-  --muted: #8ec9b8;
-  --gold: #7dffd1;
-  --mint: #67e8c8;
-  --self: #c4b5fd;
-  --hero-a: rgba(103, 232, 200, 0.16);
-  --hero-b: rgba(88, 48, 210, 0.22);
-  --overlay-tint: rgba(103, 232, 200, 0.16);
-  --overlay-surface: #061016;
-  --overlay-row: #050c10;
-  --overlay-row-hover: #0c2428;
-  --overlay-accent: rgba(125, 255, 209, 0.24);
-  --overlay-accent-line: rgba(124, 92, 255, 0.5);
-  --overlay-edge-a: #7dffd1;
-  --overlay-edge-b: #6a48e8;
-}
-
-html[data-theme='buddy'] {
-  --bg: #080c14;
-  --bg-elevated: #121820;
-  --panel: rgba(8, 12, 18, 0.92);
-  --panel-solid: #121820;
+html[data-theme='crown'] {
+  --bg: #0a0614;
+  --bg-elevated: #120a1e;
+  --panel: rgba(18, 10, 30, 0.94);
+  --panel-solid: #120a1e;
+  --text: #f0ecff;
+  --muted: #a8a0c8;
   --gold: #f0c96a;
-  --mint: #6ee0c4;
-  --self: #7dd3fc;
-  --hero-a: rgba(240, 201, 106, 0.16);
-  --hero-b: rgba(110, 224, 196, 0.12);
-  --overlay-tint: rgba(240, 201, 106, 0.18);
-  --overlay-surface: #0a1220;
-  --overlay-row: #070c16;
-  --overlay-row-hover: #1a1830;
-  --overlay-accent: rgba(240, 201, 106, 0.24);
-  --overlay-accent-line: rgba(240, 201, 106, 0.42);
+  --mint: #22d3ee;
+  --self: #c4b5fd;
+  --hero-a: rgba(167, 139, 250, 0.16);
+  --hero-b: rgba(34, 211, 238, 0.12);
+  --overlay-tint: rgba(167, 139, 250, 0.18);
+  --overlay-surface: #120a1e;
+  --overlay-row: #0e0818;
+  --overlay-row-hover: #1a1230;
+  --overlay-accent: rgba(240, 201, 106, 0.22);
+  --overlay-accent-line: rgba(167, 139, 250, 0.42);
   --overlay-edge-a: #f0c96a;
-  --overlay-edge-b: #6ee0c4;
+  --overlay-edge-b: #a78bfa;
+  --radius: 14px;
+}
+
+html[data-theme='coliseum'] {
+  --bg: #080c14;
+  --bg-elevated: #0c1018;
+  --panel: rgba(8, 12, 18, 0.92);
+  --panel-solid: #0c1018;
+  --text: #f6f8fb;
+  --muted: #9aa8b8;
+  --gold: #e8b56b;
+  --mint: #5ee0c8;
+  --self: #7dd3fc;
+  --hero-a: rgba(232, 181, 107, 0.14);
+  --hero-b: rgba(94, 224, 200, 0.1);
+  --overlay-tint: rgba(94, 224, 200, 0.14);
+  --overlay-surface: #0c1018;
+  --overlay-row: #070c16;
+  --overlay-row-hover: #141c28;
+  --overlay-accent: rgba(200, 200, 220, 0.18);
+  --overlay-accent-line: rgba(200, 200, 220, 0.28);
+  --overlay-edge-a: #c5d0dc;
+  --overlay-edge-b: #5ee0c8;
+  --radius: 12px;
+}
+
+html[data-theme='warband'] {
+  --bg: #0c1018;
+  --bg-elevated: #10141c;
+  --panel: rgba(12, 16, 24, 0.94);
+  --panel-solid: #10141c;
+  --text: #e8edf4;
+  --muted: #94a3b8;
+  --gold: #cbd5e1;
+  --mint: #34d399;
+  --self: #7dd3fc;
+  --hero-a: rgba(148, 163, 184, 0.12);
+  --hero-b: rgba(52, 211, 153, 0.1);
+  --overlay-tint: rgba(52, 211, 153, 0.12);
+  --overlay-surface: #10141c;
+  --overlay-row: #0c1018;
+  --overlay-row-hover: #182028;
+  --overlay-accent: rgba(148, 163, 184, 0.2);
+  --overlay-accent-line: rgba(148, 163, 184, 0.35);
+  --overlay-edge-a: #94a3b8;
+  --overlay-edge-b: #64748b;
+  --radius: 12px;
+}
+
+html[data-theme='voidreach'] {
+  --bg: #040208;
+  --bg-elevated: #06040c;
+  --panel: rgba(6, 4, 12, 0.95);
+  --panel-solid: #06040c;
+  --text: #f0e8ff;
+  --muted: #a78bfa;
+  --gold: #e879f9;
+  --mint: #67e8f9;
+  --self: #c4b5fd;
+  --hero-a: rgba(192, 38, 211, 0.16);
+  --hero-b: rgba(103, 232, 249, 0.1);
+  --overlay-tint: rgba(192, 38, 211, 0.16);
+  --overlay-surface: #06040c;
+  --overlay-row: #08041a;
+  --overlay-row-hover: #140c28;
+  --overlay-accent: rgba(232, 121, 249, 0.22);
+  --overlay-accent-line: rgba(192, 38, 211, 0.4);
+  --overlay-edge-a: #e879f9;
+  --overlay-edge-b: #67e8f9;
+  --radius: 18px;
 }
 
 * {
@@ -149,12 +200,23 @@ p {
   position: relative;
   overflow: visible;
   user-select: none;
-  --overlay-panel-max: 300px;
-  --overlay-combat-max: 520px;
+  /*
+   * Fluid bounds — scale continuously from 720p to 5K without any fixed breakpoints.
+   * Panel widths use vw so they adapt automatically; combat bar is clamped hard at
+   * 42rem to avoid crossing the center third of the board where in-game buttons live.
+   * Bottom/top safe zones are injected from main.ts as CSS custom properties so they
+   * can be tuned per-platform without a rebuild.
+   */
+  --overlay-panel-min: clamp(10rem, 12.5vw, 18rem);
+  --overlay-panel-max: clamp(13rem, 18vw, 24rem);
+  --overlay-combat-width: clamp(16rem, 40vw, 42rem);
   --overlay-combat-vw: 48;
-  --overlay-pool-max-h: min(72vh, 680px);
-  --overlay-tier-min: 32px;
-  --overlay-row-min: 48px;
+  --overlay-pool-max-h: clamp(20rem, 68vh, 56rem);
+  --overlay-tier-min: clamp(1.3rem, 2.6vh, 2.2rem);
+  --overlay-row-min: clamp(1.9rem, 4.4vh, 3.4rem);
+  --overlay-nav-gap: clamp(0.3rem, 0.7vh, 0.6rem);
+  --overlay-nav-pad: clamp(0.4rem, 0.9vh, 0.7rem);
+  --overlay-frame-size: clamp(56px, 5.5vw, 112px);
 }
 
 .overlay-root .interactive {
@@ -563,6 +625,9 @@ p {
   box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   padding: 14px 16px;
   backdrop-filter: blur(18px) saturate(1.2);
+  /* Isolate paint to this stacking context — prevents cascading repaints */
+  contain: layout style;
+  isolation: isolate;
 }
 
 .panel::before,
@@ -573,6 +638,9 @@ p {
   pointer-events: none;
   z-index: 4;
   display: none;
+  /* GPU-composited layer — no layout impact from frame art */
+  will-change: filter;
+  contain: strict;
 }
 
 .panel::after,
@@ -589,11 +657,11 @@ p {
     inset 0 18px 28px rgba(0, 0, 0, 0.22);
 }
 
-html[data-theme='classic'] .panel,
-html[data-theme='classic'] .combat-bar,
-html[data-theme='classic'] .pool-panel,
-html[data-theme='classic'] .settings-root .card {
-  --radius: 8px;
+/* ── Tavern Hearth ─────────────────────────────── */
+html[data-theme='hearth'] .panel,
+html[data-theme='hearth'] .combat-bar,
+html[data-theme='hearth'] .pool-panel,
+html[data-theme='hearth'] .settings-root .card {
   border: 0;
   color: #f6ead2;
   background-color: #1a120c;
@@ -615,21 +683,22 @@ html[data-theme='classic'] .settings-root .card {
     inset 0 -24px 42px rgba(0, 0, 0, 0.52);
 }
 
-html[data-theme='classic'] .panel::before,
-html[data-theme='classic'] .combat-bar::before {
+html[data-theme='hearth'] .panel::before,
+html[data-theme='hearth'] .combat-bar::before {
   display: block;
   inset: -22px;
   background:
-    url('./frames/classic-corner-tl.png') left top / 86px 86px no-repeat,
-    url('./frames/classic-corner-tr.png') right top / 86px 86px no-repeat,
-    url('./frames/classic-corner-bl.png') left bottom / 86px 86px no-repeat,
-    url('./frames/classic-corner-br.png') right bottom / 86px 86px no-repeat;
+    url('./frames/hearth-corner-tl.svg') left top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/hearth-corner-tr.svg') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/hearth-corner-bl.svg') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/hearth-corner-br.svg') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
-  animation: torch-flicker 3.8s ease-in-out infinite;
+  animation: hearth-flicker 3.8s ease-in-out infinite;
+  will-change: filter;
 }
 
-html[data-theme='classic'] .panel::after,
-html[data-theme='classic'] .combat-bar::after {
+html[data-theme='hearth'] .panel::after,
+html[data-theme='hearth'] .combat-bar::after {
   background:
     radial-gradient(circle at 13px 13px, #f0d08a 0 2.5px, #5a3a14 3.5px, transparent 4.5px),
     radial-gradient(circle at calc(100% - 13px) 13px, #f0d08a 0 2.5px, #5a3a14 3.5px, transparent 4.5px),
@@ -642,10 +711,10 @@ html[data-theme='classic'] .combat-bar::after {
     inset 0 26px 36px rgba(0, 0, 0, 0.45);
 }
 
-html[data-theme='classic'] .chip,
-html[data-theme='classic'] .pool-mode-toggle,
-html[data-theme='classic'] .mmr-block,
-html[data-theme='classic'] .pool-kicker {
+html[data-theme='hearth'] .chip,
+html[data-theme='hearth'] .pool-mode-toggle,
+html[data-theme='hearth'] .mmr-block,
+html[data-theme='hearth'] .pool-kicker {
   border-color: rgba(215, 181, 106, 0.38);
   background:
     linear-gradient(180deg, rgba(255, 214, 140, 0.1), transparent 70%),
@@ -655,110 +724,235 @@ html[data-theme='classic'] .pool-kicker {
     inset 0 0 0 1px rgba(215, 181, 106, 0.18);
 }
 
-html[data-theme='classic'] .chip.live,
-html[data-theme='classic'] .pool-mode-toggle button.active {
+html[data-theme='hearth'] .chip.live,
+html[data-theme='hearth'] .pool-mode-toggle button.active {
   color: #f3e6c4;
 }
 
-html[data-theme='cthulhu'] .panel,
-html[data-theme='cthulhu'] .combat-bar,
-html[data-theme='cthulhu'] .pool-panel,
-html[data-theme='cthulhu'] .settings-root .card {
-  --radius: 20px;
+html[data-theme='hearth'] .session-dynamic {
+  background:
+    radial-gradient(circle at 30% 70%, rgba(255, 154, 60, 0.12), transparent 45%),
+    rgba(12, 8, 4, 0.5);
+}
+
+/* ── Titan's Crown ─────────────────────────────── */
+html[data-theme='crown'] .panel,
+html[data-theme='crown'] .combat-bar,
+html[data-theme='crown'] .pool-panel,
+html[data-theme='crown'] .settings-root .card {
   border: 0;
-  background-color: #061016;
+  background-color: #120a1e;
   background-image:
-    radial-gradient(90% 70% at 108% -8%, rgba(124, 92, 255, 0.42), transparent 46%),
-    radial-gradient(80% 60% at -10% 110%, rgba(0, 110, 92, 0.5), transparent 48%),
-    repeating-linear-gradient(118deg, rgba(80, 255, 210, 0.05) 0 1px, transparent 1px 11px);
-  background-size: 100% 100%, 100% 100%, 220% 220%;
-  animation: abyss-vein 14s linear infinite;
+    radial-gradient(90% 60% at 50% -20%, rgba(167, 139, 250, 0.25), transparent 50%),
+    linear-gradient(135deg, transparent 40%, rgba(34, 211, 238, 0.06) 50%, transparent 60%);
+  background-size: 100% 100%, 220% 100%;
+  animation: crown-sheen 7s ease-in-out infinite;
+  will-change: background-position;
   box-shadow:
-    0 22px 50px rgba(0, 0, 0, 0.62),
-    0 0 28px rgba(80, 255, 210, 0.18),
-    0 0 0 1px rgba(40, 20, 70, 0.9),
-    0 0 0 3px rgba(125, 255, 209, 0.55),
-    0 0 0 6px rgba(20, 8, 36, 0.95),
-    inset 0 1px 0 rgba(180, 255, 230, 0.16);
+    0 22px 48px rgba(0, 0, 0, 0.55),
+    0 0 24px rgba(167, 139, 250, 0.15),
+    0 0 0 2px #2a1848,
+    0 0 0 4px #f0c96a,
+    0 0 0 6px #1a0e30,
+    0 0 0 8px #a78bfa,
+    inset 0 1px 0 rgba(240, 201, 106, 0.2);
 }
 
-html[data-theme='cthulhu'] .panel::before,
-html[data-theme='cthulhu'] .combat-bar::before {
+html[data-theme='crown'] .panel::before,
+html[data-theme='crown'] .combat-bar::before {
   display: block;
-  inset: -46px;
+  inset: -22px;
   background:
-    url('./frames/cthulhu-tentacle-tl.png') left top / 138px 138px no-repeat,
-    url('./frames/cthulhu-tentacle-tr.png') right top / 138px 138px no-repeat,
-    url('./frames/cthulhu-tentacle-bl.png') left bottom / 138px 138px no-repeat,
-    url('./frames/cthulhu-tentacle-br.png') right bottom / 138px 138px no-repeat;
-  filter: drop-shadow(0 0 14px rgba(80, 255, 210, 0.4));
-  transform-origin: center;
-  animation: tentacle-breathe 5.6s ease-in-out infinite;
+    url('./frames/crown-corner-tl.svg') left top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/crown-corner-tr.svg') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/crown-corner-bl.svg') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/crown-corner-br.svg') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
+  filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.35));
+  animation: crown-glow 5s ease-in-out infinite;
+  will-change: filter;
 }
 
-html[data-theme='cthulhu'] .pool-panel::before {
+html[data-theme='crown'] .pool-panel::before {
   background:
-    url('./frames/cthulhu-tentacle-tl.png') left top / 138px 138px no-repeat,
-    url('./frames/cthulhu-tentacle-tr.png') right top / 138px 138px no-repeat,
-    url('./frames/cthulhu-tentacle-bl.png') left bottom / 138px 138px no-repeat,
-    url('./frames/cthulhu-tentacle-br.png') right bottom / 138px 138px no-repeat,
-    url('./frames/cthulhu-tentacle-side-l.png') left center / 58px 230px no-repeat,
-    url('./frames/cthulhu-tentacle-side-r.png') right center / 58px 230px no-repeat;
+    url('./frames/crown-corner-tl.svg') left top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/crown-corner-tr.svg') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/crown-corner-bl.svg') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/crown-corner-br.svg') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/crown-side-l.svg') left center / 54px 220px no-repeat,
+    url('./frames/crown-side-r.svg') right center / 54px 220px no-repeat;
 }
 
-html[data-theme='cthulhu'] .panel::after,
-html[data-theme='cthulhu'] .combat-bar::after {
+html[data-theme='crown'] .panel::after,
+html[data-theme='crown'] .combat-bar::after {
   box-shadow:
-    inset 0 0 0 1px rgba(125, 255, 209, 0.38),
-    inset 0 0 0 6px rgba(8, 16, 22, 0.72),
-    inset 0 0 0 7px rgba(124, 92, 255, 0.28),
-    inset 0 0 40px rgba(80, 40, 160, 0.28);
+    inset 0 0 0 1px rgba(240, 201, 106, 0.35),
+    inset 0 0 0 6px rgba(18, 10, 30, 0.72),
+    inset 0 0 0 7px rgba(167, 139, 250, 0.2),
+    inset 0 0 30px rgba(34, 211, 238, 0.08);
 }
 
-html[data-theme='buddy'] .panel,
-html[data-theme='buddy'] .combat-bar,
-html[data-theme='buddy'] .pool-panel,
-html[data-theme='buddy'] .settings-root .card {
-  --radius: 16px;
+html[data-theme='crown'] .session-dynamic {
+  background: rgba(18, 10, 30, 0.6);
+}
+
+/* ── Tribe Coliseum ─────────────────────────────── */
+html[data-theme='coliseum'] .panel,
+html[data-theme='coliseum'] .combat-bar,
+html[data-theme='coliseum'] .pool-panel,
+html[data-theme='coliseum'] .settings-root .card {
   border: 0;
-  background-color: #0a1220;
-  background-image:
-    linear-gradient(180deg, rgba(240, 201, 106, 0.2), transparent 38%),
-    radial-gradient(120% 70% at 50% -28%, rgba(240, 201, 106, 0.16), transparent 56%),
-    linear-gradient(115deg, transparent 40%, rgba(255, 236, 180, 0.14) 50%, transparent 60%);
-  background-size: 100% 100%, 100% 100%, 220% 100%;
-  animation: coin-sheen 7s ease-in-out infinite;
+  background-color: #0c1018;
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 25%);
   box-shadow:
-    0 22px 44px rgba(0, 0, 0, 0.55),
-    0 0 20px rgba(240, 201, 106, 0.16),
-    0 0 0 2px #1a1208,
-    0 0 0 5px #c9a227,
-    0 0 0 7px #f6e2a0,
-    0 0 0 10px #3a2a10,
-    0 0 0 13px #e0b64a,
-    0 0 0 15px #1a1208,
-    inset 0 1px 0 rgba(255, 236, 180, 0.32);
+    0 20px 44px rgba(0, 0, 0, 0.5),
+    0 0 0 2px #1a2030,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 10px 0 24px -12px rgba(232, 181, 107, 0.18),
+    inset -10px 0 24px -12px rgba(94, 224, 200, 0.14);
 }
 
-html[data-theme='buddy'] .panel::before,
-html[data-theme='buddy'] .combat-bar::before {
+html[data-theme='coliseum'] .pool-panel {
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.5),
+    0 0 0 2px #1a2030,
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 10px 0 24px -12px rgba(255, 139, 122, 0.14),
+    inset -10px 0 24px -12px rgba(201, 160, 255, 0.12);
+}
+
+html[data-theme='coliseum'] .panel::before,
+html[data-theme='coliseum'] .combat-bar::before {
   display: block;
-  inset: -18px;
+  inset: -16px;
   background:
-    url('./frames/buddy-corner-tl.png') left top / 76px 76px no-repeat,
-    url('./frames/buddy-corner-tr.png') right top / 76px 76px no-repeat,
-    url('./frames/buddy-corner-bl.png') left bottom / 76px 76px no-repeat,
-    url('./frames/buddy-corner-br.png') right bottom / 76px 76px no-repeat;
+    url('./frames/coliseum-corner-tl.svg') left top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/coliseum-corner-tr.svg') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/coliseum-corner-bl.svg') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/coliseum-corner-br.svg') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
 }
 
-html[data-theme='buddy'] .panel::after,
-html[data-theme='buddy'] .combat-bar::after {
+html[data-theme='coliseum'] .panel::after,
+html[data-theme='coliseum'] .combat-bar::after {
   box-shadow:
-    inset 0 0 0 1px rgba(255, 232, 180, 0.38),
-    inset 0 0 0 6px rgba(8, 12, 22, 0.62),
-    inset 0 0 0 7px rgba(110, 224, 196, 0.16),
-    inset 0 16px 28px rgba(0, 0, 0, 0.28);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 16px 28px rgba(0, 0, 0, 0.3);
+}
+
+html[data-theme='coliseum'] .buff-tag.buff-gems    { border-left: 3px solid #d8c08a; }
+html[data-theme='coliseum'] .buff-tag.buff-elemental { border-left: 3px solid #7ec8ff; }
+html[data-theme='coliseum'] .buff-tag.buff-pirate  { border-left: 3px solid #f0a36b; }
+html[data-theme='coliseum'] .buff-tag.buff-undead  { border-left: 3px solid #b8d4a8; }
+html[data-theme='coliseum'] .buff-tag.buff-spells  { border-left: 3px solid #ffe38a; }
+html[data-theme='coliseum'] .buff-tag.buff-shop    { border-left: 3px solid #5ee0c8; }
+
+/* ── Warband Front ─────────────────────────────── */
+html[data-theme='warband'] .panel,
+html[data-theme='warband'] .combat-bar,
+html[data-theme='warband'] .pool-panel,
+html[data-theme='warband'] .settings-root .card {
+  border: 0;
+  background-color: #10141c;
+  background-image:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.06), transparent 30%),
+    linear-gradient(0deg, rgba(100, 120, 140, 0.08), transparent 40%);
+  box-shadow:
+    0 20px 44px rgba(0, 0, 0, 0.55),
+    0 0 0 2px #1e2838,
+    0 0 0 4px #64748b,
+    0 0 0 6px #0f141c,
+    inset 0 1px 0 rgba(200, 210, 220, 0.12);
+}
+
+html[data-theme='warband'] .panel::before,
+html[data-theme='warband'] .combat-bar::before {
+  display: block;
+  inset: -16px;
+  background:
+    url('./frames/warband-corner-tl.svg') left top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/warband-corner-tr.svg') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/warband-corner-bl.svg') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/warband-corner-br.svg') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
+}
+
+html[data-theme='warband'] .panel::after,
+html[data-theme='warband'] .combat-bar::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(200, 210, 220, 0.15),
+    inset 0 -20px 40px rgba(80, 100, 120, 0.08);
+}
+
+html[data-theme='warband'] .session-dynamic {
+  background:
+    linear-gradient(0deg, rgba(148, 163, 184, 0.12), transparent 55%),
+    rgba(8, 12, 18, 0.5);
+  overflow: hidden;
+}
+
+/* ── Void Reach ─────────────────────────────────── */
+html[data-theme='voidreach'] .panel,
+html[data-theme='voidreach'] .combat-bar,
+html[data-theme='voidreach'] .pool-panel,
+html[data-theme='voidreach'] .settings-root .card {
+  border: 0;
+  background-color: #06040c;
+  background-image:
+    radial-gradient(80% 50% at 100% 0%, rgba(192, 38, 211, 0.2), transparent 50%),
+    radial-gradient(60% 40% at 0% 100%, rgba(103, 232, 249, 0.12), transparent 45%),
+    repeating-linear-gradient(118deg, rgba(167, 139, 250, 0.04) 0 1px, transparent 1px 12px);
+  background-size: 100% 100%, 100% 100%, 220% 220%;
+  animation: void-vein 14s linear infinite;
+  will-change: background-position;
+  box-shadow:
+    0 24px 50px rgba(0, 0, 0, 0.65),
+    0 0 32px rgba(192, 38, 211, 0.12),
+    0 0 0 2px #1a0830,
+    0 0 0 4px #c026d3,
+    0 0 0 6px #0a0414,
+    inset 0 1px 0 rgba(232, 121, 249, 0.16);
+}
+
+html[data-theme='voidreach'] .panel::before,
+html[data-theme='voidreach'] .combat-bar::before {
+  display: block;
+  inset: -24px;
+  background:
+    url('./frames/voidreach-corner-tl.svg') left top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/voidreach-corner-tr.svg') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/voidreach-corner-bl.svg') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/voidreach-corner-br.svg') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat;
+  filter: drop-shadow(0 0 12px rgba(192, 38, 211, 0.35));
+  transform-origin: center;
+  animation: void-breathe 5.6s ease-in-out infinite;
+  will-change: transform, filter;
+}
+
+html[data-theme='voidreach'] .pool-panel::before {
+  background:
+    url('./frames/voidreach-corner-tl.svg') left top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/voidreach-corner-tr.svg') right top / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/voidreach-corner-bl.svg') left bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/voidreach-corner-br.svg') right bottom / var(--overlay-frame-size) var(--overlay-frame-size) no-repeat,
+    url('./frames/voidreach-side-l.svg') left center / 54px 210px no-repeat,
+    url('./frames/voidreach-side-r.svg') right center / 54px 210px no-repeat;
+}
+
+html[data-theme='voidreach'] .panel::after,
+html[data-theme='voidreach'] .combat-bar::after {
+  box-shadow:
+    inset 0 0 0 1px rgba(232, 121, 249, 0.25),
+    inset 0 0 0 6px rgba(8, 4, 16, 0.72),
+    inset 0 0 40px rgba(76, 29, 149, 0.2);
+}
+
+html[data-theme='voidreach'] .session-dynamic {
+  background: rgba(6, 4, 12, 0.65);
+}
+
+html[data-theme='voidreach'] .buff-tag {
+  border-radius: 50% 50% 12px 12px;
+  box-shadow: 0 0 12px rgba(192, 38, 211, 0.18);
 }
 
 .panel-head {
@@ -791,6 +985,52 @@ html[data-theme='buddy'] .combat-bar::after {
   gap: 7px;
   margin-top: 8px;
 }
+
+.session-dynamic {
+  margin: 6px 0 4px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--overlay-accent-line);
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.buff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 6px;
+}
+
+.theme-swatch {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.theme-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.theme-toggles button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 10px;
+}
+[data-theme-preview='hearth']    .theme-swatch { background: linear-gradient(135deg, #e4c278, #8a5a22); }
+[data-theme-preview='crown']     .theme-swatch { background: linear-gradient(135deg, #a78bfa, #f0c96a); }
+[data-theme-preview='coliseum']  .theme-swatch { background: linear-gradient(135deg, #e8b56b, #5ee0c8); }
+[data-theme-preview='warband']   .theme-swatch { background: linear-gradient(135deg, #94a3b8, #34d399); }
+[data-theme-preview='voidreach'] .theme-swatch { background: linear-gradient(135deg, #c026d3, #67e8f9); }
 
 .buff-tag {
   display: flex;
@@ -2265,7 +2505,7 @@ button.ghost.danger {
 
 .theme-toggles {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
   gap: 6px;
   margin: 8px 0 4px;
 }
@@ -2287,59 +2527,77 @@ button.ghost.danger {
   box-shadow: inset 0 0 0 1px var(--overlay-accent-line);
 }
 
-.theme-toggles button[data-theme-id='classic'].active {
-  border-color: #d4b06a;
-}
+.theme-toggles button[data-theme-id='hearth'].active    { border-color: #d4b06a; }
+.theme-toggles button[data-theme-id='crown'].active     { border-color: #a78bfa; }
+.theme-toggles button[data-theme-id='coliseum'].active  { border-color: #5ee0c8; }
+.theme-toggles button[data-theme-id='warband'].active   { border-color: #94a3b8; }
+.theme-toggles button[data-theme-id='voidreach'].active { border-color: #e879f9; }
 
-.theme-toggles button[data-theme-id='cthulhu'].active {
-  border-color: #67e8c8;
-}
-
-.theme-toggles button[data-theme-id='buddy'].active {
-  border-color: #f0c96a;
-}
-
-html[data-theme='classic'] .pool-group-head,
-html[data-theme='classic'] .pool-group-head.tier-head {
-  background:
-    linear-gradient(180deg, rgba(215, 181, 106, 0.28), rgba(90, 50, 18, 0.55));
+html[data-theme='hearth'] .pool-group-head,
+html[data-theme='hearth'] .pool-group-head.tier-head {
+  background: linear-gradient(180deg, rgba(215, 181, 106, 0.28), rgba(90, 50, 18, 0.55));
   color: #f6ead2;
   border-left-color: #d7b56a;
   letter-spacing: 0.12em;
   text-shadow: 0 1px 0 #2a1608;
 }
 
-html[data-theme='cthulhu'] .pool-group-head,
-html[data-theme='cthulhu'] .pool-group-head.tier-head {
-  background:
-    linear-gradient(180deg, rgba(80, 255, 210, 0.16), rgba(40, 16, 70, 0.7));
-  color: #e7fff6;
+html[data-theme='crown'] .pool-group-head,
+html[data-theme='crown'] .pool-group-head.tier-head {
+  background: linear-gradient(180deg, rgba(167, 139, 250, 0.22), rgba(18, 10, 30, 0.78));
+  color: #f0ecff;
 }
 
-html[data-theme='buddy'] .pool-group-head,
-html[data-theme='buddy'] .pool-group-head.tier-head {
-  background:
-    linear-gradient(180deg, rgba(240, 201, 106, 0.22), rgba(20, 28, 48, 0.78));
-  color: #f8e7b8;
+html[data-theme='coliseum'] .pool-group-head,
+html[data-theme='coliseum'] .pool-group-head.tier-head {
+  background: linear-gradient(180deg, rgba(94, 224, 200, 0.14), rgba(12, 16, 24, 0.82));
+  color: #f6f8fb;
 }
 
-html[data-theme='classic'] .settings-root {
+html[data-theme='warband'] .pool-group-head,
+html[data-theme='warband'] .pool-group-head.tier-head {
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.18), rgba(16, 20, 28, 0.85));
+  color: #e8edf4;
+}
+
+html[data-theme='voidreach'] .pool-group-head,
+html[data-theme='voidreach'] .pool-group-head.tier-head {
+  background: linear-gradient(180deg, rgba(192, 38, 211, 0.2), rgba(6, 4, 12, 0.88));
+  color: #f0e8ff;
+}
+
+html[data-theme='hearth'] .settings-root {
   background:
     radial-gradient(circle at 18% 0%, rgba(226, 192, 122, 0.22), transparent 36%),
     repeating-linear-gradient(90deg, rgba(56, 32, 12, 0.28) 0 1px, transparent 1px 6px),
     #120e09;
 }
-
-html[data-theme='cthulhu'] .settings-root {
+html[data-theme='crown'] .settings-root {
   background:
-    radial-gradient(circle at 90% 0%, rgba(124, 92, 255, 0.28), transparent 34%),
-    radial-gradient(circle at 8% 100%, rgba(0, 110, 92, 0.32), transparent 40%),
-    #04070a;
+    radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.28), transparent 40%),
+    radial-gradient(circle at 90% 100%, rgba(34, 211, 238, 0.12), transparent 36%),
+    #0a0614;
+}
+html[data-theme='coliseum'] .settings-root {
+  background:
+    radial-gradient(circle at 0% 50%, rgba(232, 181, 107, 0.12), transparent 40%),
+    radial-gradient(circle at 100% 50%, rgba(94, 224, 200, 0.1), transparent 40%),
+    #080c14;
+}
+html[data-theme='warband'] .settings-root {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(148, 163, 184, 0.16), transparent 38%),
+    linear-gradient(180deg, #0c1018, #10141c);
+}
+html[data-theme='voidreach'] .settings-root {
+  background:
+    radial-gradient(circle at 90% 0%, rgba(192, 38, 211, 0.28), transparent 34%),
+    radial-gradient(circle at 8% 100%, rgba(103, 232, 249, 0.14), transparent 40%),
+    #040208;
 }
 
-@keyframes torch-flicker {
-  0%,
-  100% {
+@keyframes hearth-flicker {
+  0%, 100% {
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 4px rgba(255, 180, 70, 0.2));
   }
   42% {
@@ -2350,33 +2608,29 @@ html[data-theme='cthulhu'] .settings-root {
   }
 }
 
-@keyframes tentacle-breathe {
-  0%,
-  100% {
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    transform: scale(1.035) rotate(0.5deg);
-  }
+@keyframes crown-sheen {
+  0%, 100% { background-position: 0 0, 0% 0; }
+  50%       { background-position: 0 0, 100% 0; }
 }
 
-@keyframes abyss-vein {
-  0% {
-    background-position: 0 0, 0 0, 0 0;
-  }
-  100% {
-    background-position: 0 0, 0 0, 180px 120px;
-  }
+@keyframes crown-glow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.3)); }
+  50%       { filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.4)); }
 }
 
-@keyframes coin-sheen {
-  0%,
-  100% {
-    background-position: 0 0, 0 0, 0% 0;
-  }
-  50% {
-    background-position: 0 0, 0 0, 100% 0;
-  }
+@keyframes warband-mist {
+  0%, 100% { opacity: 0.5; transform: translateY(0); }
+  50%       { opacity: 0.85; transform: translateY(-4px); }
+}
+
+@keyframes void-vein {
+  0%   { background-position: 0 0, 0 0, 0 0; }
+  100% { background-position: 0 0, 0 0, 180px 120px; }
+}
+
+@keyframes void-breathe {
+  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(192, 38, 211, 0.3)); }
+  50%       { transform: scale(1.03); filter: drop-shadow(0 0 20px rgba(103, 232, 249, 0.35)); }
 }
 
 @media (max-width: 1920px), (max-height: 1080px) {
@@ -2438,16 +2692,20 @@ html[data-theme='cthulhu'] .settings-root {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-theme='classic'] .panel::before,
-  html[data-theme='classic'] .combat-bar::before,
-  html[data-theme='cthulhu'] .panel::before,
-  html[data-theme='cthulhu'] .combat-bar::before,
-  html[data-theme='cthulhu'] .panel,
-  html[data-theme='cthulhu'] .combat-bar,
-  html[data-theme='cthulhu'] .pool-panel,
-  html[data-theme='buddy'] .panel,
-  html[data-theme='buddy'] .combat-bar,
-  html[data-theme='buddy'] .pool-panel {
+  html[data-theme='hearth'] .panel::before,
+  html[data-theme='hearth'] .combat-bar::before,
+  html[data-theme='crown'] .panel,
+  html[data-theme='crown'] .combat-bar,
+  html[data-theme='crown'] .pool-panel,
+  html[data-theme='crown'] .settings-root .card,
+  html[data-theme='crown'] .panel::before,
+  html[data-theme='crown'] .combat-bar::before,
+  html[data-theme='voidreach'] .panel,
+  html[data-theme='voidreach'] .combat-bar,
+  html[data-theme='voidreach'] .pool-panel,
+  html[data-theme='voidreach'] .settings-root .card,
+  html[data-theme='voidreach'] .panel::before,
+  html[data-theme='voidreach'] .combat-bar::before {
     animation: none;
   }
 }

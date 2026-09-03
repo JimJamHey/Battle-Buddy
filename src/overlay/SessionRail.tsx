@@ -1,4 +1,5 @@
-import type { OverlaySnapshot, SessionGame } from '../core/types'
+import type { MatchBuff, OverlaySnapshot, SessionGame } from '../core/types'
+import { formatBuffValue } from '../core/buffs'
 import { averageFinish, gamesToday, MAX_RECENT_GAMES } from '../core/session'
 import { formatDelta, ordinal, placeClass, ratingLabel, selfRating } from '../ui/format'
 import { CardArt } from './CardArt'
@@ -14,11 +15,13 @@ export function SessionRail({
   state,
   live,
   watching,
-  onHoverGame
+  buffs = [],
+  onHoverGame,
 }: {
   state: OverlaySnapshot
   live: boolean
   watching: boolean
+  buffs?: MatchBuff[]
   onHoverGame: (index: number | null) => void
 }) {
   const today = gamesToday(state.session)
@@ -73,10 +76,20 @@ export function SessionRail({
         <p className="hint">Open the Battlegrounds Play screen so we can read your rating.</p>
       ) : null}
       {state.status.ratingOcr?.failed ? (
-        <p className="hint">Could not read rating after the last game. Check the Play screen or set it in Settings.</p>
-      ) : null}
-      {state.status.ratingOcr?.failed ? (
         <p className="hint">Could not read Rating after the last game. Stay on the results or Play screen, or set it in Settings.</p>
+      ) : null}
+      {buffs.length > 0 ? (
+        <div className="session-dynamic capture-mouse" aria-label="Active match buffs">
+          {buffs.map((buff) => (
+            <div className={`buff-tag buff-${buff.key} capture-mouse`} key={buff.key} title={buff.label}>
+              <CardArt className="buff-art" cardId={buff.iconCardId} variant="face" hideIfMissing />
+              <div className="buff-copy">
+                <span>{buff.label}</span>
+                <strong>{formatBuffValue(buff)}</strong>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : null}
       <div className="session-games capture-mouse">
         <p className="session-section-label">Latest Games</p>
@@ -100,7 +113,7 @@ export function SessionRail({
 function GameRow({
   game,
   onHover,
-  onLeave
+  onLeave,
 }: {
   game: SessionGame
   onHover: () => void

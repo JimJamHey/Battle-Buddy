@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BattleBuddy — Overlay Theme Designs</title>
+  <style>
+    :root {
+      --page-bg: #06080c;
+      --page-text: #e8edf4;
+      --page-muted: #8fa3bf;
+      --preview-scale: 0.52;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      background: var(--page-bg);
+      color: var(--page-text);
+      line-height: 1.5;
+    }
+
+  /* ── Page chrome ── */
+    .page-header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(6,8,12,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 1rem 1.5rem 0.75rem;
+    }
+    .page-header h1 {
+      margin: 0 0 0.2rem;
+      font-size: 1.35rem;
+      font-weight: 750;
+      letter-spacing: 0.02em;
+    }
+    .page-header p { margin: 0; font-size: 0.88rem; color: var(--page-muted); max-width: 52rem; }
+    .theme-tabs {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-top: 0.85rem;
+    }
+    .theme-tab {
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: var(--page-muted);
+      border-radius: 999px;
+      padding: 0.45rem 1rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .theme-tab:hover { border-color: rgba(255,255,255,0.25); color: #fff; }
+    .theme-tab.active { color: #fff; border-color: var(--tab-accent, #e0c07a); box-shadow: 0 0 20px var(--tab-glow, rgba(224,192,122,0.25)); }
+
+    .page-body { padding: 1.25rem 1.5rem 3rem; max-width: 1400px; margin: 0 auto; }
+    .section { margin-bottom: 2.5rem; }
+    .section h2 {
+      font-size: 0.72rem; font-weight: 750;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--page-muted); margin: 0 0 0.75rem;
+    }
+    .section-note {
+      font-size: 0.82rem; color: var(--page-muted);
+      margin: -0.4rem 0 1rem; max-width: 40rem;
+    }
+
+  /* ── Preview stage (simulated HS board) ── */
+    .stage-wrap {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    }
+    .stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 40%, rgba(40,60,80,0.5), transparent),
+        radial-gradient(ellipse 50% 40% at 20% 80%, rgba(60,40,20,0.35), transparent),
+        radial-gradient(ellipse 50% 40% at 80% 75%, rgba(30,50,40,0.35), transparent),
+        linear-gradient(180deg, #1a2838 0%, #0e1820 45%, #12100c 100%);
+      transform-origin: top center;
+    }
+    .stage::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0v60M0 30h60' stroke='%23ffffff' stroke-opacity='0.02'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+    .stage-label {
+      position: absolute; top: 8px; left: 12px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: rgba(255,255,255,0.35);
+      z-index: 1;
+    }
+
+  /* ── Overlay panels (shared structure) ── */
+    .ov-combat {
+      position: absolute;
+      top: 3.5%; left: 50%; transform: translateX(-50%);
+      width: 42%; z-index: 5;
+    }
+    .ov-rail {
+      position: absolute;
+      left: 1.2%; top: 8%;
+      width: 19.2%; height: 84%;
+      z-index: 4;
+    }
+    .ov-pool {
+      position: absolute;
+      right: 1.2%; top: 5.5%;
+      width: 19.2%; height: 86.5%;
+      z-index: 4;
+    }
+
+    .ov-panel {
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-radius: var(--p-radius, 14px);
+      overflow: visible;
+      color: var(--p-text);
+      font-size: 11px;
+    }
+    .ov-panel-inner {
+      position: relative; z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-radius: inherit;
+      overflow: hidden;
+      background: var(--p-surface);
+      background-image: var(--p-bg-image, none);
+      box-shadow: var(--p-shadow);
+    }
+    .ov-panel::before {
+      content: '';
+      position: absolute;
+      inset: var(--frame-inset, -14px);
+      pointer-events: none;
+      z-index: 3;
+      background: var(--frame-corners);
+      background-size: var(--frame-size, 72px 72px);
+      filter: var(--frame-filter, drop-shadow(0 4px 8px rgba(0,0,0,0.5)));
+      animation: var(--frame-anim, none);
+    }
+    .ov-panel::after {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 1;
+      box-shadow: var(--p-inset);
+    }
+    .ov-panel--combat { height: auto; }
+    .ov-panel--combat .ov-panel-inner { padding: 10px 16px; }
+
+    .ov-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px 6px; flex-shrink: 0;
+    }
+    .ov-head h3 { margin: 0; font-size: 12px; font-weight: 750; }
+    .ov-chip {
+      font-size: 9px; font-weight: 750; letter-spacing: 0.08em;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--p-accent-line);
+      background: rgba(0,0,0,0.3);
+    }
+    .ov-chip.live { color: var(--p-mint); border-color: var(--p-mint); background: rgba(110,224,196,0.12); }
+
+    .ov-mmr {
+      margin: 0 10px 6px; padding: 8px;
+      border-radius: 8px;
+      border: 1px solid var(--p-accent-line);
+      background: rgba(0,0,0,0.28);
+    }
+    .ov-mmr-label { font-size: 9px; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; text-align: center; margin-bottom: 4px; color: var(--p-muted); }
+    .ov-mmr-grid { display: grid; grid-template-columns: 1fr 1fr; text-align: center; }
+    .ov-mmr-grid span { display: block; font-size: 8px; color: var(--p-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .ov-mmr-grid strong { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .ov-pills { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 6px; flex-shrink: 0; }
+    .ov-pills span {
+      font-size: 9px; padding: 2px 7px; border-radius: 999px;
+      background: rgba(255,255,255,0.05); color: var(--p-muted);
+    }
+    .ov-pills .up { color: #8ee0a8; }
+    .ov-pills .down { color: #f07178; }
+
+    .ov-dynamic {
+      flex: 1; min-height: 0;
+      margin: 4px 8px;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--p-accent-line);
+      background: var(--dynamic-bg);
+      overflow: hidden;
+      position: relative;
+    }
+    .ov-dynamic::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--dynamic-art, none);
+      pointer-events: none; opacity: 0.6;
+    }
+    .buff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      position: relative; z-index: 1;
+    }
+    .buff-tile {
+      display: flex; align-items: center; gap: 5px;
+      padding: 3px 6px 3px 3px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.45);
+      backdrop-filter: blur(6px);
+      min-height: 36px;
+    }
+    .buff-tile img { width: 28px; height: 28px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+    .buff-tile .bc { min-width: 0; }
+    .buff-tile .bc span { display: block; font-size: 8px; color: var(--p-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .buff-tile .bc strong { font-size: 9px; color: var(--p-mint); }
+
+    .metric-row {
+      display: flex; gap: 5px; margin-top: 6px;
+      position: relative; z-index: 1;
+    }
+    .metric-tile {
+      flex: 1; text-align: center;
+      padding: 5px 4px; border-radius: 7px;
+      border: 1px dashed rgba(255,255,255,0.15);
+      background: rgba(0,0,0,0.25);
+    }
+    .metric-tile.future { opacity: 0.55; }
+    .metric-tile span { display: block; font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--p-muted); }
+    .metric-tile strong { font-size: 11px; font-weight: 700; }
+
+    .ov-games {
+      flex-shrink: 0;
+      padding: 8px 10px 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      max-height: 28%;
+      overflow: hidden;
+    }
+    .ov-games-label { font-size: 9px; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; color: var(--p-muted); margin-bottom: 4px; text-align: center; }
+    .ov-game-row {
+      display: grid; grid-template-columns: 1.4fr 0.5fr 0.6fr;
+      gap: 4px; align-items: center;
+      font-size: 9px; padding: 3px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .ov-game-row .place-1 { color: #f0c96a; }
+    .ov-game-row .place-4 { color: #f07178; }
+
+    /* Pool panel */
+    .ov-pool-nav { padding: 8px 8px 6px; border-bottom: 1px solid var(--p-accent-line); flex-shrink: 0; }
+    .ov-kicker {
+      display: grid; grid-template-columns: 1fr 1fr;
+      border-radius: 8px; overflow: hidden;
+      border: 1px solid rgba(125,211,252,0.22);
+      margin-bottom: 5px;
+    }
+    .ov-kicker strong, .ov-kicker span {
+      padding: 4px 6px; font-size: 9px; text-align: center;
+    }
+    .ov-kicker strong { background: rgba(34,211,238,0.15); color: #a5f3fc; }
+    .ov-kicker span { background: rgba(0,0,0,0.3); color: var(--p-muted); }
+    .ov-mode-toggle {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+      padding: 2px; border-radius: 8px;
+      border: 1px solid var(--p-accent-line);
+      background: rgba(0,0,0,0.28);
+      margin-bottom: 5px;
+    }
+    .ov-mode-toggle button {
+      border: 0; background: transparent; color: var(--p-muted);
+      font-size: 8px; font-weight: 750; letter-spacing: 0.06em;
+      text-transform: uppercase; padding: 4px; border-radius: 6px;
+      cursor: default;
+    }
+    .ov-mode-toggle button.on { background: var(--p-tint); color: var(--p-text); }
+    .ov-tabs { display: flex; flex-wrap: wrap; gap: 3px; }
+    .ov-tab {
+      font-size: 8px; font-weight: 700; padding: 2px 6px;
+      border-radius: 999px; border: 1px solid rgba(255,255,255,0.1);
+      color: var(--p-muted); background: rgba(0,0,0,0.2);
+    }
+    .ov-tab.on { border-color: #67e8f9; color: #a5f3fc; background: rgba(34,211,238,0.12); }
+    .ov-tab.tribe-beast { border-color: #e8b56b; color: #e8b56b; }
+    .ov-tab.tribe-murloc { border-color: #5ee0c8; color: #5ee0c8; }
+
+    .ov-pool-list { flex: 1; overflow: hidden; padding: 4px 6px 8px; }
+    .ov-pool-group { margin-bottom: 6px; }
+    .ov-pool-group h4 {
+      margin: 0 0 3px; font-size: 8px; font-weight: 750;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: #e8b56b; padding-left: 4px;
+    }
+    .ov-pool-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 6px; margin-bottom: 2px;
+      border-radius: 6px;
+      background: var(--p-row);
+      min-height: 32px;
+    }
+    .ov-pool-row img { width: 26px; height: 26px; border-radius: 4px; object-fit: cover; }
+    .ov-pool-row span { font-size: 9px; flex: 1; }
+    .ov-pool-row em {
+      font-style: normal; font-size: 9px; font-weight: 700;
+      width: 16px; height: 16px; border-radius: 999px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.4); color: var(--p-gold);
+    }
+
+    /* Combat bar */
+    .ov-combat-grid {
+      display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; gap: 8px 12px;
+    }
+    .ov-combat-stat { font-size: 9px; font-weight: 700; letter-spacing: 0.06em; }
+    .ov-combat-stat strong { font-size: 13px; display: block; }
+    .ov-combat-stat.lethal strong { color: #34d399; }
+    .ov-combat-stat.win strong { color: #34d399; }
+    .ov-combat-stat.tie strong { color: #67e8f9; }
+    .ov-combat-stat.loss strong { color: #fb7185; }
+    .ov-combat-stat.died strong { color: #fb7185; }
+    .ov-combat-center { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 8px; position: relative; padding-bottom: 12px; }
+    .ov-combat-phase {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      text-align: center; font-size: 8px; color: var(--p-muted);
+    }
+    .ov-combat-side.right { text-align: right; }
+
+  /* ── THEME: Tavern Hearth ── */
+    [data-theme="hearth"] {
+      --tab-accent: #e4c278;
+      --tab-glow: rgba(228,194,120,0.3);
+      --p-radius: 10px;
+      --p-text: #f6ead2;
+      --p-muted: #cbb892;
+      --p-gold: #e4c278;
+      --p-mint: #d7b56a;
+      --p-surface: #1a120c;
+      --p-tint: rgba(226,192,122,0.2);
+      --p-accent-line: rgba(215,181,106,0.45);
+      --p-row: rgba(20,16,11,0.9);
+      --p-bg-image:
+        linear-gradient(180deg, rgba(255,214,140,0.22), transparent 30%),
+        repeating-linear-gradient(90deg, rgba(56,32,12,0.25) 0 1px, transparent 1px 5px),
+        repeating-linear-gradient(0deg, rgba(110,70,28,0.12) 0 2px, transparent 2px 8px);
+      --p-shadow:
+        0 20px 44px rgba(0,0,0,0.6),
+        0 2px 0 #f0d08a, 0 0 0 2px #1a0c04,
+        0 0 0 4px #8a5a24, 0 0 0 6px #d7b56a,
+        0 0 0 8px #3a2410, 0 0 0 10px #c9a056;
+      --p-inset:
+        inset 0 0 0 1px rgba(255,220,160,0.3),
+        inset 0 0 0 5px rgba(42,24,8,0.55),
+        inset 0 20px 32px rgba(0,0,0,0.4);
+      --frame-inset: -18px;
+      --frame-size: 76px 76px;
+      --frame-corners:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='76' height='76'%3E%3Cdefs%3E%3ClinearGradient id='w' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23f0d08a'/%3E%3Cstop offset='100%25' stop-color='%238a5a24'/%3E%3C/linearGradient%3E%3Cfilter id='g'%3E%3CfeGaussianBlur stdDeviation='2'/%3E%3C/filter%3E%3C/defs%3E%3Cg fill='url(%23w)'%3E%3Cpath d='M0 0h28v6H10v18H0z'/%3E%3Cpath d='M6 6h8v8H6z' fill='%235a3a14'/%3E%3Ccircle cx='14' cy='14' r='4' fill='%23ff9a3c' filter='url(%23g)' opacity='0.8'/%3E%3Cpath d='M0 0l20 0l-4 4l-8 0z' fill='%23ff9a3c' opacity='0.5'/%3E%3C/g%3E%3C/svg%3E") left top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='76' height='76'%3E%3Cg transform='scale(-1,1) translate(-76,0)'%3E%3Cpath d='M0 0h28v6H10v18H0z' fill='%23e4c278'/%3E%3Ccircle cx='14' cy='14' r='4' fill='%23ff9a3c' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E") right top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='76' height='76'%3E%3Cg transform='scale(1,-1) translate(0,-76)'%3E%3Cpath d='M0 0h28v6H10v18H0z' fill='%23c9a056'/%3E%3C/g%3E%3C/svg%3E") left bottom,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='76' height='76'%3E%3Cg transform='scale(-1,-1) translate(-76,-76)'%3E%3Cpath d='M0 0h28v6H10v18H0z' fill='%23e4c278'/%3E%3C/g%3E%3C/svg%3E") right bottom;
+      --frame-anim: hearth-flicker 3.5s ease-in-out infinite;
+      --dynamic-bg: linear-gradient(180deg, rgba(255,154,60,0.06), transparent 50%), rgba(12,8,4,0.5);
+      --dynamic-art: radial-gradient(circle at 30% 70%, rgba(255,154,60,0.12), transparent 40%), radial-gradient(circle at 70% 30%, rgba(255,200,100,0.08), transparent 35%);
+    }
+    @keyframes hearth-flicker {
+      0%, 100% { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)) brightness(1); }
+      50% { filter: drop-shadow(0 4px 12px rgba(255,154,60,0.35)) brightness(1.08); }
+    }
+
+  /* ── THEME: Titan's Crown ── */
+    [data-theme="crown"] {
+      --tab-accent: #f0c96a;
+      --tab-glow: rgba(167,139,250,0.35);
+      --p-radius: 14px;
+      --p-text: #f0ecff;
+      --p-muted: #a8a0c8;
+      --p-gold: #f0c96a;
+      --p-mint: #22d3ee;
+      --p-surface: #120a1e;
+      --p-tint: rgba(167,139,250,0.2);
+      --p-accent-line: rgba(167,139,250,0.4);
+      --p-row: rgba(14,8,28,0.92);
+      --p-bg-image:
+        radial-gradient(90% 60% at 50% -20%, rgba(167,139,250,0.25), transparent 50%),
+        linear-gradient(135deg, transparent 40%, rgba(34,211,238,0.06) 50%, transparent 60%);
+      --p-shadow:
+        0 22px 48px rgba(0,0,0,0.55),
+        0 0 24px rgba(167,139,250,0.15),
+        0 0 0 2px #2a1848, 0 0 0 4px #f0c96a,
+        0 0 0 6px #1a0e30, 0 0 0 8px #a78bfa;
+      --p-inset:
+        inset 0 0 0 1px rgba(240,201,106,0.35),
+        inset 0 0 0 5px rgba(18,10,30,0.7),
+        inset 0 0 30px rgba(167,139,250,0.12);
+      --frame-inset: -20px;
+      --frame-size: 80px 80px;
+      --frame-corners:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cdefs%3E%3ClinearGradient id='c' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2322d3ee'/%3E%3Cstop offset='50%25' stop-color='%23a78bfa'/%3E%3Cstop offset='100%25' stop-color='%23f0c96a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 32 L16 0 L32 20 L48 0 L64 24 L80 8 L80 0 L0 0 Z' fill='url(%23c)' opacity='0.95'/%3E%3Cpath d='M0 0 L24 24 L0 48 Z' fill='%23a78bfa' opacity='0.6'/%3E%3Ccircle cx='20' cy='20' r='3' fill='%2322d3ee'/%3E%3C/svg%3E") left top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg transform='scale(-1,1) translate(-80,0)'%3E%3Cpath d='M0 32 L16 0 L32 20 L48 0 L64 24 L80 8 L80 0 L0 0 Z' fill='%23a78bfa'/%3E%3C/g%3E%3C/svg%3E") right top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg transform='scale(1,-1) translate(0,-80)'%3E%3Cpath d='M0 0 L30 30 L0 60 Z' fill='%23f0c96a' opacity='0.7'/%3E%3C/g%3E%3C/svg%3E") left bottom,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cg transform='scale(-1,-1) translate(-80,-80)'%3E%3Cpath d='M0 0 L30 30 L0 60 Z' fill='%2322d3ee' opacity='0.6'/%3E%3C/g%3E%3C/svg%3E") right bottom;
+      --frame-anim: crown-sheen 6s ease-in-out infinite;
+      --dynamic-bg: rgba(18,10,30,0.55);
+      --dynamic-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='120'%3E%3Ccircle cx='40' cy='30' r='1' fill='%23fff' opacity='0.4'/%3E%3Ccircle cx='120' cy='60' r='1.2' fill='%23fff' opacity='0.3'/%3E%3Ccircle cx='180' cy='20' r='0.8' fill='%23fff' opacity='0.5'/%3E%3Cline x1='40' y1='30' x2='120' y2='60' stroke='%23a78bfa' stroke-width='0.3' opacity='0.2'/%3E%3Cline x1='120' y1='60' x2='180' y2='20' stroke='%2322d3ee' stroke-width='0.3' opacity='0.15'/%3E%3C/svg%3E");
+    }
+    @keyframes crown-sheen {
+      0%, 100% { filter: drop-shadow(0 0 8px rgba(167,139,250,0.3)); }
+      50% { filter: drop-shadow(0 0 16px rgba(34,211,238,0.4)); }
+    }
+
+  /* ── THEME: Tribe Coliseum ── */
+    [data-theme="coliseum"] {
+      --tab-accent: #5ee0c8;
+      --tab-glow: rgba(94,224,200,0.25);
+      --p-radius: 12px;
+      --p-text: #f6f8fb;
+      --p-muted: #9aa8b8;
+      --p-gold: #e8b56b;
+      --p-mint: #5ee0c8;
+      --p-surface: #0c1018;
+      --p-tint: rgba(94,224,200,0.15);
+      --p-accent-line: rgba(200,200,220,0.25);
+      --p-row: rgba(7,9,18,0.94);
+      --p-bg-image: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 25%);
+      --p-shadow:
+        0 20px 44px rgba(0,0,0,0.5),
+        0 0 0 2px #1a2030,
+        inset 0 0 0 1px rgba(255,255,255,0.08);
+      --p-inset: inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 16px 28px rgba(0,0,0,0.3);
+      --frame-inset: -16px;
+      --frame-size: 68px 68px;
+      --frame-corners:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='68'%3E%3Cpath d='M0 0h20l8 8h12l8-8h20v20l-8 8v12l8 8v20H48l-8-8H28l-8 8H0V48l8-8V28l-8-8z' fill='%23e8b56b' opacity='0.7'/%3E%3Cpath d='M4 4h12l4 4v8l-4 4H4z' fill='%235ee0c8' opacity='0.5'/%3E%3Cpath d='M20 4h8l4 8v8l-4 4h-8z' fill='%23ff8b7a' opacity='0.5'/%3E%3C/svg%3E") left top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='68'%3E%3Cg transform='scale(-1,1) translate(-68,0)'%3E%3Cpath d='M0 0h20l8 8h12l8-8h20v20l-8 8v12l8 8v20H48l-8-8H28l-8 8H0V48l8-8V28l-8-8z' fill='%23ff8b7a' opacity='0.6'/%3E%3C/g%3E%3C/svg%3E") right top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='68'%3E%3Cg transform='scale(1,-1) translate(0,-68)'%3E%3Cpath d='M0 0h20l8 8h12l8-8h20v20l-8 8v12l8 8v20H48l-8-8H28l-8 8H0V48l8-8V28l-8-8z' fill='%235ee0c8' opacity='0.5'/%3E%3C/g%3E%3C/svg%3E") left bottom,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='68'%3E%3Cg transform='scale(-1,-1) translate(-68,-68)'%3E%3Cpath d='M0 0h20l8 8h12l8-8h20v20l-8 8v12l8 8v20H48l-8-8H28l-8 8H0V48l8-8V28l-8-8z' fill='%23e8b56b' opacity='0.6'/%3E%3C/g%3E%3C/svg%3E") right bottom;
+      --dynamic-bg: rgba(0,0,0,0.3);
+      --dynamic-art: none;
+    }
+    [data-theme="coliseum"] .ov-panel-inner {
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-image: linear-gradient(180deg, #e8b56b, #5ee0c8, #ff8b7a, #c9a0ff) 1;
+    }
+    [data-theme="coliseum"] .buff-tile.buff-gems { border-left: 3px solid #d8c08a; }
+    [data-theme="coliseum"] .buff-tile.buff-elemental { border-left: 3px solid #7ec8ff; }
+    [data-theme="coliseum"] .buff-tile.buff-pirate { border-left: 3px solid #f0a36b; }
+
+  /* ── THEME: Warband Front ── */
+    [data-theme="warband"] {
+      --tab-accent: #94a3b8;
+      --tab-glow: rgba(52,211,153,0.2);
+      --p-radius: 12px;
+      --p-text: #e8edf4;
+      --p-muted: #94a3b8;
+      --p-gold: #cbd5e1;
+      --p-mint: #34d399;
+      --p-surface: #10141c;
+      --p-tint: rgba(52,211,153,0.12);
+      --p-accent-line: rgba(148,163,184,0.35);
+      --p-row: rgba(12,16,24,0.94);
+      --p-bg-image:
+        linear-gradient(180deg, rgba(148,163,184,0.06), transparent 30%),
+        linear-gradient(0deg, rgba(100,120,140,0.08), transparent 40%);
+      --p-shadow:
+        0 20px 44px rgba(0,0,0,0.55),
+        0 0 0 2px #1e2838,
+        0 0 0 4px #64748b,
+        0 0 0 6px #0f141c;
+      --p-inset: inset 0 0 0 1px rgba(200,210,220,0.15), inset 0 -20px 40px rgba(80,100,120,0.08);
+      --frame-inset: -16px;
+      --frame-size: 72px 72px;
+      --frame-corners:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Cpath d='M0 0 L40 0 L32 8 L24 0 L16 8 L8 0 L0 8 Z' fill='%2394a3b8'/%3E%3Cpath d='M0 0 L28 28 L0 56 Z' fill='%2364748b' opacity='0.8'/%3E%3Cpath d='M8 8 L20 20 L8 32 Z' fill='%23cbd5e1' opacity='0.5'/%3E%3C/svg%3E") left top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Cg transform='scale(-1,1) translate(-72,0)'%3E%3Cpath d='M0 0 L40 0 L32 8 L24 0 L16 8 L8 0 L0 8 Z' fill='%2394a3b8'/%3E%3Cpath d='M0 0 L28 28 L0 56 Z' fill='%2364748b' opacity='0.8'/%3E%3C/g%3E%3C/svg%3E") right top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Cg transform='scale(1,-1) translate(0,-72)'%3E%3Cpath d='M0 0 L28 28 L0 56 Z' fill='%2334d399' opacity='0.4'/%3E%3C/g%3E%3C/svg%3E") left bottom,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72'%3E%3Cg transform='scale(-1,-1) translate(-72,-72)'%3E%3Cpath d='M0 0 L28 28 L0 56 Z' fill='%23fb7185' opacity='0.35'/%3E%3C/g%3E%3C/svg%3E") right bottom;
+      --dynamic-bg: linear-gradient(0deg, rgba(100,120,140,0.15), transparent 60%), rgba(8,12,18,0.5);
+      --dynamic-art: none;
+    }
+    [data-theme="warband"] .ov-dynamic::after {
+      content: '';
+      position: absolute; left: 0; right: 0; bottom: 0; height: 40%;
+      background: linear-gradient(0deg, rgba(148,163,184,0.12), transparent);
+      pointer-events: none;
+      animation: warband-mist 8s ease-in-out infinite;
+    }
+    @keyframes warband-mist {
+      0%, 100% { opacity: 0.5; transform: translateY(0); }
+      50% { opacity: 0.8; transform: translateY(-4px); }
+    }
+
+  /* ── THEME: Void Reach ── */
+    [data-theme="voidreach"] {
+      --tab-accent: #c026d3;
+      --tab-glow: rgba(192,38,211,0.35);
+      --p-radius: 18px;
+      --p-text: #f0e8ff;
+      --p-muted: #a78bfa;
+      --p-gold: #e879f9;
+      --p-mint: #67e8f9;
+      --p-surface: #06040c;
+      --p-tint: rgba(192,38,211,0.18);
+      --p-accent-line: rgba(192,38,211,0.4);
+      --p-row: rgba(8,4,16,0.94);
+      --p-bg-image:
+        radial-gradient(80% 50% at 100% 0%, rgba(192,38,211,0.2), transparent 50%),
+        radial-gradient(60% 40% at 0% 100%, rgba(103,232,249,0.12), transparent 45%),
+        repeating-linear-gradient(118deg, rgba(167,139,250,0.04) 0 1px, transparent 1px 12px);
+      --p-shadow:
+        0 24px 50px rgba(0,0,0,0.65),
+        0 0 32px rgba(192,38,211,0.12),
+        0 0 0 2px #1a0830,
+        0 0 0 4px #c026d3,
+        0 0 0 6px #0a0414;
+      --p-inset:
+        inset 0 0 0 1px rgba(232,121,249,0.25),
+        inset 0 0 40px rgba(76,29,149,0.2);
+      --frame-inset: -22px;
+      --frame-size: 84px 84px;
+      --frame-corners:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cdefs%3E%3CradialGradient id='n'%3E%3Cstop offset='0%25' stop-color='%23e879f9'/%3E%3Cstop offset='100%25' stop-color='%234c1d95' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='20' cy='20' rx='28' ry='24' fill='url(%23n)' opacity='0.8'/%3E%3Cpath d='M0 0 Q30 10 50 0 Q40 30 60 50 Q30 40 0 60 Z' fill='%23c026d3' opacity='0.5'/%3E%3Ccircle cx='30' cy='25' r='2' fill='%2367e8f9'/%3E%3C/svg%3E") left top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg transform='scale(-1,1) translate(-84,0)'%3E%3Cellipse cx='20' cy='20' rx='28' ry='24' fill='%23c026d3' opacity='0.6'/%3E%3C/g%3E%3C/svg%3E") right top,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg transform='scale(1,-1) translate(0,-84)'%3E%3Cellipse cx='20' cy='20' rx='28' ry='24' fill='%2367e8f9' opacity='0.4'/%3E%3C/g%3E%3C/svg%3E") left bottom,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg transform='scale(-1,-1) translate(-84,-84)'%3E%3Cellipse cx='20' cy='20' rx='28' ry='24' fill='%23e879f9' opacity='0.5'/%3E%3C/g%3E%3C/svg%3E") right bottom;
+      --frame-anim: void-breathe 5s ease-in-out infinite;
+      --dynamic-bg: rgba(6,4,12,0.6);
+      --dynamic-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='200'%3E%3Ccircle cx='50' cy='40' r='0.6' fill='%23fff'/%3E%3Ccircle cx='150' cy='80' r='0.8' fill='%23fff'/%3E%3Ccircle cx='250' cy='30' r='0.5' fill='%23fff'/%3E%3Ccircle cx='80' cy='150' r='0.7' fill='%23fff'/%3E%3Ccircle cx='200' cy='120' r='0.6' fill='%23fff'/%3E%3C/svg%3E");
+    }
+    @keyframes void-breathe {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(192,38,211,0.3)); }
+      50% { transform: scale(1.02); filter: drop-shadow(0 0 18px rgba(103,232,249,0.35)); }
+    }
+    [data-theme="voidreach"] .buff-tile {
+      border-radius: 50% 50% 12px 12px;
+      box-shadow: 0 0 12px rgba(192,38,211,0.2);
+    }
+
+  /* ── Detail cards grid ── */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .detail-card {
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+      padding: 1rem;
+      overflow: hidden;
+    }
+    .detail-card h3 {
+      margin: 0 0 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 750;
+    }
+    .detail-card p {
+      margin: 0 0 0.75rem;
+      font-size: 0.78rem;
+      color: var(--page-muted);
+      line-height: 1.45;
+    }
+    .detail-preview {
+      border-radius: 10px;
+      overflow: visible;
+      position: relative;
+    }
+    .detail-preview .ov-panel { height: 200px; font-size: 10px; }
+    .detail-preview .ov-panel--combat { height: auto; }
+    .detail-preview .ov-panel--combat .ov-panel-inner { padding: 8px 12px; }
+
+    /* Token swatches */
+    .swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.5rem; }
+    .swatch {
+      width: 48px; height: 48px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.1);
+      position: relative;
+    }
+    .swatch span {
+      position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+      font-size: 7px; color: var(--page-muted); white-space: nowrap;
+    }
+
+    /* Border diagram */
+    .border-diagram {
+      position: relative;
+      height: 140px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.3);
+      margin-top: 0.5rem;
+    }
+    .border-diagram .panel-box {
+      position: absolute;
+      top: 30px; left: 50px; right: 50px; bottom: 30px;
+      border: 2px dashed rgba(255,255,255,0.25);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; color: var(--page-muted);
+    }
+    .border-diagram .frame-zone {
+      position: absolute;
+      inset: 10px;
+      border: 1px dotted rgba(224,192,122,0.4);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+    .border-diagram .label {
+      position: absolute;
+      font-size: 8px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--page-muted);
+    }
+    .border-diagram .label.out { top: 4px; left: 50%; transform: translateX(-50%); }
+    .border-diagram .label.in { bottom: 8px; left: 50%; transform: translateX(-50%); }
+
+    .theme-desc {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .theme-desc h3 { margin: 0 0 0.4rem; font-size: 1rem; }
+    .theme-desc p { margin: 0; font-size: 0.85rem; color: var(--page-muted); line-height: 1.55; }
+
+    .hidden { display: none !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+  </style>
+</head>
+<body data-theme="hearth">
+
+<header class="page-header">
+  <h1>BattleBuddy Overlay — Theme Designs</h1>
+  <p>Five original Battlegrounds-inspired themes replacing Classic, Cthulhu, and Battle Buddy. Session rail matches pool height; buffs and metrics live in the dynamic zone. Frame art extends outward — no extra panel height.</p>
+  <div class="theme-tabs" role="tablist">
+    <button class="theme-tab active" data-pick="hearth" role="tab">Tavern Hearth</button>
+    <button class="theme-tab" data-pick="crown" role="tab">Titan's Crown</button>
+    <button class="theme-tab" data-pick="coliseum" role="tab">Tribe Coliseum</button>
+    <button class="theme-tab" data-pick="warband" role="tab">Warband Front</button>
+    <button class="theme-tab" data-pick="voidreach" role="tab">Void Reach</button>
+  </div>
+</header>
+
+<main class="page-body">
+
+  <div class="theme-desc" id="theme-desc">
+    <h3 id="desc-title">Tavern Hearth</h3>
+    <p id="desc-body">Bob's tavern warmth — carved oak frames with torch-flicker corners, ember particles in the dynamic zone, and wax-scroll buff tiles. The default theme. Seven-layer gold ring depth evolved from the original Classic palette.</p>
+  </div>
+
+  <!-- Full overlay stage -->
+  <section class="section">
+    <h2>Full overlay composition</h2>
+    <p class="section-note">1920×1080 proportions · Combat bar centered top · Session rail and pool panel at equal height (84–86% viewport)</p>
+    <div class="stage-wrap">
+      <div class="stage" id="main-stage">
+        <span class="stage-label">Simulated Battlegrounds board</span>
+
+        <!-- Combat -->
+        <div class="ov-combat">
+          <div class="ov-panel ov-panel--combat">
+            <div class="ov-panel-inner">
+              <div class="ov-combat-grid">
+                <div class="ov-combat-stat lethal">LETHAL <strong>12%</strong></div>
+                <div class="ov-combat-center">
+                  <span class="ov-combat-stat win">WIN <strong>58%</strong></span>
+                  <span class="ov-combat-stat tie">TIE <strong>8%</strong></span>
+                  <span class="ov-combat-stat loss">LOSS <strong>22%</strong></span>
+                  <span class="ov-combat-phase">vs Patches the Pirate</span>
+                </div>
+                <div class="ov-combat-side right">
+                  <span class="ov-combat-stat died">ELIM <strong>4%</strong></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session rail -->
+        <div class="ov-rail">
+          <div class="ov-panel">
+            <div class="ov-panel-inner">
+              <div class="ov-head">
+                <h3>Millhouse Manastorm</h3>
+                <span class="ov-chip live">Live</span>
+              </div>
+              <div class="ov-mmr">
+                <div class="ov-mmr-label">MMR</div>
+                <div class="ov-mmr-grid">
+                  <div><span>Start</span><strong>8,420</strong></div>
+                  <div><span>Current</span><strong>8,547</strong></div>
+                </div>
+              </div>
+              <div class="ov-pills">
+                <span>6 games</span>
+                <span>Avg place 3.2</span>
+                <span class="up">+127</span>
+              </div>
+              <div class="ov-dynamic">
+                <div class="buff-grid" id="buff-grid"></div>
+                <div class="metric-row">
+                  <div class="metric-tile future"><span>Gold</span><strong>—</strong></div>
+                  <div class="metric-tile future"><span>Hero dmg</span><strong>—</strong></div>
+                  <div class="metric-tile future"><span>Turn</span><strong>14</strong></div>
+                </div>
+              </div>
+              <div class="ov-games">
+                <div class="ov-games-label">Latest Games</div>
+                <div class="ov-game-row"><span>Millhouse</span><span class="place-1">1st</span><span class="up">+42</span></div>
+                <div class="ov-game-row"><span>Millhouse</span><span>3rd</span><span class="up">+18</span></div>
+                <div class="ov-game-row"><span>Millhouse</span><span class="place-4">6th</span><span class="down">-31</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pool -->
+        <div class="ov-pool">
+          <div class="ov-panel">
+            <div class="ov-panel-inner">
+              <div class="ov-pool-nav">
+                <div class="ov-kicker">
+                  <strong>Recruit Phase</strong>
+                  <span>Tavern 5</span>
+                </div>
+                <div class="ov-mode-toggle">
+                  <button class="on">Pool</button>
+                  <button>Strategies</button>
+                </div>
+                <div class="ov-tabs">
+                  <span class="ov-tab">All</span>
+                  <span class="ov-tab on">5</span>
+                  <span class="ov-tab tribe-beast">Beast</span>
+                  <span class="ov-tab tribe-murloc">Murloc</span>
+                </div>
+              </div>
+              <div class="ov-pool-list" id="pool-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Component details -->
+  <section class="section">
+    <h2>Component wireframes</h2>
+    <p class="section-note">Isolated panels at readable scale — same theme tokens as full composition</p>
+    <div class="detail-grid">
+      <div class="detail-card">
+        <h3>Session dynamic zone</h3>
+        <p>Flex-grow whitespace between stat pills and games list. Buff grid reflows 1→2 columns. Future metric tiles marked dashed.</p>
+        <div class="detail-preview" style="height:220px">
+          <div class="ov-panel" style="height:100%">
+            <div class="ov-panel-inner" style="padding:8px">
+              <div class="ov-dynamic" style="flex:1;height:100%">
+                <div class="buff-grid" id="buff-grid-small"></div>
+                <div class="metric-row">
+                  <div class="metric-tile future"><span>Gold</span><strong>—</strong></div>
+                  <div class="metric-tile future"><span>Hero dmg</span><strong>—</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-card">
+        <h3>Combat bar</h3>
+        <p>Shares frame language with side panels. LETHAL and ELIM flank center WIN/TIE/LOSS cluster.</p>
+        <div class="detail-preview">
+          <div class="ov-panel ov-panel--combat">
+            <div class="ov-panel-inner">
+              <div class="ov-combat-grid">
+                <div class="ov-combat-stat lethal">LETHAL <strong>12%</strong></div>
+                <div class="ov-combat-center">
+                  <span class="ov-combat-stat win">WIN <strong>58%</strong></span>
+                  <span class="ov-combat-stat tie">TIE <strong>8%</strong></span>
+                  <span class="ov-combat-stat loss">LOSS <strong>22%</strong></span>
+                  <span class="ov-combat-phase">vs Patches</span>
+                </div>
+                <div class="ov-combat-side right"><span class="ov-combat-stat died">ELIM <strong>4%</strong></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-card">
+        <h3>Pool navigation</h3>
+        <p>Phase kicker, mode toggle, tier/tribe tabs — unchanged structure, themed chrome.</p>
+        <div class="detail-preview" style="height:160px">
+          <div class="ov-panel" style="height:100%">
+            <div class="ov-panel-inner">
+              <div class="ov-pool-nav">
+                <div class="ov-kicker"><strong>Combat</strong><span>Tavern 6</span></div>
+                <div class="ov-mode-toggle"><button class="on">Pool</button><button>Strategies</button></div>
+                <div class="ov-tabs"><span class="ov-tab on">6</span><span class="ov-tab tribe-beast">Beast</span><span class="ov-tab">Dragon</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-card">
+        <h3>Border extension</h3>
+        <p>Decorative art lives in the outward <code>::before</code> zone. Panel content box never grows.</p>
+        <div class="border-diagram">
+          <div class="frame-zone"></div>
+          <div class="panel-box">Panel content (92vh max)</div>
+          <span class="label out">Frame art — outward only</span>
+          <span class="label in">No height added</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Token swatches -->
+  <section class="section">
+    <h2>Design tokens</h2>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+</main>
+
+<script>
+const THEMES = {
+  hearth: {
+    title: "Tavern Hearth",
+    body: "Bob's tavern warmth — carved oak frames with torch-flicker corners, ember particles in the dynamic zone, and wax-scroll buff tiles. The default theme. Seven-layer gold ring depth evolved from the original Classic palette.",
+    tokens: [
+      { c: "#1a120c", n: "surface" },
+      { c: "#e4c278", n: "gold" },
+      { c: "#f59e42", n: "ember" },
+      { c: "#f6ead2", n: "text" },
+      { c: "#cbb892", n: "muted" },
+      { c: "#8a5a24", n: "wood" },
+    ]
+  },
+  crown: {
+    title: "Titan's Crown",
+    body: "Tavern tier upgrade crystals — faceted crown spikes at corners, constellation lines in the dynamic zone, gem-facet side strips. Purple-gold-cyan refractive depth with slow sheen animation.",
+    tokens: [
+      { c: "#120a1e", n: "surface" },
+      { c: "#f0c96a", n: "gold" },
+      { c: "#22d3ee", n: "crystal" },
+      { c: "#a78bfa", n: "amethyst" },
+      { c: "#f0ecff", n: "text" },
+      { c: "#2a1848", n: "deep" },
+    ]
+  },
+  coliseum: {
+    title: "Tribe Coliseum",
+    body: "Lobby tribe banners as stained-glass mosaic corners and vertical edge strips. Center stays neutral dark; color bleeds from edges. Buff tiles get tribe-colored accent bars keyed to buff type.",
+    tokens: [
+      { c: "#0c1018", n: "surface" },
+      { c: "#e8b56b", n: "beast" },
+      { c: "#5ee0c8", n: "murloc" },
+      { c: "#ff8b7a", n: "dragon" },
+      { c: "#c9a0ff", n: "demon" },
+      { c: "#f6f8fb", n: "text" },
+    ]
+  },
+  warband: {
+    title: "Warband Front",
+    body: "Combat phase aesthetic — sword-guard corners, shield crest on top border, battlefield fog rising through the dynamic zone. Steel and banner palette; combat stat colors echo WIN/LOSS semantics.",
+    tokens: [
+      { c: "#10141c", n: "surface" },
+      { c: "#94a3b8", n: "steel" },
+      { c: "#34d399", n: "win" },
+      { c: "#fb7185", n: "death" },
+      { c: "#e8edf4", n: "text" },
+      { c: "#64748b", n: "border" },
+    ]
+  },
+  voidreach: {
+    title: "Void Reach",
+    body: "The Great Dark Beyond — nebula gas corners billowing outward, starfield in dynamic zone, crystal-pod buff tiles with glow rings. Highest visual complexity; bioluminescent vein animation.",
+    tokens: [
+      { c: "#06040c", n: "void" },
+      { c: "#c026d3", n: "nebula" },
+      { c: "#67e8f9", n: "star" },
+      { c: "#e879f9", n: "magenta" },
+      { c: "#4c1d95", n: "deep" },
+      { c: "#f0e8ff", n: "text" },
+    ]
+  }
+};
+
+const BUFFS = [
+  { key: "gems", label: "Blood gems", card: "BG20_GEM", atk: 4, hp: 4 },
+  { key: "elemental", label: "Elementals", card: "BGS_115", atk: 2, hp: 2 },
+  { key: "pirate", label: "Pirates", card: "BG26_135", atk: 3, hp: 2 },
+  { key: "spells", label: "Spells", card: "BG28_810", atk: 1, hp: 1 },
+];
+
+const POOL = [
+  { tribe: "Beast", tribeColor: "#e8b56b", cards: [
+    { id: "BG31_809", name: "Turquoise Skitterer", cost: 4 },
+    { id: "BG36_209", name: "Ravaging Scorpid", cost: 5 },
+    { id: "BG36_208", name: "Deathstrider", cost: 6 },
+  ]},
+  { tribe: "Murloc", tribeColor: "#5ee0c8", cards: [
+    { id: "BG26_801", name: "Bassgill", cost: 3 },
+    { id: "BG28_362", name: "Tyrant of the Tides", cost: 6 },
+  ]},
+];
+
+const art = (id) => `https://art.hearthstonejson.com/v1/bgs/latest/enUS/256x/${id}.png`;
+
+function renderBuffs(container) {
+  container.innerHTML = BUFFS.map(b => `
+    <div class="buff-tile buff-${b.key}">
+      <img src="${art(b.card)}" alt="" loading="lazy" onerror="this.style.background='#333'"/>
+      <div class="bc"><span>${b.label}</span><strong>+${b.atk} / +${b.hp}</strong></div>
+    </div>
+  `).join("");
+}
+
+function renderPool(container) {
+  container.innerHTML = POOL.map(g => `
+    <div class="ov-pool-group">
+      <h4 style="color:${g.tribeColor}">${g.tribe}</h4>
+      ${g.cards.map(c => `
+        <div class="ov-pool-row">
+          <img src="${art(c.id)}" alt="" loading="lazy" onerror="this.style.background='#333'"/>
+          <span>${c.name}</span>
+          <em>${c.cost}</em>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+function setTheme(id) {
+  document.body.dataset.theme = id;
+  const t = THEMES[id];
+  document.getElementById("desc-title").textContent = t.title;
+  document.getElementById("desc-body").textContent = t.body;
+  document.getElementById("swatches").innerHTML = t.tokens.map(s => `
+    <div class="swatch" style="background:${s.c}"><span>${s.n}</span></div>
+  `).join("");
+  document.querySelectorAll(".theme-tab").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.pick === id);
+    if (btn.dataset.pick === id) {
+      const accent = t.tokens[1]?.c || "#e0c07a";
+      btn.style.setProperty("--tab-accent", accent);
+    }
+  });
+}
+
+document.querySelectorAll(".theme-tab").forEach(btn => {
+  btn.addEventListener("click", () => setTheme(btn.dataset.pick));
+});
+
+renderBuffs(document.getElementById("buff-grid"));
+renderBuffs(document.getElementById("buff-grid-small"));
+renderPool(document.getElementById("pool-list"));
+setTheme("hearth");
+</script>
+</body>
+</html>

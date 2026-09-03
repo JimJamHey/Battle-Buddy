@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 88">
+<g transform="scale(-1,1) translate(-88,0)">
+<defs>
+    <linearGradient id="col-lead" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </linearGradient>
+    <!-- Stained glass colors: beast amber, dragon red, murloc teal, demon violet -->
+    <filter id="col-glow">
+      <feGaussianBlur stdDeviation="1.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Lead came background frame -->
+  <rect x="0" y="0" width="88" height="16" fill="url(#col-lead)"/>
+  <rect x="0" y="0" width="16" height="88" fill="url(#col-lead)"/>
+  <rect x="0" y="0" width="22" height="22" fill="#2a2a2a"/>
+
+  <!-- Stained glass tiles  horizontal beam (4 rows � multiple cols) -->
+  <!-- Row 1 -->
+  <rect x="22" y="1" width="10" height="6" rx="0.5" fill="#e8b56b" opacity="0.9"/>
+  <rect x="33" y="1" width="10" height="6" rx="0.5" fill="#ff8b7a" opacity="0.9"/>
+  <rect x="44" y="1" width="10" height="6" rx="0.5" fill="#5ee0c8" opacity="0.9"/>
+  <rect x="55" y="1" width="10" height="6" rx="0.5" fill="#c9a0ff" opacity="0.9"/>
+  <rect x="66" y="1" width="10" height="6" rx="0.5" fill="#e8b56b" opacity="0.9"/>
+  <rect x="77" y="1" width="10" height="6" rx="0.5" fill="#ff8b7a" opacity="0.9"/>
+  <!-- Row 2 -->
+  <rect x="22" y="8" width="10" height="7" rx="0.5" fill="#5ee0c8" opacity="0.85"/>
+  <rect x="33" y="8" width="10" height="7" rx="0.5" fill="#c9a0ff" opacity="0.85"/>
+  <rect x="44" y="8" width="10" height="7" rx="0.5" fill="#e8b56b" opacity="0.85"/>
+  <rect x="55" y="8" width="10" height="7" rx="0.5" fill="#ff8b7a" opacity="0.85"/>
+  <rect x="66" y="8" width="10" height="7" rx="0.5" fill="#5ee0c8" opacity="0.85"/>
+  <rect x="77" y="8" width="10" height="7" rx="0.5" fill="#c9a0ff" opacity="0.85"/>
+
+  <!-- Stained glass tiles  vertical beam -->
+  <!-- Col 1 -->
+  <rect x="1" y="22" width="6" height="10" rx="0.5" fill="#c9a0ff" opacity="0.9"/>
+  <rect x="1" y="33" width="6" height="10" rx="0.5" fill="#e8b56b" opacity="0.9"/>
+  <rect x="1" y="44" width="6" height="10" rx="0.5" fill="#ff8b7a" opacity="0.9"/>
+  <rect x="1" y="55" width="6" height="10" rx="0.5" fill="#5ee0c8" opacity="0.9"/>
+  <rect x="1" y="66" width="6" height="10" rx="0.5" fill="#c9a0ff" opacity="0.9"/>
+  <rect x="1" y="77" width="6" height="10" rx="0.5" fill="#e8b56b" opacity="0.9"/>
+  <!-- Col 2 -->
+  <rect x="8" y="22" width="7" height="10" rx="0.5" fill="#ff8b7a" opacity="0.85"/>
+  <rect x="8" y="33" width="7" height="10" rx="0.5" fill="#5ee0c8" opacity="0.85"/>
+  <rect x="8" y="44" width="7" height="10" rx="0.5" fill="#c9a0ff" opacity="0.85"/>
+  <rect x="8" y="55" width="7" height="10" rx="0.5" fill="#e8b56b" opacity="0.85"/>
+  <rect x="8" y="66" width="7" height="10" rx="0.5" fill="#ff8b7a" opacity="0.85"/>
+  <rect x="8" y="77" width="7" height="10" rx="0.5" fill="#5ee0c8" opacity="0.85"/>
+
+  <!-- Lead-came grid lines  horizontal -->
+  <line x1="22" y1="7.5" x2="88" y2="7.5" stroke="#2a2a2a" stroke-width="1.2"/>
+  <line x1="22" y1="0" x2="88" y2="0" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="22" y1="15" x2="88" y2="15" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="32.5" y1="0" x2="32.5" y2="15" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="43.5" y1="0" x2="43.5" y2="15" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="54.5" y1="0" x2="54.5" y2="15" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="65.5" y1="0" x2="65.5" y2="15" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="76.5" y1="0" x2="76.5" y2="15" stroke="#2a2a2a" stroke-width="1"/>
+
+  <!-- Lead-came grid lines  vertical -->
+  <line x1="7.5" y1="22" x2="7.5" y2="88" stroke="#2a2a2a" stroke-width="1.2"/>
+  <line x1="0" y1="22" x2="0" y2="88" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="15" y1="22" x2="15" y2="88" stroke="#1a1a1a" stroke-width="1"/>
+  <line x1="0" y1="32.5" x2="15" y2="32.5" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="0" y1="43.5" x2="15" y2="43.5" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="0" y1="54.5" x2="15" y2="54.5" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="0" y1="65.5" x2="15" y2="65.5" stroke="#2a2a2a" stroke-width="1"/>
+  <line x1="0" y1="76.5" x2="15" y2="76.5" stroke="#2a2a2a" stroke-width="1"/>
+
+  <!-- Glass highlight sheen -->
+  <rect x="0" y="0" width="88" height="16" fill="white" opacity="0.08"/>
+  <rect x="0" y="0" width="16" height="88" fill="white" opacity="0.08"/>
+
+  <!-- Corner mosaic piece  mixed colors -->
+  <rect x="1" y="1" width="9" height="9" rx="0.5" fill="#e8b56b" opacity="0.9"/>
+  <rect x="11" y="1" width="9" height="9" rx="0.5" fill="#5ee0c8" opacity="0.9"/>
+  <rect x="1" y="11" width="9" height="9" rx="0.5" fill="#c9a0ff" opacity="0.9"/>
+  <rect x="11" y="11" width="9" height="9" rx="0.5" fill="#ff8b7a" opacity="0.9"/>
+  <line x1="10" y1="0" x2="10" y2="22" stroke="#2a2a2a" stroke-width="1.2"/>
+  <line x1="0" y1="10" x2="22" y2="10" stroke="#2a2a2a" stroke-width="1.2"/>
+</svg>

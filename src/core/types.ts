@@ -95,7 +95,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showRatingCaptureRegions: true,
   ratingCapture: DEFAULT_RATING_CAPTURE,
   currentMmr: null,
-  theme: 'buddy'
+  theme: 'hearth'
 }
 
 export interface LobbyPlayer {

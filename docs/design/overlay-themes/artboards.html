@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BattleBuddy Overlay Themes — Design Artboards</title>
+  <style>
+    :root {
+      --figma-bg: #1e1e1e;
+      --figma-panel: #2c2c2c;
+      --figma-border: #3d3d3d;
+      --figma-text: #ffffff;
+      --figma-muted: #b3b3b3;
+      --figma-accent: #0d99ff;
+      --figma-artboard: #181818;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; }
+    body {
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      background: var(--figma-bg);
+      color: var(--figma-text);
+      display: grid;
+      grid-template-rows: 48px 1fr;
+    }
+
+    /* ── Figma top bar ── */
+    .figma-top {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 16px; border-bottom: 1px solid var(--figma-border);
+      background: var(--figma-panel); font-size: 12px;
+    }
+    .figma-top .file { font-weight: 600; }
+    .figma-top .status {
+      margin-left: auto; padding: 4px 10px; border-radius: 6px;
+      background: rgba(13,153,255,0.15); color: #7cc4ff; font-weight: 600;
+    }
+    .figma-top .zoom { color: var(--figma-muted); }
+
+    /* ── 3-column layout ── */
+    .figma-shell {
+      display: grid;
+      grid-template-columns: 240px 1fr 300px;
+      min-height: 0;
+    }
+    .figma-left, .figma-right {
+      background: var(--figma-panel);
+      border-right: 1px solid var(--figma-border);
+      overflow-y: auto; font-size: 11px;
+    }
+    .figma-right { border-right: 0; border-left: 1px solid var(--figma-border); }
+    .panel-title {
+      padding: 12px 14px 8px; font-weight: 600; font-size: 10px;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--figma-muted);
+    }
+    .page-list button, .layer-item {
+      display: block; width: 100%; text-align: left;
+      border: 0; background: transparent; color: var(--figma-text);
+      padding: 8px 14px; font-size: 12px; cursor: pointer;
+    }
+    .page-list button:hover, .layer-item:hover { background: rgba(255,255,255,0.06); }
+    .page-list button.active, .layer-item.active {
+      background: rgba(13,153,255,0.18); color: #7cc4ff;
+    }
+    .layer-item { padding-left: 28px; color: var(--figma-muted); }
+
+    /* ── Canvas ── */
+    .figma-canvas {
+      overflow: auto; padding: 48px;
+      background:
+        radial-gradient(circle at 1px 1px, #333 1px, transparent 0);
+      background-size: 16px 16px;
+      background-color: var(--figma-bg);
+    }
+    .canvas-page { display: none; }
+    .canvas-page.active { display: block; }
+
+    .artboard-wrap { margin-bottom: 64px; }
+    .artboard-label {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 12px; font-size: 12px;
+    }
+    .artboard-label strong { font-size: 13px; }
+    .artboard-label span { color: var(--figma-muted); }
+
+    .artboard {
+      position: relative;
+      width: 960px; height: 540px;
+      background: var(--figma-artboard);
+      border-radius: 2px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 0 0 1px #000;
+      overflow: visible;
+      transform-origin: top left;
+    }
+    .artboard::after {
+      content: attr(data-size);
+      position: absolute; top: -22px; right: 0;
+      font-size: 10px; color: var(--figma-muted);
+    }
+
+    /* Board BG simulating HS */
+    .board-bg {
+      position: absolute; inset: 0; border-radius: 2px;
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 45%, rgba(50,70,90,0.45), transparent),
+        linear-gradient(180deg, #1a2838, #0e1820 55%, #12100c);
+    }
+
+    /* Frame corners using art assets */
+    .frame-art {
+      position: absolute; width: 120px; height: 120px;
+      pointer-events: none; z-index: 10;
+      background-size: contain; background-repeat: no-repeat;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
+    }
+    .frame-tl { top: -28px; left: -28px; }
+    .frame-tr { top: -28px; right: -28px; transform: scaleX(-1); }
+    .frame-bl { bottom: -28px; left: -28px; transform: scaleY(-1); }
+    .frame-br { bottom: -28px; right: -28px; transform: scale(-1,-1); }
+
+    /* Overlay panels inside artboard */
+    .ov { position: absolute; z-index: 5; }
+    .ov-rail { left: 20px; top: 48px; width: 200px; height: 468px; }
+    .ov-pool { right: 20px; top: 36px; width: 200px; height: 480px; }
+    .ov-combat { top: 16px; left: 50%; transform: translateX(-50%); width: 420px; }
+
+    .panel {
+      position: relative; height: 100%;
+      border-radius: var(--r, 12px);
+      background-color: var(--surface);
+      background-image: var(--panel-bg-image, none);
+      background-size: cover;
+      background-position: center top;
+      border: 1px solid var(--edge);
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      color: var(--text); font-size: 9px; overflow: hidden;
+    }
+    .panel > * { position: relative; z-index: 1; }
+    .panel::before {
+      content: '';
+      position: absolute; inset: 0; z-index: 0;
+      border-radius: inherit;
+      background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.48) 100%);
+      pointer-events: none;
+    }
+    .panel-head { display: flex; justify-content: space-between; padding: 10px 12px 6px; }
+    .panel-head h3 { margin: 0; font-size: 11px; font-weight: 700; }
+    .chip { font-size: 8px; padding: 2px 6px; border-radius: 999px; border: 1px solid var(--edge); }
+    .chip.live { color: #6ee0c4; border-color: #6ee0c4; }
+
+    .mmr { margin: 0 8px 6px; padding: 6px; border-radius: 6px; border: 1px solid var(--edge); text-align: center; }
+    .mmr strong { display: block; font-size: 14px; }
+    .dynamic {
+      margin: 4px 8px; flex: 1; min-height: 140px; padding: 8px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);
+      background-image: var(--dynamic-bg-image, none);
+      background-size: cover;
+      background-position: center;
+      position: relative; overflow: hidden;
+    }
+    .dynamic::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.45));
+      pointer-events: none;
+    }
+    .dynamic > * { position: relative; z-index: 1; }
+    .buff { display: flex; gap: 4px; align-items: center; padding: 4px; margin-bottom: 4px;
+      border-radius: 6px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); }
+    .buff i { width: 22px; height: 22px; border-radius: 4px; background: #333; flex-shrink: 0; }
+    .games { padding: 8px; border-top: 1px solid rgba(255,255,255,0.08); }
+
+    .combat-panel {
+      padding: 10px 16px; display: grid; grid-template-columns: 1fr auto 1fr;
+      align-items: center; gap: 8px; font-size: 9px; font-weight: 700;
+    }
+    .combat-panel strong { font-size: 12px; display: block; }
+    .win { color: #34d399; } .loss { color: #fb7185; } .tie { color: #67e8f9; }
+
+    /* Annotation pins */
+    .pin {
+      position: absolute; z-index: 20;
+      width: 18px; height: 18px; border-radius: 999px;
+      background: var(--figma-accent); color: #fff;
+      font-size: 10px; font-weight: 700; display: flex;
+      align-items: center; justify-content: center;
+      box-shadow: 0 0 0 2px #1e1e1e;
+    }
+    .pin-line {
+      position: absolute; background: var(--figma-accent);
+      height: 1px; transform-origin: left center; z-index: 19;
+    }
+
+    /* Token swatches in right panel */
+    .token-group { padding: 0 14px 14px; }
+    .token-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .swatch { width: 24px; height: 24px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); }
+    .token-row code { font-size: 10px; color: #7cc4ff; }
+    .token-row span { color: var(--figma-muted); font-size: 10px; }
+
+    .spec-block {
+      padding: 0 14px 14px; font-size: 11px; line-height: 1.5; color: var(--figma-muted);
+    }
+    .spec-block h4 { margin: 0 0 6px; color: var(--figma-text); font-size: 11px; }
+
+    .component-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px;
+    }
+    .comp-artboard { width: 360px; height: 280px; }
+    .comp-artboard .panel { height: 100%; }
+
+    .bg-sheet {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+      max-width: 900px; margin-bottom: 48px;
+    }
+    .bg-card {
+      background: #2c2c2c; border-radius: 8px; overflow: hidden;
+      border: 1px solid #3d3d3d;
+    }
+    .bg-card img { width: 100%; display: block; aspect-ratio: 16/9; object-fit: cover; }
+    .bg-card.panel img { aspect-ratio: 3/4; max-height: 320px; object-fit: cover; }
+    .bg-card .bg-meta { padding: 10px 12px; font-size: 11px; color: #b3b3b3; }
+    .bg-card .bg-meta strong { display: block; color: #fff; margin-bottom: 4px; }
+    .bg-card code { font-size: 10px; color: #7cc4ff; }
+
+    .gallery-hero {
+      max-width: 1100px; margin-bottom: 56px;
+    }
+    .gallery-hero h3 {
+      margin: 0 0 8px; font-size: 18px; font-weight: 700;
+    }
+    .gallery-hero .concept {
+      margin: 0 0 16px; font-size: 13px; line-height: 1.55; color: #b3b3b3; max-width: 720px;
+    }
+    .gallery-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    }
+    .gallery-grid img {
+      width: 100%; border-radius: 6px; border: 1px solid #3d3d3d;
+      display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .gallery-grid figcaption {
+      font-size: 10px; color: #888; margin-top: 6px; text-align: center;
+    }
+
+    .dynamic::before {
+      background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.38));
+    }
+
+    .workflow {
+      margin: 0 48px 32px; padding: 16px 20px;
+      background: var(--figma-panel); border: 1px solid var(--figma-border);
+      border-radius: 8px; font-size: 12px; line-height: 1.55; color: var(--figma-muted);
+    }
+    .workflow strong { color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <header class="figma-top">
+    <span class="file">BattleBuddy / Overlay Themes v1</span>
+    <span class="zoom">Canvas 50%</span>
+    <span class="status">Art pass v3 — design review</span>
+  </header>
+
+  <div class="workflow">
+    <strong>Art pass v3.</strong> Hand-painted, one-of-a-kind illustrations per theme — corners, panel interiors, and dynamic whitespace.
+    Each piece is a unique composition (not tileable textures). Implementation paused until art sign-off.
+  </div>
+
+  <div class="figma-shell">
+    <aside class="figma-left">
+      <div class="panel-title">Pages</div>
+      <div class="page-list" id="pages">
+        <button class="active" data-page="full">01 — Full overlay</button>
+        <button data-page="components">02 — Components</button>
+        <button data-page="tokens">03 — Tokens &amp; specs</button>
+        <button data-page="backgrounds">04 — Widget backgrounds</button>
+        <button data-page="gallery">05 — Art gallery</button>
+      </div>
+      <div class="panel-title">Layers</div>
+      <div id="layers">
+        <button class="layer-item active" data-theme="hearth">Tavern Hearth</button>
+        <button class="layer-item" data-theme="crown">Titan's Crown</button>
+        <button class="layer-item" data-theme="coliseum">Tribe Coliseum</button>
+        <button class="layer-item" data-theme="warband">Warband Front</button>
+        <button class="layer-item" data-theme="voidreach">Void Reach</button>
+      </div>
+    </aside>
+
+    <main class="figma-canvas" id="canvas">
+      <!-- PAGE 1: Full overlay artboards -->
+      <div class="canvas-page active" id="page-full"></div>
+      <div class="canvas-page" id="page-components"></div>
+      <div class="canvas-page" id="page-tokens"></div>
+      <div class="canvas-page" id="page-backgrounds"></div>
+      <div class="canvas-page" id="page-gallery"></div>
+    </main>
+
+    <aside class="figma-right" id="inspect">
+      <div class="panel-title">Inspect</div>
+      <div class="spec-block" id="inspect-desc"></div>
+      <div class="panel-title">Design tokens</div>
+      <div class="token-group" id="inspect-tokens"></div>
+      <div class="panel-title">Background assets</div>
+      <div class="spec-block" id="inspect-bg"></div>
+      <div class="panel-title">Frame spec</div>
+      <div class="spec-block">
+        <h4>Outward extension</h4>
+        Corner art: 120×120px display, −28px inset on ::before.<br>
+        Panel content box unchanged. Max height: 92vh session = pool.
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const THEMES = {
+      hearth: {
+        name: "Tavern Hearth",
+        concept: "Dragon-smoke coin spiral corner. Tavern lattice panel. Hearth scene with coin embers in dynamic whitespace.",
+        asset: "v3/hearth-corner-tl-v3.png",
+        panelBg: "v3/hearth-panel-bg-v3.png",
+        dynamicBg: "v3/hearth-dynamic-bg-v3.png",
+        desc: "Warm painted tavern world — smoke, coins, and hearth light. Center of dynamic zone stays dark for buff tiles.",
+        tokens: [
+          ["#1a120c", "--overlay-surface", "Surface"],
+          ["#e4c278", "--overlay-edge-a", "Gold trim"],
+          ["#f59e42", "ember", "Ember accent"],
+          ["#f6ead2", "--text", "Text"],
+          ["#8a5a22", "wood", "Wood shadow"],
+        ],
+        vars: {
+          "--r": "10px", "--surface": "#1a120c", "--edge": "rgba(215,181,106,0.5)",
+          "--text": "#f6ead2",
+          "--panel-bg-image": "linear-gradient(180deg, rgba(26,18,12,0.55), rgba(12,8,4,0.72)), url(assets/v3/hearth-panel-bg-v3.png)",
+          "--dynamic-bg-image": "url(assets/v3/hearth-dynamic-bg-v3.png)",
+          "--shadow": "0 20px 44px rgba(0,0,0,0.6), 0 0 0 3px #8a5a24"
+        }
+      },
+      crown: {
+        name: "Titan's Crown",
+        concept: "Shattered tier-crystal crown corner. Geode throne panel. Constellation crown map in dynamic zone.",
+        asset: "v3/crown-corner-tl-v3.png",
+        panelBg: "v3/crown-panel-bg-v3.png",
+        dynamicBg: "v3/crown-dynamic-bg-v3.png",
+        desc: "Crystalline tier mythology — painted geode interior and celestial tier cartography at the edges.",
+        tokens: [
+          ["#120a1e", "--overlay-surface", "Surface"],
+          ["#f0c96a", "--overlay-edge-a", "Crown gold"],
+          ["#22d3ee", "crystal", "Crystal"],
+          ["#a78bfa", "amethyst", "Amethyst"],
+          ["#f0ecff", "--text", "Text"],
+        ],
+        vars: {
+          "--r": "14px", "--surface": "#120a1e", "--edge": "rgba(167,139,250,0.42)",
+          "--text": "#f0ecff",
+          "--panel-bg-image": "linear-gradient(180deg, rgba(18,10,30,0.5), rgba(10,6,20,0.7)), url(assets/v3/crown-panel-bg-v3.png)",
+          "--dynamic-bg-image": "url(assets/v3/crown-dynamic-bg-v3.png)",
+          "--shadow": "0 22px 48px rgba(0,0,0,0.55), 0 0 20px rgba(167,139,250,0.15)"
+        }
+      },
+      coliseum: {
+        name: "Tribe Coliseum",
+        concept: "Banner-woven coliseum arch corner. Hanging tribe pennant panel. Arena god-rays in dynamic zone.",
+        asset: "v3/coliseum-corner-tl-v3.png",
+        panelBg: "v3/coliseum-panel-bg-v3.png",
+        dynamicBg: "v3/coliseum-dynamic-bg-v3.png",
+        desc: "Illustrated tribal coliseum — pennant collage corners, banner hall interior, arena light at whitespace edges.",
+        tokens: [
+          ["#0c1018", "--overlay-surface", "Surface"],
+          ["#e8b56b", "beast", "Beast"],
+          ["#5ee0c8", "murloc", "Murloc"],
+          ["#ff8b7a", "dragon", "Dragon"],
+          ["#f6f8fb", "--text", "Text"],
+        ],
+        vars: {
+          "--r": "12px", "--surface": "#0c1018", "--edge": "rgba(200,200,220,0.28)",
+          "--text": "#f6f8fb",
+          "--panel-bg-image": "linear-gradient(90deg, rgba(232,181,107,0.08), rgba(12,16,24,0.72) 20%, rgba(12,16,24,0.72) 80%, rgba(94,224,200,0.08)), url(assets/v3/coliseum-panel-bg-v3.png)",
+          "--dynamic-bg-image": "url(assets/v3/coliseum-dynamic-bg-v3.png)",
+          "--shadow": "0 20px 44px rgba(0,0,0,0.5), inset 10px 0 20px -8px rgba(232,181,107,0.2)"
+        }
+      },
+      warband: {
+        name: "Warband Front",
+        concept: "Torn banner sword-shield corner. War tent command panel. Dawn battlefield fog in dynamic zone.",
+        asset: "v3/warband-corner-tl-v3.png",
+        panelBg: "v3/warband-panel-bg-v3.png",
+        dynamicBg: "v3/warband-dynamic-bg-v3.png",
+        desc: "Gritty combat illustration — heraldry corners, command tent interior, ghost armies in morning fog.",
+        tokens: [
+          ["#10141c", "--overlay-surface", "Surface"],
+          ["#94a3b8", "steel", "Steel"],
+          ["#34d399", "win", "Win"],
+          ["#fb7185", "death", "Death"],
+          ["#e8edf4", "--text", "Text"],
+        ],
+        vars: {
+          "--r": "12px", "--surface": "#10141c", "--edge": "rgba(148,163,184,0.35)",
+          "--text": "#e8edf4",
+          "--panel-bg-image": "linear-gradient(180deg, rgba(16,20,28,0.55), rgba(8,12,18,0.75)), url(assets/v3/warband-panel-bg-v3.png)",
+          "--dynamic-bg-image": "url(assets/v3/warband-dynamic-bg-v3.png)",
+          "--shadow": "0 20px 44px rgba(0,0,0,0.55), 0 0 0 2px #64748b"
+        }
+      },
+      voidreach: {
+        name: "Void Reach",
+        concept: "Void rift eye tendril corner. Obsidian mirror cathedral panel. Cosmic reef nebula in dynamic zone.",
+        asset: "v3/voidreach-corner-tl-v3.png",
+        panelBg: "v3/voidreach-panel-bg-v3.png",
+        dynamicBg: "v3/voidreach-dynamic-bg-v3.png",
+        desc: "Surreal void painting — rift heraldry, mirror cathedral depths, bioluminescent cosmic reef at whitespace edges.",
+        tokens: [
+          ["#06040c", "void", "Void"],
+          ["#c026d3", "nebula", "Nebula"],
+          ["#67e8f9", "star", "Star teal"],
+          ["#e879f9", "magenta", "Magenta"],
+          ["#f0e8ff", "--text", "Text"],
+        ],
+        vars: {
+          "--r": "18px", "--surface": "#06040c", "--edge": "rgba(192,38,211,0.4)",
+          "--text": "#f0e8ff",
+          "--panel-bg-image": "linear-gradient(180deg, rgba(6,4,12,0.5), rgba(4,2,8,0.72)), url(assets/v3/voidreach-panel-bg-v3.png)",
+          "--dynamic-bg-image": "url(assets/v3/voidreach-dynamic-bg-v3.png)",
+          "--shadow": "0 24px 50px rgba(0,0,0,0.65), 0 0 24px rgba(192,38,211,0.12)"
+        }
+      }
+    };
+
+    function bgUrl(theme, type) {
+      return `assets/${THEMES[theme][type]}`;
+    }
+
+    function frameUrl(theme) {
+      return `assets/${THEMES[theme].asset}`;
+    }
+
+    function artboardHtml(theme, id, opts = {}) {
+      const t = THEMES[theme];
+      const style = Object.entries(t.vars).map(([k,v]) => `${k}:${v}`).join(';');
+      const compact = opts.compact;
+      const h = compact ? 280 : 540;
+      const w = compact ? 360 : 960;
+      return `
+        <div class="artboard-wrap" id="${id}">
+          <div class="artboard-label"><strong>${t.name}</strong><span>${compact ? 'Component' : '1920 × 1080 — Full overlay'}</span></div>
+          <div class="artboard" data-size="${compact ? '360×280' : '1920×1080'}" style="width:${w}px;height:${h}px;${style}">
+            ${compact ? '' : '<div class="board-bg"></div>'}
+            <div class="frame-art frame-tl" style="background-image:url(${frameUrl(theme)})"></div>
+            <div class="frame-art frame-tr" style="background-image:url(${frameUrl(theme)})"></div>
+            <div class="frame-art frame-bl" style="background-image:url(${frameUrl(theme)})"></div>
+            <div class="frame-art frame-br" style="background-image:url(${frameUrl(theme)})"></div>
+            ${compact ? renderComponent(theme) : renderFull(theme)}
+            ${compact ? '' : '<div class="pin" style="left:218px;top:200px" title="Dynamic zone">1</div>'}
+          </div>
+        </div>`;
+    }
+
+    function renderFull(theme) {
+      return `
+        <div class="ov ov-combat"><div class="panel combat-panel" style="height:auto">
+          <div><span class="win">LETHAL</span><strong class="win">12%</strong></div>
+          <div style="text-align:center"><span class="win">WIN 58%</span> <span class="tie">TIE 8%</span> <span class="loss">LOSS 22%</span></div>
+          <div style="text-align:right"><span class="loss">ELIM</span><strong class="loss">4%</strong></div>
+        </div></div>
+        <div class="ov ov-rail"><div class="panel" style="display:flex;flex-direction:column">
+          <div class="panel-head"><h3>Millhouse</h3><span class="chip live">Live</span></div>
+          <div class="mmr"><span>MMR</span><strong>8,547</strong></div>
+          <div class="dynamic">${buffsHtml()}</div>
+          <div class="games">Latest games…</div>
+        </div></div>
+        <div class="ov ov-pool"><div class="panel">
+          <div class="panel-head"><h3>Recruit · T5</h3></div>
+          <div style="padding:8px">Pool / Strategies · Beast · Murloc</div>
+          <div style="padding:8px;opacity:0.7">Minion rows…</div>
+        </div></div>`;
+    }
+
+    function renderComponent(theme) {
+      return `<div class="panel" style="display:flex;flex-direction:column;padding:8px">
+        <div style="font-size:8px;color:var(--figma-muted);margin-bottom:6px">Session dynamic zone</div>
+        <div class="dynamic" style="flex:1;min-height:0">${buffsHtml()}</div>
+      </div>`;
+    }
+
+    function buffsHtml() {
+      return ['Blood gems +4/+4','Elementals +2/+2','Pirates +3/+2'].map(b =>
+        `<div class="buff"><i></i><span>${b}</span></div>`).join('');
+    }
+
+    let activeTheme = 'hearth';
+
+    function buildPages() {
+      document.getElementById('page-full').innerHTML =
+        Object.keys(THEMES).map((k) => artboardHtml(k, `board-${k}`)).join('');
+      document.getElementById('page-components').innerHTML =
+        `<div class="component-grid">${Object.keys(THEMES).map((k) => artboardHtml(k, `comp-${k}`, {compact:true})).join('')}</div>`;
+      document.getElementById('page-tokens').innerHTML =
+        Object.entries(THEMES).map(([k,t]) => `
+          <div class="artboard-wrap"><div class="artboard-label"><strong>${t.name}</strong><span>Token sheet</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;padding:16px;background:#2c2c2c;border-radius:8px;max-width:600px">
+            ${t.tokens.map(([c,,n]) => `<div style="text-align:center"><div style="width:48px;height:48px;background:${c};border-radius:8px;border:1px solid #444"></div><div style="font-size:9px;color:#999;margin-top:4px">${n}</div><div style="font-size:9px;color:#7cc4ff">${c}</div></div>`).join('')}
+          </div></div>`).join('');
+      document.getElementById('page-backgrounds').innerHTML =
+        Object.entries(THEMES).map(([k,t]) => `
+          <div class="artboard-wrap" id="bg-${k}">
+            <div class="artboard-label"><strong>${t.name}</strong><span>Art pass v3 — widget backgrounds</span></div>
+            <div class="bg-sheet">
+              <div class="bg-card panel">
+                <img src="${bgUrl(k,'panelBg')}" alt="Panel background" />
+                <div class="bg-meta"><strong>Panel interior</strong>${t.concept.split('.')[1] || ''}<br><code>${t.panelBg}</code></div>
+              </div>
+              <div class="bg-card">
+                <img src="${bgUrl(k,'dynamicBg')}" alt="Dynamic zone background" />
+                <div class="bg-meta"><strong>Dynamic whitespace</strong>Center kept dark for buffs<br><code>${t.dynamicBg}</code></div>
+              </div>
+            </div>
+          </div>`).join('');
+      document.getElementById('page-gallery').innerHTML =
+        Object.entries(THEMES).map(([k,t]) => `
+          <section class="gallery-hero" id="gallery-${k}">
+            <h3>${t.name}</h3>
+            <p class="concept">${t.concept}</p>
+            <div class="gallery-grid">
+              <figure><img src="assets/${t.asset}" alt="Corner"/><figcaption>Corner frame</figcaption></figure>
+              <figure><img src="assets/${t.panelBg}" alt="Panel"/><figcaption>Panel interior</figcaption></figure>
+              <figure><img src="assets/${t.dynamicBg}" alt="Dynamic"/><figcaption>Dynamic whitespace</figcaption></figure>
+            </div>
+          </section>`).join('');
+    }
+
+    function setInspect(theme) {
+      const t = THEMES[theme];
+      document.getElementById('inspect-desc').innerHTML = `<h4>${t.name}</h4><p>${t.desc}</p><p style="margin-top:8px;font-style:italic">${t.concept}</p>`;
+      document.getElementById('inspect-tokens').innerHTML = t.tokens.map(([c,code,label]) =>
+        `<div class="token-row"><div class="swatch" style="background:${c}"></div><code>${code}</code><span>${label}</span></div>`).join('');
+      document.getElementById('inspect-bg').innerHTML = `
+        <p><strong>Panel:</strong> <code>${t.panelBg}</code></p>
+        <p><strong>Dynamic:</strong> <code>${t.dynamicBg}</code></p>
+        <p>Ship as WebP/PNG in <code>src/renderer/src/frames/</code>. Apply via <code>background-image</code> + gradient scrim — never as img elements that affect layout height.</p>`;
+      document.querySelectorAll('.layer-item').forEach((el) => el.classList.toggle('active', el.dataset.theme === theme));
+      const board = document.getElementById(`board-${theme}`);
+      if (board) board.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    document.getElementById('pages').addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      document.querySelectorAll('.page-list button').forEach((b) => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.canvas-page').forEach((p) => p.classList.remove('active'));
+      document.getElementById(`page-${btn.dataset.page}`).classList.add('active');
+    });
+
+    document.getElementById('layers').addEventListener('click', (e) => {
+      const btn = e.target.closest('.layer-item');
+      if (!btn) return;
+      activeTheme = btn.dataset.theme;
+      setInspect(activeTheme);
+    });
+
+    buildPages();
+    setInspect('hearth');
+  </script>
+</body>
+</html>
