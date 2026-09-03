@@ -92,7 +92,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showSessionOnOverlay: true,
   showLobbyOnOverlay: false,
   overlayLayout: DEFAULT_OVERLAY_LAYOUT,
-  showRatingCaptureRegions: true,
+  showRatingCaptureRegions: false,
   ratingCapture: DEFAULT_RATING_CAPTURE,
   currentMmr: null,
   theme: 'hearth'

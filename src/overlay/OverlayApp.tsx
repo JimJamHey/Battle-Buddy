@@ -49,7 +49,8 @@ export function OverlayApp() {
   }, [state?.settings.ratingCapture])
 
   const unlocked = Boolean(state?.settings.layoutUnlocked)
-  useClickThrough(!unlocked)
+  const calibrating = Boolean(state?.settings.showRatingCaptureRegions)
+  useClickThrough(!unlocked && !calibrating)
 
   useEffect(() => {
     if (!state) return
@@ -94,15 +95,11 @@ export function OverlayApp() {
 
   const movePanel = (key: 'combat', pos: OverlayPos) => {
     dragging.current = true
-    setLayout((prev) => {
-      if (key === 'pool') return { ...prev, pool: { ...prev.pool, ...pos } }
-      return { ...prev, [key]: pos }
-    })
+    setLayout((prev) => ({ ...prev, [key]: pos }))
   }
   const savePanel = (key: 'combat', pos: OverlayPos) => {
     setLayout((prev) => {
-      const next =
-        key === 'pool' ? { ...prev, pool: { ...prev.pool, ...pos } } : { ...prev, [key]: pos }
+      const next = { ...prev, [key]: pos }
       void window.battleBuddy.setSettings({ overlayLayout: next }).finally(() => {
         dragging.current = false
       })

@@ -20,7 +20,7 @@ describe('sanitizeSettings', () => {
     expect(next.showLobbyOnOverlay).toBe(false)
     expect(next.currentMmr).toBe(30000)
     expect(next.theme).toBe('hearth')
-    expect(next.showRatingCaptureRegions).toBe(true)
+    expect(next.showRatingCaptureRegions).toBe(false)
   })
 
   it('clamps custom rating capture boxes', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { DEFAULT_OVERLAY_LAYOUT, type AppSettings, type OverlaySnapshot } from '../core/types'
+import { DEFAULT_OVERLAY_LAYOUT, DEFAULT_RATING_CAPTURE, type AppSettings, type OverlaySnapshot } from '../core/types'
 import { THEMES } from '../core/theme'
 import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
 import { averageFinish, gamesToday } from '../core/session'
@@ -173,13 +173,33 @@ export function SettingsApp() {
             onChange={(e) => patch({ layoutUnlocked: e.target.checked })}
           />
         </label>
+        <label className="toggle">
+          <span>Show rating capture boxes</span>
+          <input
+            type="checkbox"
+            checked={state.settings.showRatingCaptureRegions}
+            onChange={(e) => patch({ showRatingCaptureRegions: e.target.checked })}
+          />
+        </label>
         <p className="hint">
           Session stats on the left, minion pool on the right. Drag the inner edge of a panel to
-          resize it. Unlock layout to reposition the combat bar (Ctrl+Shift+L).
+          resize it. Unlock layout to reposition the combat bar (Ctrl+Shift+L). Capture boxes are
+          only for calibrating MMR OCR — leave them off for normal play.
         </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
-          <button className="ghost" type="button" onClick={() => patch({ overlayLayout: DEFAULT_OVERLAY_LAYOUT })}>
-            Reset panel widths
+          <button
+            className="ghost"
+            type="button"
+            onClick={() =>
+              patch({
+                overlayLayout: DEFAULT_OVERLAY_LAYOUT,
+                layoutUnlocked: false,
+                showRatingCaptureRegions: false,
+                ratingCapture: DEFAULT_RATING_CAPTURE
+              })
+            }
+          >
+            Reset overlay layout
           </button>
         </div>
         <label htmlFor="opacity">Opacity ({state.settings.overlayOpacity}%)</label>

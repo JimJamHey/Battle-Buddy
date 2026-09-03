@@ -27,8 +27,21 @@ export function paths(userData: string) {
 }
 
 export async function loadSettings(userData: string): Promise<AppSettings> {
-  const saved = await readJson<Partial<AppSettings>>(paths(userData).settings, {})
-  return sanitizeSettings(DEFAULT_SETTINGS, saved)
+  const saved = await readJson<Partial<AppSettings> & { settingsRev?: number }>(
+    paths(userData).settings,
+    {}
+  )
+  const rev = typeof saved.settingsRev === 'number' ? saved.settingsRev : 0
+  // Rev 1: MMR OCR testing left capture guides + unlocked layout on — restore a clean overlay.
+  if (rev < 1) {
+    if (saved.showRatingCaptureRegions === true) saved.showRatingCaptureRegions = false
+    if (saved.layoutUnlocked === true) saved.layoutUnlocked = false
+  }
+  const next = sanitizeSettings(DEFAULT_SETTINGS, saved)
+  if (rev < 1) {
+    await writeJson(paths(userData).settings, { ...next, settingsRev: 1 })
+  }
+  return next
 }
 
 export async function saveSettings(userData: string, settings: AppSettings): Promise<void> {
