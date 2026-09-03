@@ -1,30 +1,29 @@
 /**
  * Walks Hearthstone's managed objects to the Battlegrounds rating.
  *
- * The rating is not in any log file, so this is the only way to read it directly.
- * The route mirrors what Hearthstone Deck Tracker and Firestone do:
+ * The rating is not in any log file, so reading the client's own memory is the
+ * only direct route. The value lives on a `NetCacheBaconRatingInfo` object, which
+ * holds both queues as auto-properties (hence the compiler-decorated backing field
+ * names) and is reachable from the static job dependency builder:
  *
- *   Hearthstone.HearthstoneJobs::s_dependencyBuilder   (static)
- *     ._items[0].m_serviceLocator.m_services._entries[]
- *       entry with <ServiceTypeName>k__BackingField == "NetCache"
- *         .<Service>k__BackingField                    -> NetCache instance
- *           .m_netCache.valueSlots[]                   -> values typed as object
- *             element whose runtime class is NetCacheBaconRatingInfo
- *               <Rating>k__BackingField                -> solo
- *               <DuosRating>k__BackingField            -> duos
+ *   Hearthstone.HearthstoneJobs::s_dependencyBuilder
+ *     -> job -> service locator -> service map -> NetCache -> its cache map
+ *       -> NetCacheBaconRatingInfo { <Rating>, <DuosRating> }
  *
- * `NetCache` has no static instance to shortcut to; it is only reachable through
- * the service locator. The map stores values as `object`, so the rating entry is
- * identified by its runtime class name rather than by key. Both queues live on the
- * same object as auto-properties, hence the compiler-decorated backing field names.
+ * Rather than hardcode each intermediate field name, this does a bounded
+ * breadth-first search over the object graph from that static root and stops at
+ * the first object whose runtime class is `NetCacheBaconRatingInfo`. The exact
+ * shapes in between (Blizzard's `Map` vs a BCL `Dictionary`, reference arrays vs
+ * inline struct entries) have changed before and are the most likely thing to
+ * change again; the class name of the target is far more stable. The search is
+ * depth- and visit-bounded so a wrong turn costs time, not a hang.
  */
 
 import {
+  arrayElementPointers,
+  classNameOf,
   findClass,
-  objectClassName,
-  readManagedString,
-  readObjectArray,
-  readObjectField,
+  instancePointers,
   readObjectInt,
   readStaticObject
 } from './monoClasses'
@@ -33,17 +32,18 @@ import { isPlausiblePointer, type MemoryReader } from './processMemory'
 const JOBS_CLASS = 'HearthstoneJobs'
 const JOBS_NAMESPACE = 'Hearthstone'
 const JOBS_STATIC_FIELD = 's_dependencyBuilder'
-const SERVICE_NAME = 'NetCache'
 const RATING_CLASS = 'NetCacheBaconRatingInfo'
 
-const SERVICE_TYPE_NAME_FIELD = '<ServiceTypeName>k__BackingField'
-const SERVICE_FIELD = '<Service>k__BackingField'
 const RATING_FIELD = '<Rating>k__BackingField'
 const DUOS_RATING_FIELD = '<DuosRating>k__BackingField'
 
 /** Ratings are bounded in practice; anything outside this is a bad read. */
 const MIN_RATING = 0
 const MAX_RATING = 30000
+
+/** Search bounds. The real target sits ~6 hops from the root. */
+const MAX_DEPTH = 12
+const MAX_VISITS = 60000
 
 export interface BattlegroundsRating {
   solo: number | null
@@ -53,11 +53,7 @@ export interface BattlegroundsRating {
 export type RatingReadFailure =
   | 'no-jobs-class'
   | 'no-dependency-builder'
-  | 'no-service-locator'
-  | 'no-service-entries'
-  | 'no-netcache'
-  | 'no-netcache-map'
-  | 'no-rating-object'
+  | 'not-found'
   | 'implausible-rating'
 
 export interface RatingReadResult {
@@ -72,79 +68,73 @@ function plausible(value: number | null): number | null {
   return value
 }
 
-/** Reads the first element of a `List<T>` backing array, whatever it is named. */
-function firstListItem(reader: MemoryReader, list: bigint): bigint | null {
-  for (const field of ['_items', 'items', '_array']) {
-    const items = readObjectField(reader, list, field)
-    if (items == null) continue
-    const values = readObjectArray(reader, items)
-    const first = values.find((v) => isPlausiblePointer(v))
-    if (first != null) return first
-  }
-  return null
+/** Every managed reference reachable one hop from `object`. */
+function neighbours(reader: MemoryReader, object: bigint): bigint[] {
+  const fromArray = arrayElementPointers(reader, object)
+  if (fromArray.length) return fromArray
+  return instancePointers(reader, object)
 }
 
-/** Reads the entry array of a dictionary-like object under its various field names. */
-function entryArray(reader: MemoryReader, map: bigint): bigint[] {
-  for (const field of ['_entries', 'entries', 'valueSlots']) {
-    const entries = readObjectField(reader, map, field)
-    if (entries == null) continue
-    const values = readObjectArray(reader, entries).filter((v) => isPlausiblePointer(v))
-    if (values.length) return values
+/**
+ * Breadth-first search for the rating object, starting from the static root.
+ * Returns its address, or null when the search is exhausted or bounded out.
+ */
+export function findRatingObject(
+  reader: MemoryReader,
+  root: bigint
+): { address: bigint | null; visited: number; depth: number } {
+  const seen = new Set<bigint>([root])
+  let frontier = [root]
+  let visited = 0
+
+  for (let depth = 0; depth < MAX_DEPTH && frontier.length; depth++) {
+    const next: bigint[] = []
+    for (const object of frontier) {
+      visited++
+      if (visited > MAX_VISITS) return { address: null, visited, depth }
+      if (classNameOf(reader, object) === RATING_CLASS) {
+        return { address: object, visited, depth }
+      }
+      for (const child of neighbours(reader, object)) {
+        if (!isPlausiblePointer(child) || seen.has(child)) continue
+        seen.add(child)
+        next.push(child)
+      }
+    }
+    frontier = next
   }
-  return []
+  return { address: null, visited, depth: MAX_DEPTH }
 }
 
 /**
  * Reads the Battlegrounds rating out of a live Hearthstone process.
  *
  * `image` is the `Assembly-CSharp` MonoImage resolved by `probeMonoRuntime`.
- * Returns a failure code naming the stage that stopped, so a client patch that
- * moves something produces a diagnosable report instead of a wrong number.
+ * `jobsClass` may be supplied to skip the class-cache scan, which is by far the
+ * most expensive step and only needs doing once per game process.
  */
-export function readBattlegroundsRating(reader: MemoryReader, image: bigint): RatingReadResult {
+export function readBattlegroundsRating(
+  reader: MemoryReader,
+  image: bigint,
+  jobsClass?: bigint | null
+): RatingReadResult {
   const diagnostics: string[] = []
 
-  const jobs = findClass(reader, image, JOBS_CLASS, JOBS_NAMESPACE)
+  const jobs = jobsClass ?? findClass(reader, image, JOBS_CLASS, JOBS_NAMESPACE)
   if (jobs == null) return { rating: null, failure: 'no-jobs-class', diagnostics }
-  diagnostics.push(`${JOBS_NAMESPACE}.${JOBS_CLASS} @ 0x${jobs.toString(16)}`)
 
   const builder = readStaticObject(reader, jobs, JOBS_STATIC_FIELD)
-  if (builder == null) return { rating: null, failure: 'no-dependency-builder', diagnostics }
-
-  const firstJob = firstListItem(reader, builder)
-  if (firstJob == null) return { rating: null, failure: 'no-service-locator', diagnostics }
-
-  const locator = readObjectField(reader, firstJob, 'm_serviceLocator')
-  const services = locator ? readObjectField(reader, locator, 'm_services') : null
-  if (services == null) return { rating: null, failure: 'no-service-locator', diagnostics }
-
-  const entries = entryArray(reader, services)
-  if (!entries.length) return { rating: null, failure: 'no-service-entries', diagnostics }
-  diagnostics.push(`service locator: ${entries.length} entries`)
-
-  let netCache: bigint | null = null
-  for (const entry of entries) {
-    const nameRef = readObjectField(reader, entry, SERVICE_TYPE_NAME_FIELD)
-    if (nameRef == null) continue
-    if (readManagedString(reader, nameRef) !== SERVICE_NAME) continue
-    netCache = readObjectField(reader, entry, SERVICE_FIELD)
-    break
+  if (builder == null) {
+    // Normal before the game finishes booting: the type has no static data yet.
+    return { rating: null, failure: 'no-dependency-builder', diagnostics }
   }
-  if (netCache == null) return { rating: null, failure: 'no-netcache', diagnostics }
-  diagnostics.push(`${SERVICE_NAME} @ 0x${netCache.toString(16)}`)
 
-  const map = readObjectField(reader, netCache, 'm_netCache')
-  const slots = map ? readObjectField(reader, map, 'valueSlots') : null
-  if (slots == null) return { rating: null, failure: 'no-netcache-map', diagnostics }
+  const found = findRatingObject(reader, builder)
+  diagnostics.push(`object search: ${found.visited} objects, depth ${found.depth}`)
+  if (found.address == null) return { rating: null, failure: 'not-found', diagnostics }
 
-  const values = readObjectArray(reader, slots).filter((v) => isPlausiblePointer(v))
-  const ratingObject = values.find((v) => objectClassName(reader, v) === RATING_CLASS)
-  if (ratingObject == null) return { rating: null, failure: 'no-rating-object', diagnostics }
-  diagnostics.push(`${RATING_CLASS} @ 0x${ratingObject.toString(16)}`)
-
-  const solo = plausible(readObjectInt(reader, ratingObject, RATING_FIELD))
-  const duos = plausible(readObjectInt(reader, ratingObject, DUOS_RATING_FIELD))
+  const solo = plausible(readObjectInt(reader, found.address, RATING_FIELD))
+  const duos = plausible(readObjectInt(reader, found.address, DUOS_RATING_FIELD))
   if (solo == null && duos == null) {
     return { rating: null, failure: 'implausible-rating', diagnostics }
   }
@@ -152,3 +142,5 @@ export function readBattlegroundsRating(reader: MemoryReader, image: bigint): Ra
 
   return { rating: { solo, duos }, failure: null, diagnostics }
 }
+
+export { JOBS_CLASS, JOBS_NAMESPACE }

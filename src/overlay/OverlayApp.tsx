@@ -75,7 +75,9 @@ export function OverlayApp() {
       normalizeName(state.match.spectatedName) !== normalizeName(state.settings.battleTag || '')
   )
   const showCombat = (live && Boolean(state.match.heroName || state.match.heroCardId || state.match.inCombat)) || unlocked
-  const showSession = state.settings.showSessionOnOverlay || live
+  // Hiding it must actually hide it: the session rail sits over Hearthstone's
+  // friends list, so the toggle is the way to get the social panel back.
+  const showSession = state.settings.showSessionOnOverlay
   const showLastShot = live && !state.match.inCombat && Boolean(state.lastOpponentShot?.image)
   const interact = (inside: boolean) => {
     if (unlocked) {

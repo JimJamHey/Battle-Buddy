@@ -5,7 +5,7 @@
   --panel: rgba(8, 12, 18, 0.9);
   --panel-solid: #121820;
   --text: #f6f8fb;
-  --muted: #c5d0dc;
+  --muted: #d6dfe9;
   --faint: rgba(139, 155, 176, 0.18);
   --line: rgba(232, 238, 246, 0.1);
   --gold: #e0c07a;
@@ -38,7 +38,7 @@ html[data-theme='hearth'] {
   --panel: rgba(22, 16, 10, 0.94);
   --panel-solid: #1c1610;
   --text: #f6ead2;
-  --muted: #cbb892;
+  --muted: #e2d3b4;
   --gold: #e4c278;
   --mint: #d7b56a;
   --self: #f3e6c4;
@@ -63,7 +63,7 @@ html[data-theme='crown'] {
   --panel: rgba(18, 10, 30, 0.94);
   --panel-solid: #120a1e;
   --text: #f0ecff;
-  --muted: #a8a0c8;
+  --muted: #cfc8e8;
   --gold: #f0c96a;
   --mint: #22d3ee;
   --self: #c4b5fd;
@@ -88,7 +88,7 @@ html[data-theme='coliseum'] {
   --panel: rgba(8, 12, 18, 0.92);
   --panel-solid: #0c1018;
   --text: #f6f8fb;
-  --muted: #9aa8b8;
+  --muted: #c2cedb;
   --gold: #e8b56b;
   --mint: #5ee0c8;
   --self: #7dd3fc;
@@ -113,7 +113,7 @@ html[data-theme='warband'] {
   --panel: rgba(12, 16, 24, 0.94);
   --panel-solid: #10141c;
   --text: #e8edf4;
-  --muted: #94a3b8;
+  --muted: #c0ccd9;
   --gold: #cbd5e1;
   --mint: #34d399;
   --self: #7dd3fc;
@@ -138,7 +138,7 @@ html[data-theme='voidreach'] {
   --panel: rgba(6, 4, 12, 0.95);
   --panel-solid: #06040c;
   --text: #f0e8ff;
-  --muted: #a78bfa;
+  --muted: #d3c4ff;
   --gold: #e879f9;
   --mint: #67e8f9;
   --self: #c4b5fd;
@@ -1356,8 +1356,9 @@ html[data-theme='voidreach'] .buff-tag {
   font-weight: 750;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  color: var(--text);
+  opacity: 0.85;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .mmr-grid {
@@ -1386,6 +1387,7 @@ html[data-theme='voidreach'] .buff-tag {
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
 
 .mmr-grid strong {
@@ -2285,12 +2287,12 @@ html[data-theme='voidreach'] .buff-tag {
   flex: 1;
   min-width: 0;
   padding-right: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 650;
   color: var(--text);
   text-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.95),
-    0 0 8px rgba(0, 0, 0, 0.7);
+    0 1px 2px rgba(0, 0, 0, 1),
+    0 0 10px rgba(0, 0, 0, 0.85);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2308,8 +2310,14 @@ html[data-theme='voidreach'] .buff-tag {
   overflow: hidden;
   pointer-events: none;
   z-index: 0;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 70%);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0%, #000 70%, #000 88%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0%, #000 70%, #000 88%, transparent 100%),
+    linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  mask-composite: intersect;
 }
 
 .pool-art:not(:has(img)) {
@@ -2323,8 +2331,10 @@ html[data-theme='voidreach'] .buff-tag {
   /* Minion paintings put the face in the upper third. */
   object-position: center 28%;
   display: block;
-  opacity: 0.5;
+  opacity: 0.55;
   filter: saturate(1.05);
+  /* Overscan so any light edge baked into the source art is cropped away. */
+  transform: scale(1.12);
 }
 
 .pool-row:hover .pool-face {

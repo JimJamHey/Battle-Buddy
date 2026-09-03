@@ -45,6 +45,9 @@ const VTABLE_ARRAY_START = 0x48n
 /** Managed object header: [0] vtable pointer; MonoVTable[0] is the MonoClass. */
 const OBJECT_VTABLE = 0n
 
+/** MonoClass::sizes union — element_size for array classes. */
+const CLASS_ELEMENT_SIZE = 0x90n
+
 /** MonoString: int32 length then UTF-16 payload. */
 const STRING_LENGTH = 0x10n
 const STRING_CHARS = 0x14n
@@ -240,6 +243,59 @@ export function readObjectArray(reader: MemoryReader, array: bigint): bigint[] {
   for (let i = 0; i < count; i++) {
     const value = readPtr(reader, array + ARRAY_ELEMENTS + BigInt(i) * 8n)
     out.push(value ?? 0n)
+  }
+  return out
+}
+
+/** Convenience alias used by the object-graph search. */
+export function classNameOf(reader: MemoryReader, object: bigint): string | null {
+  return objectClassName(reader, object)
+}
+
+/**
+ * Managed references held by an array, covering both element shapes.
+ *
+ * Reference arrays store pointers directly. Arrays of value types (a BCL
+ * `Dictionary`'s `Entry[]`, for example) store structs inline, so the references
+ * inside them are found by scanning the element block for aligned pointers.
+ * Returns an empty array when `object` is not an array.
+ */
+export function arrayElementPointers(reader: MemoryReader, object: bigint): bigint[] {
+  if (!isPlausiblePointer(object)) return []
+  const monoClass = objectClass(reader, object)
+  if (monoClass == null) return []
+  const elementSize = readI32(reader, monoClass + CLASS_ELEMENT_SIZE)
+  if (elementSize == null || elementSize <= 0 || elementSize > 4096) return []
+  const count = readI32(reader, object + ARRAY_COUNT)
+  if (count == null || count <= 0 || count > MAX_ARRAY) return []
+
+  const bytes = Math.min(count * elementSize, MAX_ARRAY * 8)
+  const block = reader.read(object + ARRAY_ELEMENTS, bytes)
+  if (!block) return []
+
+  const out: bigint[] = []
+  for (let offset = 0; offset + 8 <= block.length; offset += 8) {
+    const value = block.readBigUInt64LE(offset)
+    if (isPlausiblePointer(value)) out.push(value)
+  }
+  return out
+}
+
+/**
+ * Managed references held in an instance's fields.
+ *
+ * Mono's field table also carries statics, whose offsets index static storage
+ * rather than the object; those produce junk addresses that the caller's class
+ * checks discard, so they are simply left in rather than decoded.
+ */
+export function instancePointers(reader: MemoryReader, object: bigint): bigint[] {
+  const monoClass = objectClass(reader, object)
+  if (monoClass == null) return []
+  const out: bigint[] = []
+  for (const field of readFields(reader, monoClass)) {
+    if (field.offset < 8 || field.offset > 1 << 16) continue
+    const value = readPtr(reader, object + BigInt(field.offset))
+    if (value != null && isPlausiblePointer(value)) out.push(value)
   }
   return out
 }

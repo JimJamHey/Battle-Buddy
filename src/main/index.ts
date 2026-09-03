@@ -1411,6 +1411,13 @@ function registerShortcuts(): void {
     void saveSettings(userData(), settings)
     scheduleBroadcast()
   })
+  // The session rail shares the lower-left of the client with Hearthstone's
+  // friends list; this gets it out of the way without hiding the whole overlay.
+  registerShortcut('CommandOrControl+Shift+S', () => {
+    settings = { ...settings, showSessionOnOverlay: !settings.showSessionOnOverlay }
+    void saveSettings(userData(), settings)
+    scheduleBroadcast()
+  })
   for (let tier = 1; tier <= 7; tier++) {
     registerShortcut(`CommandOrControl+Shift+${tier}`, () => {
       selectedTier = tier

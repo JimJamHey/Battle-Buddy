@@ -169,6 +169,10 @@ export function SettingsApp() {
             onChange={(e) => patch({ showSessionOnOverlay: e.target.checked })}
           />
         </label>
+        <p className="hint">
+          Ctrl+Shift+S hides the session panel when you need Hearthstone&apos;s friends list.
+          Ctrl+Shift+B hides the whole overlay.
+        </p>
         <label className="toggle">
           <span>Unlock combat bar position</span>
           <input

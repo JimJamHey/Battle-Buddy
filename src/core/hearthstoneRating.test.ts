@@ -59,12 +59,42 @@ class Heap implements MemoryReader {
     return at
   }
 
-  /** Reference array: int32 count at +0x18, elements from +0x20. */
+  /**
+   * Reference array: int32 count at +0x18, elements from +0x20. Real arrays carry
+   * a vtable whose class records element_size, which is how the reader tells a
+   * pointer array from one holding inline structs.
+   */
   array(values: bigint[]): bigint {
-    const at = this.alloc(0x20 + values.length * 8 + 0x10)
+    const cls = this.arrayClass(8)
+    const at = this.instance(cls, 0x20 + values.length * 8 + 0x10)
     this.i32(at + 0x18n, values.length)
     values.forEach((v, i) => this.ptr(at + 0x20n + BigInt(i) * 8n, v))
     return at
+  }
+
+  /**
+   * Array of value-type entries, as a BCL Dictionary uses. Each entry is
+   * `{ int hashCode; int next; ptr key; ptr value; }` — 24 bytes.
+   */
+  structEntryArray(pairs: Array<{ key: bigint; value: bigint }>): bigint {
+    const stride = 24
+    const cls = this.arrayClass(stride)
+    const at = this.instance(cls, 0x20 + pairs.length * stride + 0x10)
+    this.i32(at + 0x18n, pairs.length)
+    pairs.forEach((pair, i) => {
+      const base = at + 0x20n + BigInt(i * stride)
+      this.i32(base, 0)
+      this.i32(base + 4n, -1)
+      this.ptr(base + 8n, pair.key)
+      this.ptr(base + 16n, pair.value)
+    })
+    return at
+  }
+
+  private arrayClass(elementSize: number): bigint {
+    const cls = this.monoClass(`Array_${elementSize}`, 'System', [])
+    this.i32(cls + 0x90n, elementSize)
+    return cls
   }
 
   /** MonoClass with a field table; returns its address. */
@@ -138,7 +168,9 @@ interface Built {
   ratingObject: bigint
 }
 
-function buildHearthstone(opts: { solo?: number; duos?: number; serviceName?: string } = {}): Built {
+function buildHearthstone(
+  opts: { solo?: number; duos?: number; serviceName?: string; structEntries?: boolean } = {}
+): Built {
   const h = new Heap()
 
   const ratingClass = h.monoClass('NetCacheBaconRatingInfo', '', [
@@ -189,7 +221,12 @@ function buildHearthstone(opts: { solo?: number; duos?: number; serviceName?: st
   h.ptr(entry + 0x18n, netCache)
 
   const services = h.instance(servicesClass)
-  h.ptr(services + 0x10n, h.array([entry]))
+  h.ptr(
+    services + 0x10n,
+    opts.structEntries
+      ? h.structEntryArray([{ key: h.managedString('NetCache'), value: entry }])
+      : h.array([entry])
+  )
 
   const locator = h.instance(locatorClass)
   h.ptr(locator + 0x10n, services)
@@ -250,11 +287,29 @@ describe('readBattlegroundsRating', () => {
     expect(readBattlegroundsRating(heap, image).rating?.solo).toBe(4200)
   })
 
-  it('reports the stage that stopped when the service is missing', () => {
-    const { heap, image } = buildHearthstone({ serviceName: 'SomeOtherService' })
+  it('still finds the rating when intermediate names change', () => {
+    // The search matches on the target's class name, so a renamed service entry
+    // in between must not break it — that is the whole point of not pinning the path.
+    const { heap, image } = buildHearthstone({ serviceName: 'SomeOtherService', solo: 7010 })
+    expect(readBattlegroundsRating(heap, image).rating?.solo).toBe(7010)
+  })
+
+  it('traverses a dictionary whose entries are inline structs', () => {
+    const { heap, image } = buildHearthstone({ structEntries: true, solo: 5881 })
+    const result = readBattlegroundsRating(heap, image)
+    expect(result.failure).toBeNull()
+    expect(result.rating?.solo).toBe(5881)
+  })
+
+  it('reports not-found when the rating object is absent', () => {
+    const heap = new Heap()
+    const jobsClass = heap.monoClass('HearthstoneJobs', 'Hearthstone', [['s_dependencyBuilder', 0x00]])
+    const image = heap.image([jobsClass])
+    const statics = heap.statics(jobsClass)
+    heap.ptr(statics, heap.instance(heap.monoClass('Unrelated', '', [])))
     const result = readBattlegroundsRating(heap, image)
     expect(result.rating).toBeNull()
-    expect(result.failure).toBe('no-netcache')
+    expect(result.failure).toBe('not-found')
   })
 
   it('rejects an implausible rating rather than reporting it', () => {

@@ -246,10 +246,10 @@ describe('cachedReader', () => {
     const short: MemoryReader = {
       read(_address, length) {
         // Mimics a reader that honours the request size only partially.
-        return Buffer.alloc(Math.min(length, 8))
+        return length <= 8 ? Buffer.alloc(length) : null
       }
     }
-    expect(cachedReader(short).read(0x1000n, 64)).toBeNull()
+    expect(cachedReader(short, 0x1000).read(0x1000n, 64)).toBeNull()
   })
 
   it('serves a read spanning three pages from the underlying reader', () => {
@@ -262,7 +262,7 @@ describe('cachedReader', () => {
         return backing.subarray(start, start + length)
       }
     }
-    const reader = cachedReader(inner)
+    const reader = cachedReader(inner, 0x1000)
     const got = reader.read(0xffen, 0x2004)
     expect(got).not.toBeNull()
     expect(got).toEqual(backing.subarray(0xffe, 0xffe + 0x2004))
@@ -271,6 +271,20 @@ describe('cachedReader', () => {
   it('propagates a failed read as null rather than zeros', () => {
     const inner: MemoryReader = { read: () => null }
     expect(cachedReader(inner).read(0x1000n, 16)).toBeNull()
+  })
+
+  it('falls back to a direct read when the page base is unmapped', () => {
+    // Real address spaces have gaps: the bytes we want can be mapped while the
+    // start of their enclosing page is not.
+    const mappedFrom = 0x8000n
+    const inner: MemoryReader = {
+      read(address, length) {
+        if (address < mappedFrom) return null
+        return Buffer.alloc(length, 0xab)
+      }
+    }
+    const got = cachedReader(inner, 0x8000).read(0x8100n, 16)
+    expect(got).toEqual(Buffer.alloc(16, 0xab))
   })
 })
 

@@ -18,7 +18,13 @@
 
 import { cachedReader, deadlineReader } from '../core/processMemory'
 import { probeMonoRuntime } from '../core/mono'
-import { readBattlegroundsRating, type BattlegroundsRating } from '../core/hearthstoneRating'
+import {
+  readBattlegroundsRating,
+  JOBS_CLASS,
+  JOBS_NAMESPACE,
+  type BattlegroundsRating
+} from '../core/hearthstoneRating'
+import { findClass } from '../core/monoClasses'
 import { describeProbe } from '../core/ratingSource'
 import type { MemoryProbeReport } from '../core/types'
 import { findMonoModule, ProcessMemory, type ProcessModule } from '../platform/winMemory'
@@ -27,10 +33,11 @@ import { gameProcessId } from '../platform/windows'
 export type { MemoryProbeReport }
 
 /**
- * Wall-clock ceiling for the whole walk. The probe runs synchronously on the main
- * thread, so this is the worst-case UI stall.
+ * Wall-clock ceiling for the manual probe. Scanning every class in Assembly-CSharp
+ * is inherently slow, and the probe is an explicit user action, so it is allowed to
+ * take noticeably longer than a background read.
  */
-const PROBE_BUDGET_MS = 750
+const PROBE_BUDGET_MS = 8000
 
 function emptyReport(failure: MemoryProbeReport['failure']): MemoryProbeReport {
   return {
@@ -136,22 +143,68 @@ export { describeProbe }
 /**
  * Resolved runtime for the live client. The Boehm collector Mono uses here is
  * non-moving, so once resolved these pointers stay valid for the process lifetime
- * and each poll only costs the object walk rather than a full calibration.
+ * and each poll only costs the object walk rather than a full resolution.
  */
-let live: { pid: number; memory: ProcessMemory; image: bigint } | null = null
+let live: { pid: number; memory: ProcessMemory; image: bigint; jobsClass: bigint } | null = null
 
 function disposeLive(): void {
   live?.memory.close()
   live = null
 }
 
-/** Budget for a steady-state rating read, which skips calibration. */
-const READ_BUDGET_MS = 400
+/**
+ * One-time resolution scans every class in Assembly-CSharp, which is tens of
+ * thousands of entries, so it gets a far larger budget than a steady-state read.
+ */
+const RESOLVE_BUDGET_MS = 15000
+const READ_BUDGET_MS = 1500
+
+/** Avoid re-running a failed resolution on every poll. */
+const RESOLVE_RETRY_MS = 30000
+let lastResolveAttempt = 0
+
+function resolveLive(): typeof live {
+  if (live) return live
+
+  const pid = gameProcessId()
+  if (!pid) return null
+  const now = Date.now()
+  if (now - lastResolveAttempt < RESOLVE_RETRY_MS) return null
+  lastResolveAttempt = now
+
+  const memory = ProcessMemory.open(pid)
+  if (!memory) return null
+  if (memory.isWow64()) {
+    memory.close()
+    return null
+  }
+  const mono = findMonoModule(memory.modules())
+  if (!mono) {
+    memory.close()
+    return null
+  }
+
+  const reader = deadlineReader(cachedReader(memory), RESOLVE_BUDGET_MS)
+  const probe = probeMonoRuntime(reader, mono.base, mono.size)
+  if (!probe.runtime) {
+    memory.close()
+    return null
+  }
+  const jobsClass = findClass(reader, probe.runtime.assemblyCSharpImage, JOBS_CLASS, JOBS_NAMESPACE)
+  if (jobsClass == null) {
+    memory.close()
+    return null
+  }
+
+  live = { pid, memory, image: probe.runtime.assemblyCSharpImage, jobsClass }
+  return live
+}
 
 /**
  * Reads the current rating straight from the client, or null when unavailable.
  *
- * Cheap enough to poll: the expensive calibration happens once per game process.
+ * Cheap enough to poll: the class-cache scan happens once per game process, and
+ * every later read is a short walk from a cached root.
  */
 export function readLiveRating(): BattlegroundsRating | null {
   if (process.platform !== 'win32') return null
@@ -163,37 +216,17 @@ export function readLiveRating(): BattlegroundsRating | null {
   }
   if (live && live.pid !== pid) disposeLive()
 
-  if (!live) {
-    const memory = ProcessMemory.open(pid)
-    if (!memory) return null
-    if (memory.isWow64()) {
-      memory.close()
-      return null
-    }
-    const mono = findMonoModule(memory.modules())
-    if (!mono) {
-      memory.close()
-      return null
-    }
-    const probe = probeMonoRuntime(
-      deadlineReader(cachedReader(memory), PROBE_BUDGET_MS),
-      mono.base,
-      mono.size
-    )
-    if (!probe.runtime) {
-      memory.close()
-      return null
-    }
-    live = { pid, memory, image: probe.runtime.assemblyCSharpImage }
-  }
+  const resolved = resolveLive()
+  if (!resolved) return null
 
   // A fresh page cache per read: the rating changes, so cached pages would go stale.
   const result = readBattlegroundsRating(
-    deadlineReader(cachedReader(live.memory), READ_BUDGET_MS),
-    live.image
+    deadlineReader(cachedReader(resolved.memory), READ_BUDGET_MS),
+    resolved.image,
+    resolved.jobsClass
   )
-  if (result.rating == null && result.failure === 'no-jobs-class') {
-    // The image pointer no longer resolves — the client likely restarted.
+  if (result.failure === 'no-jobs-class') {
+    // The cached class pointer no longer resolves — the client likely restarted.
     disposeLive()
   }
   return result.rating

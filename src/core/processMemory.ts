@@ -119,19 +119,21 @@ export function readCStringAt(reader: MemoryReader, address: bigint, max = 256):
 }
 
 /**
- * Caches reads so repeated struct probing during offset calibration stays cheap.
+ * Caches reads so repeated struct probing stays cheap.
  *
- * `maxPages` bounds retained memory: calibration touches scattered addresses, and
- * an unbounded cache of 4 KiB buffers can grow to hundreds of megabytes on a
- * pathological walk.
+ * Pages are deliberately large: walking a class cache touches tens of thousands of
+ * scattered addresses, and each miss is a cross-process syscall, so fewer/bigger
+ * reads dominate the cost. `maxPages` bounds retained memory.
  */
-export function cachedReader(inner: MemoryReader, pageSize = 0x1000, maxPages = 4096): MemoryReader {
+export function cachedReader(inner: MemoryReader, pageSize = 0x8000, maxPages = 1024): MemoryReader {
   const pages = new Map<bigint, Buffer | null>()
   const pageSizeBig = BigInt(pageSize)
 
   const page = (index: bigint): Buffer | null => {
     if (pages.has(index)) return pages.get(index) ?? null
-    const buf = inner.read(index * pageSizeBig, pageSize)
+    // A page can straddle the end of a mapping, so keep the readable prefix
+    // rather than discarding the whole page.
+    const buf = readAtMost(inner, index * pageSizeBig, pageSize)
     if (pages.size >= maxPages) {
       // Simple FIFO eviction; access order barely matters for a one-shot probe.
       const oldest = pages.keys().next().value
@@ -150,13 +152,13 @@ export function cachedReader(inner: MemoryReader, pageSize = 0x1000, maxPages = 
       let written = 0
       for (let index = first; index <= last; index++) {
         const buf = page(index)
-        if (!buf) return null
         const pageStart = index * pageSizeBig
         const from = address > pageStart ? Number(address - pageStart) : 0
         const to = Math.min(pageSize, from + (length - written))
-        // A short page buffer would make Buffer.copy silently pad with zeros, so
-        // reject it rather than fabricate bytes the target never returned.
-        if (buf.length < to) return null
+        // The cache is only an optimization. When a page cannot be filled — its
+        // base may sit in an unmapped gap even though the requested bytes are
+        // mapped — fall back to reading the exact range instead of failing.
+        if (!buf || buf.length < to) return inner.read(address, length)
         buf.copy(out, written, from, to)
         written += to - from
       }

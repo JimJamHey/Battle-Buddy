@@ -35,7 +35,7 @@ export const OVERLAY_SAFE_BOTTOM_PX = 100
  * up the lower-left of the client, exactly where the rail sits, so the rail stops
  * short of it rather than sitting on top of the social panel.
  */
-export const OVERLAY_SAFE_BOTTOM_RAIL_PCT = 34
+export const OVERLAY_SAFE_BOTTOM_RAIL_PCT = 42
 /** Top inset for the pool panel turn/combat header. */
 export const OVERLAY_SAFE_TOP_POOL_PX = 56
 
