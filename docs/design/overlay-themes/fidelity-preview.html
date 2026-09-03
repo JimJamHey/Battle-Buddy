@@ -95,7 +95,9 @@
       <p style="padding:8px;opacity:0.75;margin:0;font-size:12px">Minion rows…</p>
     </section>
   </div>
-  <div class="settings-root" style="margin-top:32px;max-width:520px">
+  <!-- The launcher is a separate Electron window in the real app; it only shares this
+       page for review, so its fixed background layer is scoped here. -->
+  <div class="settings-root" id="launcher-preview" style="margin-top:32px;max-width:520px;position:relative;overflow:hidden">
     <header class="settings-hero">
       <div class="settings-hero-brand">
         <div>

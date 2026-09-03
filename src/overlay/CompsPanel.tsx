@@ -94,14 +94,7 @@ export function CompsPanel({
                   onPointerEnter={() => warmHoverCard(hoverCard)}
                 >
                   <span className="comp-need-art" aria-hidden>
-                    <CardArt
-                      className="comp-need-card"
-                      cardId={card.id}
-                      name={card.name}
-                      dbfId={full?.dbfId}
-                      variant="face"
-                      hideIfMissing
-                    />
+                    <CardArt className="comp-need-card" cardId={card.id} variant="thumb" hideIfMissing />
                   </span>
                   <span className="pool-name">{card.name}</span>
                   <span className="comp-row-meta">

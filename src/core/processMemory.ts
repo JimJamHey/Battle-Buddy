@@ -10,18 +10,28 @@ export interface MemoryReader {
   read(address: bigint, length: number): Buffer | null
 }
 
-export const NULL_PTR = 0n
+/**
+ * Fails every read once `budgetMs` has elapsed.
+ *
+ * Offset calibration probes many candidate layouts and a bogus pointer can send
+ * it down a long walk. Since the probe runs on the main process thread, a wall
+ * clock ceiling is what keeps a bad guess from freezing the UI.
+ */
+export function deadlineReader(inner: MemoryReader, budgetMs: number): MemoryReader {
+  const expiresAt = Date.now() + budgetMs
+  return {
+    read(address: bigint, length: number): Buffer | null {
+      if (Date.now() > expiresAt) return null
+      return inner.read(address, length)
+    }
+  }
+}
 
 /** User-mode pointers on Win64 live below the 128 TiB canonical split. */
 const MAX_USER_ADDRESS = 0x7fff_ffff_ffffn
 
 export function isPlausiblePointer(value: bigint): boolean {
   return value > 0x10000n && value < MAX_USER_ADDRESS
-}
-
-export function readU8(reader: MemoryReader, address: bigint): number | null {
-  const buf = reader.read(address, 1)
-  return buf ? buf.readUInt8(0) : null
 }
 
 export function readU16(reader: MemoryReader, address: bigint): number | null {
@@ -108,21 +118,32 @@ export function readCStringAt(reader: MemoryReader, address: bigint, max = 256):
   return readCString(reader, ptr, max)
 }
 
-/** Caches reads so repeated struct probing during offset calibration stays cheap. */
-export function cachedReader(inner: MemoryReader, pageSize = 0x1000): MemoryReader {
+/**
+ * Caches reads so repeated struct probing during offset calibration stays cheap.
+ *
+ * `maxPages` bounds retained memory: calibration touches scattered addresses, and
+ * an unbounded cache of 4 KiB buffers can grow to hundreds of megabytes on a
+ * pathological walk.
+ */
+export function cachedReader(inner: MemoryReader, pageSize = 0x1000, maxPages = 4096): MemoryReader {
   const pages = new Map<bigint, Buffer | null>()
   const pageSizeBig = BigInt(pageSize)
 
   const page = (index: bigint): Buffer | null => {
     if (pages.has(index)) return pages.get(index) ?? null
     const buf = inner.read(index * pageSizeBig, pageSize)
+    if (pages.size >= maxPages) {
+      // Simple FIFO eviction; access order barely matters for a one-shot probe.
+      const oldest = pages.keys().next().value
+      if (oldest !== undefined) pages.delete(oldest)
+    }
     pages.set(index, buf)
     return buf
   }
 
   return {
     read(address: bigint, length: number): Buffer | null {
-      if (length <= 0) return Buffer.alloc(0)
+      if (length <= 0) return null
       const first = address / pageSizeBig
       const last = (address + BigInt(length - 1)) / pageSizeBig
       const out = Buffer.alloc(length)
@@ -133,6 +154,9 @@ export function cachedReader(inner: MemoryReader, pageSize = 0x1000): MemoryRead
         const pageStart = index * pageSizeBig
         const from = address > pageStart ? Number(address - pageStart) : 0
         const to = Math.min(pageSize, from + (length - written))
+        // A short page buffer would make Buffer.copy silently pad with zeros, so
+        // reject it rather than fabricate bytes the target never returned.
+        if (buf.length < to) return null
         buf.copy(out, written, from, to)
         written += to - from
       }

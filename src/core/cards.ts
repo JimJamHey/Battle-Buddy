@@ -244,6 +244,17 @@ export function cardGoldenRenderUrls(goldenId: string, name: string, baseId?: st
 }
 
 /** HDT-style 256×59 strips for the right-hand pool list. No square-art fallback. */
+/**
+ * Small frameless thumbnail for list rows.
+ *
+ * Prefers the square art crop so no card border creeps in, then falls back to the
+ * transparent Battlegrounds frames for the Battlegrounds-only ids that have no
+ * `/v1/{size}/` crop — cropped to the art region by the row's object-position.
+ */
+export function cardThumbUrls(cardId: string): string[] {
+  return [...cardFaceUrls(cardId), ...hsjsonBgsCardUrls(cardId)]
+}
+
 export function cardTileUrls(cardId: string): string[] {
   return artCandidates(cardId).flatMap((id) => [
     `https://art.hearthstonejson.com/v1/tiles/${id}.png`

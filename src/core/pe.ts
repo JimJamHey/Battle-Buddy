@@ -27,6 +27,7 @@ const OPTIONAL_HEADER_OFFSET = 0x18
 const DATA_DIRECTORY_OFFSET_PE32 = 0x60
 const DATA_DIRECTORY_OFFSET_PE32PLUS = 0x70
 
+const EXPORT_NUMBER_OF_FUNCTIONS = 0x14
 const EXPORT_NUMBER_OF_NAMES = 0x18
 const EXPORT_ADDRESS_OF_FUNCTIONS = 0x1c
 const EXPORT_ADDRESS_OF_NAMES = 0x20
@@ -38,7 +39,6 @@ const MAX_EXPORTS = 20000
 export interface ExportLookup {
   /** Absolute address of the named export, or null when absent. */
   find(name: string): bigint | null
-  names(): string[]
 }
 
 /**
@@ -63,15 +63,19 @@ export function readExports(reader: MemoryReader, moduleBase: bigint): ExportLoo
 
   const dataDirOffset = magic === PE32PLUS_MAGIC ? DATA_DIRECTORY_OFFSET_PE32PLUS : DATA_DIRECTORY_OFFSET_PE32
   const exportRva = readU32(reader, optionalBase + BigInt(dataDirOffset))
-  if (exportRva == null || exportRva === 0) return null
+  const exportSize = readU32(reader, optionalBase + BigInt(dataDirOffset) + 4n)
+  if (exportRva == null || exportRva === 0 || exportSize == null) return null
 
   const exportBase = moduleBase + BigInt(exportRva)
+  const functionCount = readU32(reader, exportBase + BigInt(EXPORT_NUMBER_OF_FUNCTIONS))
   const nameCount = readU32(reader, exportBase + BigInt(EXPORT_NUMBER_OF_NAMES))
   const functionsRva = readU32(reader, exportBase + BigInt(EXPORT_ADDRESS_OF_FUNCTIONS))
   const namesRva = readU32(reader, exportBase + BigInt(EXPORT_ADDRESS_OF_NAMES))
   const ordinalsRva = readU32(reader, exportBase + BigInt(EXPORT_ADDRESS_OF_NAME_ORDINALS))
-  if (nameCount == null || functionsRva == null || namesRva == null || ordinalsRva == null) return null
+  if (nameCount == null || functionCount == null) return null
+  if (functionsRva == null || namesRva == null || ordinalsRva == null) return null
   if (nameCount <= 0 || nameCount > MAX_EXPORTS) return null
+  if (functionCount <= 0 || functionCount > MAX_EXPORTS) return null
 
   const namesBase = moduleBase + BigInt(namesRva)
   const ordinalsBase = moduleBase + BigInt(ordinalsRva)
@@ -83,22 +87,17 @@ export function readExports(reader: MemoryReader, moduleBase: bigint): ExportLoo
     const name = readCString(reader, moduleBase + BigInt(nameRva), 128)
     if (!name) return null
     const ordinal = readU16(reader, ordinalsBase + BigInt(index * 2))
-    if (ordinal == null) return null
+    if (ordinal == null || ordinal >= functionCount) return null
     const functionRva = readU32(reader, functionsBase + BigInt(ordinal * 4))
     if (functionRva == null || functionRva === 0) return null
+    // An RVA inside the export directory is a forwarder string ("NTDLL.RtlFoo"),
+    // not code — returning it as an address would hand back a pointer to text.
+    if (functionRva >= exportRva && functionRva < exportRva + exportSize) return null
     return { name, address: moduleBase + BigInt(functionRva) }
   }
 
   const cache = new Map<string, bigint>()
   let scanned = 0
-
-  const scanAll = (): void => {
-    while (scanned < nameCount) {
-      const entry = resolveAt(scanned)
-      scanned++
-      if (entry && !cache.has(entry.name)) cache.set(entry.name, entry.address)
-    }
-  }
 
   return {
     find(name: string): bigint | null {
@@ -114,10 +113,6 @@ export function readExports(reader: MemoryReader, moduleBase: bigint): ExportLoo
         if (entry.name === name) return entry.address
       }
       return null
-    },
-    names(): string[] {
-      scanAll()
-      return [...cache.keys()]
     }
   }
 }
@@ -128,25 +123,38 @@ export function readExports(reader: MemoryReader, moduleBase: bigint): ExportLoo
  * The x64 body is a two-instruction accessor:
  *   48 8B 05 <disp32>   mov rax, [rip + disp32]
  *   C3                  ret
- * so the domain pointer lives at (instruction end + disp32). We scan a short
- * window because some builds prepend a few bytes of prologue or CET padding.
+ * so the domain pointer lives at (instruction end + disp32).
+ *
+ * The scan is byte-wise because some builds prepend endbr64/CET padding, which
+ * means it can also match the middle of an unrelated instruction. Two checks make
+ * a false positive implausible: the match must be immediately followed by `ret`,
+ * and the resolved global must land inside the module that owns the function.
+ * Without them any 32-bit displacement produces a "plausible" pointer and the
+ * caller would confidently read garbage.
  */
 export function resolveRipRelativeGlobal(
   reader: MemoryReader,
   functionAddress: bigint,
+  moduleRange?: { base: bigint; size: number },
   window = 32
 ): bigint | null {
   if (!isPlausiblePointer(functionAddress)) return null
   const code = readAtMost(reader, functionAddress, window)
   if (!code) return null
 
-  for (let i = 0; i + 7 <= code.length; i++) {
+  const inModule = (target: bigint): boolean => {
+    if (!moduleRange || moduleRange.size <= 0) return true
+    return target >= moduleRange.base && target < moduleRange.base + BigInt(moduleRange.size)
+  }
+
+  for (let i = 0; i + 8 <= code.length; i++) {
     // REX.W + MOV r64, r/m64 with ModRM selecting RIP-relative addressing of RAX.
     if (code[i] !== 0x48 || code[i + 1] !== 0x8b || code[i + 2] !== 0x05) continue
+    if (code[i + 7] !== 0xc3) continue
     const disp = code.readInt32LE(i + 3)
     const instructionEnd = functionAddress + BigInt(i + 7)
     const target = instructionEnd + BigInt(disp)
-    if (isPlausiblePointer(target)) return target
+    if (isPlausiblePointer(target) && inModule(target)) return target
   }
   return null
 }

@@ -1,28 +1,35 @@
 /**
- * Reads Battlegrounds rating straight out of the Hearthstone process.
+ * Locates the Battlegrounds rating inside the running Hearthstone process.
  *
  * Screen OCR has never been dependable: it depends on the client's language, UI
- * scale, which screen the player is on, and whether anything is drawn over the
+ * scale, which monitor the player is on, and whether anything is drawn over the
  * rating plaque. The rating itself lives in managed memory, which is where
- * Hearthstone Deck Tracker reads it from (via HearthMirror). This module is the
- * Windows-side transport plus runtime calibration for that approach.
+ * Hearthstone Deck Tracker reads it from (via HearthMirror).
  *
- * Scope today: it establishes and validates the chain
- *   process -> mono module -> root domain -> Assembly-CSharp image
- * and reports precisely how far it got. That report is what turns the remaining
- * class/field walk into a mechanical step instead of guesswork, because the
- * offsets differ per Mono build and have to be observed on a real client.
+ * What this module does today: it establishes and validates the chain
+ *   process -> Mono runtime module -> root domain -> Assembly-CSharp image
+ * and reports exactly how far it got. It does **not** yet read the rating value;
+ * that needs the class and field offsets for a specific Mono build, which have to
+ * be observed on a real client. The probe report is what makes that a mechanical
+ * next step rather than guesswork. OCR remains the live rating source meanwhile.
  *
  * Nothing here writes to Hearthstone; the process is opened read-only.
  */
 
-import { cachedReader } from '../core/processMemory'
+import { cachedReader, deadlineReader } from '../core/processMemory'
 import { probeMonoRuntime } from '../core/mono'
+import { describeProbe } from '../core/ratingSource'
 import type { MemoryProbeReport } from '../core/types'
 import { findMonoModule, ProcessMemory, type ProcessModule } from '../platform/winMemory'
 import { gameProcessId } from '../platform/windows'
 
 export type { MemoryProbeReport }
+
+/**
+ * Wall-clock ceiling for the whole walk. The probe runs synchronously on the main
+ * thread, so this is the worst-case UI stall.
+ */
+const PROBE_BUDGET_MS = 750
 
 function emptyReport(failure: MemoryProbeReport['failure']): MemoryProbeReport {
   return {
@@ -46,8 +53,8 @@ function describeModule(module: ProcessModule): MemoryProbeReport['monoModule'] 
 }
 
 /**
- * Runs the full probe against the live client and reports what resolved.
- * Safe to call at any time: it never throws and never blocks on the game.
+ * Runs the probe against the live client and reports what resolved.
+ * Never throws. Bounded by `PROBE_BUDGET_MS`.
  */
 export function probeRatingMemory(): MemoryProbeReport {
   if (process.platform !== 'win32') return emptyReport('not-windows')
@@ -63,6 +70,12 @@ export function probeRatingMemory(): MemoryProbeReport {
   }
 
   try {
+    if (memory.isWow64()) {
+      const report = emptyReport('wow64')
+      report.pid = pid
+      return report
+    }
+
     const modules = memory.modules()
     const mono = findMonoModule(modules)
     if (!mono) {
@@ -72,9 +85,12 @@ export function probeRatingMemory(): MemoryProbeReport {
       return report
     }
 
-    // Traversal re-reads the same structures while calibrating; cache pages so the
-    // probe costs a handful of syscalls rather than hundreds.
-    const result = probeMonoRuntime(cachedReader(memory), mono.base)
+    // Calibration re-reads the same structures repeatedly, so cache pages; the
+    // deadline stops a bogus pointer from turning that into a long walk.
+    const started = Date.now()
+    const reader = deadlineReader(cachedReader(memory), PROBE_BUDGET_MS)
+    const result = probeMonoRuntime(reader, mono.base, mono.size)
+    const timedOut = result.failure != null && Date.now() - started >= PROBE_BUDGET_MS
 
     return {
       supported: true,
@@ -88,7 +104,7 @@ export function probeRatingMemory(): MemoryProbeReport {
         : null,
       imageName: result.runtime?.imageName ?? null,
       offsets: result.runtime?.offsets ?? null,
-      failure: result.failure,
+      failure: timedOut ? 'timeout' : result.failure,
       diagnostics: result.diagnostics,
       at: Date.now()
     }
@@ -97,14 +113,4 @@ export function probeRatingMemory(): MemoryProbeReport {
   }
 }
 
-/** One-line summary for logs and the settings panel. */
-export function summarizeProbe(report: MemoryProbeReport): string {
-  if (report.failure === 'not-windows') return 'Memory read is Windows-only right now.'
-  if (report.failure === 'no-process') return 'Hearthstone is not running.'
-  if (report.failure === 'no-handle') return 'Could not open the Hearthstone process for reading.'
-  if (report.failure === 'no-mono-module') {
-    return `No Mono runtime module found among ${report.moduleCount} loaded modules.`
-  }
-  if (report.failure) return `Stopped at: ${report.failure}.`
-  return `Reached ${report.imageName ?? 'Assembly-CSharp'} via ${report.assemblyCount} assemblies.`
-}
+export { describeProbe }

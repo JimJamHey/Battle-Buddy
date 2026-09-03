@@ -9,7 +9,6 @@ const api = {
   refreshLeaderboard: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('refresh-leaderboard'),
   openLogs: (): Promise<void> => ipcRenderer.invoke('open-logs'),
   openAppData: (): Promise<void> => ipcRenderer.invoke('open-app-data'),
-  openRatingOcrFolder: (): Promise<void> => ipcRenderer.invoke('open-rating-ocr-folder'),
   refreshRating: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('refresh-rating'),
   probeRatingMemory: (): Promise<MemoryProbeReport | null> => ipcRenderer.invoke('probe-rating-memory'),
   onOcrCapture: (callback: (active: boolean) => void) => {
@@ -21,7 +20,6 @@ const api = {
   },
   setClickThrough: (enabled: boolean) => ipcRenderer.send('click-through', enabled),
   setTier: (tier: number) => ipcRenderer.send('set-tier', tier),
-  scanRating: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('scan-rating'),
   quit: () => ipcRenderer.send('quit-app'),
   checkUpdate: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('update-check'),
   downloadUpdate: (): Promise<OverlaySnapshot> => ipcRenderer.invoke('update-download'),

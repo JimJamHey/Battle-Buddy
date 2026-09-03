@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { boardCardUrls, cardArtUrls, cardFaceUrls, cardTileUrls } from '../core/cards'
+import { boardCardUrls, cardArtUrls, cardFaceUrls, cardThumbUrls, cardTileUrls } from '../core/cards'
 import { firstAvailable, firstCached, warmUrls } from './imageCache'
 import { isMostlyBlankImage, knockoutDarkBackdrop } from './knockout'
 
@@ -13,15 +13,16 @@ export function CardArt({
 }: {
   cardId: string
   className?: string
-  variant?: 'portrait' | 'tile' | 'render' | 'golden' | 'face'
+  variant?: 'portrait' | 'tile' | 'render' | 'golden' | 'face' | 'thumb'
   hideIfMissing?: boolean
   name?: string
   dbfId?: number
 }) {
-  const wait = variant === 'render' || variant === 'golden' || variant === 'face'
+  const wait = variant === 'render' || variant === 'golden' || variant === 'face' || variant === 'thumb'
   const urls = useMemo(() => {
     if (variant === 'tile') return cardTileUrls(cardId)
     if (variant === 'face') return cardFaceUrls(cardId)
+    if (variant === 'thumb') return cardThumbUrls(cardId)
     if (variant === 'portrait') return cardArtUrls(cardId)
     return boardCardUrls(cardId, name, dbfId, variant === 'golden')
   }, [cardId, variant, name, dbfId])

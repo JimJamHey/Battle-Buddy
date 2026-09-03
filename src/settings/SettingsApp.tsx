@@ -1,29 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { DEFAULT_OVERLAY_LAYOUT, DEFAULT_RATING_CAPTURE, type AppSettings, type OverlaySnapshot } from '../core/types'
+import { DEFAULT_OVERLAY_LAYOUT, type AppSettings, type OverlaySnapshot } from '../core/types'
 import { THEMES } from '../core/theme'
-import { formatDelta, formatMmr, ordinal, placeClass } from '../ui/format'
+import { formatDelta, formatMmr, ordinal, placeClass, ratingOcrLabel } from '../ui/format'
 import { averageFinish, gamesToday } from '../core/session'
 import { UpdateBanner } from '../ui/UpdateBanner'
 import type { MemoryProbeReport } from '../core/types'
+import { describeProbe } from '../core/ratingSource'
 import logoUrl from './logo.png'
-
-/** Mirrors `summarizeProbe` in the main process, for the renderer's benefit. */
-function probeSummary(probe: MemoryProbeReport): string {
-  switch (probe.failure) {
-    case null:
-      return `Connected to ${probe.imageName ?? 'Assembly-CSharp'} through ${probe.assemblyCount} assemblies.`
-    case 'not-windows':
-      return 'Reading the game\u2019s memory is Windows-only right now.'
-    case 'no-process':
-      return 'Hearthstone is not running.'
-    case 'no-handle':
-      return 'Could not open Hearthstone for reading. Try running BattleBuddy as administrator.'
-    case 'no-mono-module':
-      return `No Mono runtime found among ${probe.moduleCount} loaded modules.`
-    default:
-      return `Stopped at: ${probe.failure}.`
-  }
-}
 
 export function SettingsApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
@@ -201,9 +184,7 @@ export function SettingsApp() {
             onClick={() =>
               patch({
                 overlayLayout: DEFAULT_OVERLAY_LAYOUT,
-                layoutUnlocked: false,
-                showRatingCaptureRegions: false,
-                ratingCapture: DEFAULT_RATING_CAPTURE
+                layoutUnlocked: false
               })
             }
           >
@@ -291,18 +272,30 @@ export function SettingsApp() {
       </section>
 
       <section className="card">
-        <h2>Rating source</h2>
-        <p className="hint">
-          Hearthstone keeps your Battlegrounds rating in the game&apos;s own memory rather than in
-          any log file, which is where Deck Tracker reads it from. This check reports how far
-          BattleBuddy can follow that same path on your machine.
+        <h2>Rating</h2>
+        <p className={state.status.ratingOcr.failed ? 'status-wait' : 'status-ok'}>
+          {ratingOcrLabel(state.status.ratingOcr)}
         </p>
-        <div className="row" style={{ marginTop: 8 }}>
+        <p className="hint">
+          Your rating is read from the Battlegrounds Play screen. If it looks wrong or stale, open
+          that screen and read it again.
+        </p>
+        <div className="row" style={{ marginTop: 4 }}>
+          <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshRating()}>
+            Read rating now
+          </button>
+        </div>
+        <p className="hint" style={{ marginTop: 12 }}>
+          Reading it from the game directly would be more reliable than reading the screen. This
+          check reports how far BattleBuddy gets toward that on your machine.
+        </p>
+        <div className="row" style={{ marginTop: 4 }}>
           <button
             className="ghost"
             type="button"
-            disabled={probing}
+            aria-busy={probing}
             onClick={async () => {
+              if (probing) return
               setProbing(true)
               try {
                 setProbe(await window.battleBuddy.probeRatingMemory())
@@ -311,24 +304,26 @@ export function SettingsApp() {
               }
             }}
           >
-            {probing ? 'Checking\u2026' : 'Check rating source'}
+            {probing ? 'Checking\u2026' : 'Check direct rating access'}
           </button>
         </div>
-        {probe ? (
-          <>
-            <p className={probe.failure ? 'status-wait' : 'status-ok'}>{probeSummary(probe)}</p>
-            {probe.diagnostics.length ? (
-              <ol className="games">
-                {probe.diagnostics.map((line, i) => (
-                  <li key={i}>{line}</li>
-                ))}
-              </ol>
-            ) : null}
-            <p className="hint">
-              Full details saved to rating-memory-probe.json in the app data folder.
-            </p>
-          </>
-        ) : null}
+        <div role="status">
+          {probe ? (
+            <>
+              <p className={probe.failure ? 'status-wait' : 'status-ok'}>{describeProbe(probe)}</p>
+              {probe.diagnostics.length ? (
+                <ol className="games">
+                  {probe.diagnostics.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ol>
+              ) : null}
+              <p className="hint">
+                Details saved to rating-memory-probe.json in the app data folder.
+              </p>
+            </>
+          ) : null}
+        </div>
       </section>
 
       <section className="card">

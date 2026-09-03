@@ -34,7 +34,6 @@ export async function loadSettings(userData: string): Promise<AppSettings> {
   const rev = typeof saved.settingsRev === 'number' ? saved.settingsRev : 0
   // Rev 1: MMR OCR testing left capture guides + unlocked layout on — restore a clean overlay.
   if (rev < 1) {
-    if (saved.showRatingCaptureRegions === true) saved.showRatingCaptureRegions = false
     if (saved.layoutUnlocked === true) saved.layoutUnlocked = false
   }
   // Rev 2: dock CSS was missing and combat sat off-center — reset layout to defaults.

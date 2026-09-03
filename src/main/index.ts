@@ -63,6 +63,7 @@ import {
   type LobbyMmrRow,
   type MatchFinish,
   type MatchState,
+  type MemoryProbeReport,
   type OverlayDisplayMode,
   type OverlaySnapshot,
   type SeenBoard,
@@ -92,7 +93,8 @@ import { readCombatHandsFromScreen } from './combatOcr'
 import { cacheTimestamp, loadLeaderboardCache, refreshLeaderboard } from './leaderboard'
 import { LogTailer } from './logTailer'
 import { readRatingObservation, cleanupOcrTemps } from './playRatingOcr'
-import { probeRatingMemory, summarizeProbe } from './ratingMemory'
+import { probeRatingMemory } from './ratingMemory'
+import { describeProbe } from '../core/ratingSource'
 import { loadSession, loadSettings, saveSession, saveSettings } from './persist'
 import { AppUpdater } from './updater'
 import { releasePageUrl } from '../core/release'
@@ -124,6 +126,10 @@ let logCatchup = false
 let playRatingBusy = false
 let playRatingTail: Promise<void> = Promise.resolve()
 let lastPlayRatingAt = 0
+/** Throttle for the memory probe: it is a synchronous main-thread walk. */
+const MEMORY_PROBE_INTERVAL_MS = 3000
+let lastMemoryProbeAt = 0
+let lastMemoryProbe: MemoryProbeReport | null = null
 let combatShotTimer: NodeJS.Timeout | null = null
 let combatShotGen = 0
 let mmrPollTimer: NodeJS.Timeout | null = null
@@ -1447,11 +1453,6 @@ function registerIpc(): void {
     await maybeRefreshLeaderboard(true)
     return snapshot()
   })
-  ipcMain.handle('scan-rating', async (e) => {
-    if (!fromAppWindow(e.sender)) return snapshot()
-    await pollPlayRating(true)
-    return snapshot()
-  })
   ipcMain.handle('open-logs', async (e) => {
     if (!fromAppWindow(e.sender)) return
     if (currentLogsDir) await shell.openPath(currentLogsDir)
@@ -1460,12 +1461,6 @@ function registerIpc(): void {
     if (!fromAppWindow(e.sender)) return
     await shell.openPath(userData())
   })
-  ipcMain.handle('open-rating-ocr-folder', async (e) => {
-    if (!fromAppWindow(e.sender)) return
-    const dir = join(userData(), 'rating-ocr')
-    await mkdir(dir, { recursive: true })
-    await shell.openPath(dir)
-  })
   ipcMain.handle('refresh-rating', async (e) => {
     if (!fromAppWindow(e.sender)) return snapshot()
     lastPlayRatingAt = 0
@@ -1473,9 +1468,15 @@ function registerIpc(): void {
     return snapshot()
   })
   ipcMain.handle('probe-rating-memory', async (e) => {
-    if (!fromAppWindow(e.sender)) return null
+    // Settings-window only: the probe opens a process handle and walks memory
+    // synchronously, so it must not be reachable from the overlay renderer.
+    if (e.sender !== settingsWindow?.webContents) return null
+    const now = Date.now()
+    if (now - lastMemoryProbeAt < MEMORY_PROBE_INTERVAL_MS) return lastMemoryProbe
+    lastMemoryProbeAt = now
     const report = probeRatingMemory()
-    console.info('rating memory probe:', summarizeProbe(report))
+    lastMemoryProbe = report
+    console.info('rating memory probe:', describeProbe(report))
     for (const line of report.diagnostics) console.info('  ', line)
     // Persisted so the exact per-build Mono offsets can be read back off a real client.
     await writeFile(

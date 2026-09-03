@@ -16,7 +16,6 @@
 import { readExports, resolveRipRelativeGlobal } from './pe'
 import {
   isPlausiblePointer,
-  readCString,
   readCStringAt,
   readI32,
   readPtr,
@@ -50,8 +49,6 @@ const MAX_ASSEMBLIES = 512
 
 import type { MonoStructOffsets } from './types'
 
-export type MonoOffsets = MonoStructOffsets
-
 export interface MonoAssemblyInfo {
   address: bigint
   name: string
@@ -60,7 +57,7 @@ export interface MonoAssemblyInfo {
 export interface MonoRuntime {
   monoModuleBase: bigint
   rootDomain: bigint
-  offsets: MonoOffsets
+  offsets: MonoStructOffsets
   assemblies: MonoAssemblyInfo[]
   /** MonoImage* for `Assembly-CSharp`. */
   assemblyCSharpImage: bigint
@@ -172,7 +169,11 @@ function calibrateImage(
  * `monoModuleBase` must be the load address of the module exporting
  * `mono_get_root_domain` (`mono-2.0-bdwgc.dll` for current Hearthstone builds).
  */
-export function probeMonoRuntime(reader: MemoryReader, monoModuleBase: bigint): MonoProbeResult {
+export function probeMonoRuntime(
+  reader: MemoryReader,
+  monoModuleBase: bigint,
+  monoModuleSize = 0
+): MonoProbeResult {
   const diagnostics: string[] = []
 
   if (!isPlausiblePointer(monoModuleBase)) {
@@ -186,7 +187,10 @@ export function probeMonoRuntime(reader: MemoryReader, monoModuleBase: bigint): 
   if (rootDomainFn == null) return { runtime: null, failure: 'no-root-domain-export', diagnostics }
   diagnostics.push(`${ROOT_DOMAIN_EXPORT} @ 0x${rootDomainFn.toString(16)}`)
 
-  const rootDomainGlobal = resolveRipRelativeGlobal(reader, rootDomainFn)
+  const rootDomainGlobal = resolveRipRelativeGlobal(reader, rootDomainFn, {
+    base: monoModuleBase,
+    size: monoModuleSize
+  })
   if (rootDomainGlobal == null) return { runtime: null, failure: 'no-root-domain-global', diagnostics }
   diagnostics.push(`root domain global @ 0x${rootDomainGlobal.toString(16)}`)
 
@@ -224,20 +228,6 @@ export function probeMonoRuntime(reader: MemoryReader, monoModuleBase: bigint): 
   }
 }
 
-/**
- * Reads a 32-bit managed field at a known offset inside an object.
- * Exposed separately so the field-resolution work can be validated in isolation
- * once real class/field offsets are captured from a live client.
- */
-export function readInstanceInt(
-  reader: MemoryReader,
-  object: bigint,
-  fieldOffset: number
-): number | null {
-  if (!isPlausiblePointer(object)) return null
-  return readI32(reader, object + BigInt(fieldOffset))
-}
-
 /** Reads a Mono `System.String` (length-prefixed UTF-16 at a fixed header offset). */
 export function readMonoString(reader: MemoryReader, address: bigint): string | null {
   if (!isPlausiblePointer(address)) return null
@@ -248,14 +238,3 @@ export function readMonoString(reader: MemoryReader, address: bigint): string | 
   return buf ? buf.toString('utf16le') : null
 }
 
-/** Reads a class name from a MonoClass given a calibrated name offset. */
-export function readClassName(
-  reader: MemoryReader,
-  monoClass: bigint,
-  nameOffset: number
-): string | null {
-  if (!isPlausiblePointer(monoClass)) return null
-  const ptr = readPtr(reader, monoClass + BigInt(nameOffset))
-  if (ptr == null) return null
-  return readCString(reader, ptr, 128)
-}

@@ -29,29 +29,30 @@ export interface ProcessModule {
 
 interface Native {
   koffi: Koffi
-  OpenProcess: (access: number, inherit: boolean, pid: number) => unknown
-  CloseHandle: (handle: unknown) => boolean
+  OpenProcess: (access: number, inherit: number, pid: number) => unknown
+  CloseHandle: (handle: unknown) => number
   ReadProcessMemory: (
     handle: unknown,
     address: bigint,
     buffer: Buffer,
     size: number,
     read: { value: number }
-  ) => boolean
+  ) => number
   EnumProcessModulesEx: (
     handle: unknown,
     modules: (bigint | number)[],
     cb: number,
     needed: { value: number },
     filter: number
-  ) => boolean
-  GetModuleFileNameExW: (handle: unknown, module: bigint | number, name: string[], size: number) => number
+  ) => number
+  GetModuleFileNameExW: (handle: unknown, module: bigint | number, name: Buffer, size: number) => number
   GetModuleInformation: (
     handle: unknown,
     module: bigint | number,
     info: { lpBaseOfDll: bigint; SizeOfImage: number; EntryPoint: bigint },
     cb: number
-  ) => boolean
+  ) => number
+  IsWow64Process: (handle: unknown, wow64: { value: number }) => number
   moduleInfoSize: number
 }
 
@@ -70,29 +71,36 @@ function loadNative(): Native {
     EntryPoint: 'uintptr'
   })
 
+  // Win32 BOOL is a 32-bit int, not a byte — declaring `bool` would read only the
+  // low byte of the return register.
   native = {
     koffi,
     OpenProcess: kernel32.func(
-      'void* __stdcall OpenProcess(uint32 dwDesiredAccess, bool bInheritHandle, uint32 dwProcessId)'
+      'void* __stdcall OpenProcess(uint32 dwDesiredAccess, int32 bInheritHandle, uint32 dwProcessId)'
     ),
-    CloseHandle: kernel32.func('bool __stdcall CloseHandle(void *hObject)'),
+    CloseHandle: kernel32.func('int32 __stdcall CloseHandle(void *hObject)'),
     ReadProcessMemory: kernel32.func(
-      'bool __stdcall ReadProcessMemory(void *hProcess, uintptr lpBaseAddress, _Out_ uint8_t *lpBuffer, size_t nSize, _Out_ SIZEOUT *lpNumberOfBytesRead)'
+      'int32 __stdcall ReadProcessMemory(void *hProcess, uintptr lpBaseAddress, _Out_ uint8_t *lpBuffer, size_t nSize, _Out_ SIZEOUT *lpNumberOfBytesRead)'
     ),
     // The K32-prefixed exports live in kernel32 on Win7+, avoiding psapi.dll versioning.
     EnumProcessModulesEx: kernel32.func(
-      'bool __stdcall K32EnumProcessModulesEx(void *hProcess, _Out_ uintptr *lphModule, uint32 cb, _Out_ DWORDSIZE *lpcbNeeded, uint32 dwFilterFlag)'
+      'int32 __stdcall K32EnumProcessModulesEx(void *hProcess, _Out_ uintptr *lphModule, uint32 cb, _Out_ DWORDSIZE *lpcbNeeded, uint32 dwFilterFlag)'
     ),
+    // lpFilename takes a raw output Buffer; an out-string would only reserve room
+    // for the value passed in and truncate every path to one character.
     GetModuleFileNameExW: kernel32.func(
-      'uint32 __stdcall K32GetModuleFileNameExW(void *hProcess, uintptr hModule, _Out_ char16_t *lpFilename, uint32 nSize)'
+      'uint32 __stdcall K32GetModuleFileNameExW(void *hProcess, uintptr hModule, _Out_ uint8_t *lpFilename, uint32 nSize)'
     ),
     GetModuleInformation: kernel32.func(
-      'bool __stdcall K32GetModuleInformation(void *hProcess, uintptr hModule, _Out_ MODULEINFO *lpmodinfo, uint32 cb)'
+      'int32 __stdcall K32GetModuleInformation(void *hProcess, uintptr hModule, _Out_ MODULEINFO *lpmodinfo, uint32 cb)'
     ),
+    IsWow64Process: kernel32.func('int32 __stdcall IsWow64Process(void *hProcess, _Out_ DWORDSIZE *Wow64Process)'),
     moduleInfoSize: koffi.sizeof(MODULEINFO) as number
   }
   return native
 }
+
+const MAX_PATH_CHARS = 260
 
 /**
  * A handle to another process plus the reads it permits.
@@ -112,11 +120,26 @@ export class ProcessMemory implements MemoryReader {
     if (process.platform !== 'win32' || !Number.isInteger(pid) || pid <= 0) return null
     try {
       const api = loadNative()
-      const handle = api.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid)
+      const handle = api.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, pid)
       if (!handle) return null
       return new ProcessMemory(api, handle)
     } catch {
       return null
+    }
+  }
+
+  /**
+   * True when the target runs under WOW64 (32-bit on 64-bit Windows). The Mono
+   * traversal assumes 8-byte pointers, so a 32-bit target must not be walked.
+   */
+  isWow64(): boolean {
+    if (!this.handle) return false
+    try {
+      const wow64 = { value: 0 }
+      if (!this.api.IsWow64Process(this.handle, wow64)) return false
+      return wow64.value !== 0
+    } catch {
+      return false
     }
   }
 
@@ -127,6 +150,8 @@ export class ProcessMemory implements MemoryReader {
     const read = { value: 0 }
     try {
       const ok = this.api.ReadProcessMemory(this.handle, address, buffer, length, read)
+      // A partial read means the range crosses out of mapped memory; treat it as a miss
+      // rather than handing back a half-filled buffer.
       if (!ok || read.value !== length) return null
       return buffer
     } catch {
@@ -151,13 +176,15 @@ export class ProcessMemory implements MemoryReader {
       if (!ok) return []
       const count = Math.min(capacity, Math.floor(needed.value / 8))
       const out: ProcessModule[] = []
+      const nameBuf = Buffer.alloc(MAX_PATH_CHARS * 2)
       for (let i = 0; i < count; i++) {
         const module = handles[i]
         if (!module) continue
-        const nameBuf = ['']
-        const written = this.api.GetModuleFileNameExW(this.handle, module, nameBuf, 260)
-        if (!written) continue
-        const path = String(nameBuf[0] ?? '')
+        nameBuf.fill(0)
+        // Returns the character count written, excluding the terminator.
+        const written = this.api.GetModuleFileNameExW(this.handle, module, nameBuf, MAX_PATH_CHARS)
+        if (!written || written > MAX_PATH_CHARS) continue
+        const path = nameBuf.toString('utf16le', 0, written * 2)
         if (!path) continue
         const info = { lpBaseOfDll: 0n, SizeOfImage: 0, EntryPoint: 0n }
         if (!this.api.GetModuleInformation(this.handle, module, info, this.api.moduleInfoSize)) continue

@@ -806,10 +806,11 @@ p {
   inset: -18px;
   pointer-events: none;
   /*
-   * Below content (z-index 3) so ornamental art can never sit on top of copy.
-   * The art still reads outside the panel edges, which is where the design puts it.
+   * Same layer as content (which is z-index 3): as the first child in tree order the
+   * art paints under the copy, while still sitting above the ::after scrim at 2 so
+   * the ornament is not muddied by it.
    */
-  z-index: 1;
+  z-index: 3;
   display: none;
   /* GPU-composited layer — no layout impact from frame art */
   will-change: filter;
@@ -1153,13 +1154,6 @@ html[data-theme='voidreach'] .buff-tag {
   flex: 1;
 }
 
-.buff-dock {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: 8px;
-}
-
 .session-panel > *,
 .pool-panel > *,
 .combat-bar > * {
@@ -1193,12 +1187,6 @@ html[data-theme='voidreach'] .buff-tag {
   line-height: 1.35;
   color: var(--muted);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-}
-
-.buff-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
-  gap: 6px;
 }
 
 .theme-swatch {
@@ -2796,64 +2784,69 @@ html[data-theme='voidreach'] .pool-group-head.tier-head {
 }
 
 /*
- * Launcher art is painted once on the scroll root — never per card, which tiled the
- * same illustration down the page. The scrim keeps form copy legible over the art.
+ * Launcher art is painted once behind the whole page — never per card, which tiled
+ * the same illustration down the page. It lives on a fixed pseudo-element rather
+ * than `background-attachment: fixed`, which forces main-thread scrolling in
+ * Chromium; this way the art stays composited while the page scrolls over it.
  */
 .settings-root {
-  background-attachment: fixed, fixed, fixed;
+  position: relative;
+  isolation: isolate;
+}
+
+.settings-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-repeat: no-repeat;
   background-size: cover;
   background-position: center top;
+  background-image: var(--launcher-scrim, none), var(--launcher-art, none);
 }
 
 html[data-theme='hearth'] .settings-root {
-  background-image:
-    linear-gradient(180deg, rgba(18, 14, 9, 0.72) 0%, rgba(18, 14, 9, 0.88) 45%, #120e09 88%),
-    radial-gradient(circle at 18% 0%, rgba(226, 192, 122, 0.22), transparent 36%),
-    url('./frames/hearth-panel-bg.webp');
-  background-color: #120e09;
+  --launcher-art: url('./frames/hearth-panel-bg.webp');
+  --launcher-scrim: linear-gradient(180deg, rgba(18, 14, 9, 0.72) 0%, rgba(18, 14, 9, 0.9) 48%, #120e09 88%);
+  background: #120e09;
 }
 html[data-theme='crown'] .settings-root {
-  background-image:
-    linear-gradient(180deg, rgba(10, 6, 20, 0.7) 0%, rgba(10, 6, 20, 0.88) 45%, #0a0614 88%),
-    radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.24), transparent 40%),
-    url('./frames/crown-panel-bg.webp');
-  background-color: #0a0614;
+  --launcher-art: url('./frames/crown-panel-bg.webp');
+  --launcher-scrim: linear-gradient(180deg, rgba(10, 6, 20, 0.7) 0%, rgba(10, 6, 20, 0.9) 48%, #0a0614 88%);
+  background: #0a0614;
 }
 html[data-theme='coliseum'] .settings-root {
-  background-image:
-    linear-gradient(180deg, rgba(8, 12, 20, 0.7) 0%, rgba(8, 12, 20, 0.88) 45%, #080c14 88%),
-    radial-gradient(circle at 0% 20%, rgba(232, 181, 107, 0.14), transparent 42%),
-    url('./frames/coliseum-panel-bg.webp');
-  background-color: #080c14;
+  --launcher-art: url('./frames/coliseum-panel-bg.webp');
+  --launcher-scrim: linear-gradient(180deg, rgba(8, 12, 20, 0.7) 0%, rgba(8, 12, 20, 0.9) 48%, #080c14 88%);
+  background: #080c14;
 }
 html[data-theme='warband'] .settings-root {
-  background-image:
-    linear-gradient(180deg, rgba(12, 16, 24, 0.72) 0%, rgba(12, 16, 24, 0.9) 45%, #0c1018 88%),
-    radial-gradient(circle at 50% 0%, rgba(148, 163, 184, 0.16), transparent 38%),
-    url('./frames/warband-panel-bg.webp');
-  background-color: #0c1018;
+  --launcher-art: url('./frames/warband-panel-bg.webp');
+  --launcher-scrim: linear-gradient(180deg, rgba(12, 16, 24, 0.72) 0%, rgba(12, 16, 24, 0.92) 48%, #0c1018 88%);
+  background: #0c1018;
 }
 html[data-theme='voidreach'] .settings-root {
-  background-image:
-    linear-gradient(180deg, rgba(4, 2, 8, 0.7) 0%, rgba(4, 2, 8, 0.88) 45%, #040208 88%),
-    radial-gradient(circle at 90% 0%, rgba(192, 38, 211, 0.26), transparent 36%),
-    url('./frames/voidreach-panel-bg.webp');
-  background-color: #040208;
+  --launcher-art: url('./frames/voidreach-panel-bg.webp');
+  --launcher-scrim: linear-gradient(180deg, rgba(4, 2, 8, 0.7) 0%, rgba(4, 2, 8, 0.9) 48%, #040208 88%);
+  background: #040208;
 }
 
-/* Cards read as glass over the single page-wide illustration. */
+/*
+ * Cards read as glass over the single page-wide illustration. The translucent fill
+ * alone carries the effect — a backdrop-filter per card would repaint a blur for
+ * every card on every scroll frame.
+ */
 html[data-theme='hearth'] .settings-root .card,
 html[data-theme='crown'] .settings-root .card,
 html[data-theme='coliseum'] .settings-root .card,
 html[data-theme='warband'] .settings-root .card,
 html[data-theme='voidreach'] .settings-root .card {
-  background: color-mix(in srgb, var(--panel-solid) 74%, transparent);
+  background: color-mix(in srgb, var(--panel-solid) 82%, transparent);
   border: 1px solid var(--overlay-accent-line);
   box-shadow:
     0 10px 26px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  backdrop-filter: blur(14px) saturate(1.1);
 }
 
 @keyframes hearth-flicker {

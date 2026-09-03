@@ -103,7 +103,9 @@ function writePeExports(mem: FakeMemory, exports: Array<{ name: string; rva: num
   const ordinalsRva = EXPORT_RVA + 0x300
   const stringsRva = EXPORT_RVA + 0x400
 
-  mem.writeU32(exportBase + 0x18n, exports.length)
+  mem.writeU32(optional + 0x74n, 0x1000) // export data directory size
+  mem.writeU32(exportBase + 0x14n, exports.length) // NumberOfFunctions
+  mem.writeU32(exportBase + 0x18n, exports.length) // NumberOfNames
   mem.writeU32(exportBase + 0x1cn, functionsRva)
   mem.writeU32(exportBase + 0x20n, namesRva)
   mem.writeU32(exportBase + 0x24n, ordinalsRva)
@@ -192,6 +194,14 @@ describe('pe export table', () => {
     mem.writeU32(MODULE_BASE, 0)
     expect(readExports(mem, MODULE_BASE)).toBeNull()
   })
+
+  it('does not return forwarded exports as code addresses', () => {
+    const mem = new FakeMemory()
+    // Point the export at an RVA inside the export directory itself, which marks a
+    // forwarder string like "NTDLL.RtlFoo" rather than a function.
+    writePeExports(mem, [{ name: 'mono_get_root_domain', rva: EXPORT_RVA + 0x500 }])
+    expect(readExports(mem, MODULE_BASE)?.find('mono_get_root_domain')).toBeNull()
+  })
 })
 
 describe('resolveRipRelativeGlobal', () => {
@@ -205,6 +215,62 @@ describe('resolveRipRelativeGlobal', () => {
     const mem = new FakeMemory()
     mem.write(MODULE_BASE + 0x5000n, Buffer.alloc(32, 0x90))
     expect(resolveRipRelativeGlobal(mem, MODULE_BASE + 0x5000n)).toBeNull()
+  })
+
+  it('ignores a 48 8B 05 sequence that is not followed by ret', () => {
+    const mem = new FakeMemory()
+    const fn = MODULE_BASE + 0x6000n
+    const code = Buffer.alloc(32, 0x90)
+    code[0] = 0x48
+    code[1] = 0x8b
+    code[2] = 0x05
+    code.writeInt32LE(0x100, 3)
+    code[7] = 0x90 // nop, not ret — this is mid-instruction noise, not the accessor
+    mem.write(fn, code)
+    expect(resolveRipRelativeGlobal(mem, fn)).toBeNull()
+  })
+
+  it('rejects a target that falls outside the owning module', () => {
+    const mem = buildRuntime()
+    const fn = MODULE_BASE + BigInt(ROOT_DOMAIN_FN_RVA)
+    // The real global is at +0x3000, so a 0x1000-byte module cannot contain it.
+    expect(resolveRipRelativeGlobal(mem, fn, { base: MODULE_BASE, size: 0x1000 })).toBeNull()
+    expect(resolveRipRelativeGlobal(mem, fn, { base: MODULE_BASE, size: 0x8000 })).toBe(
+      ROOT_DOMAIN_GLOBAL
+    )
+  })
+})
+
+describe('cachedReader', () => {
+  it('refuses to fabricate bytes when a page read comes back short', () => {
+    const short: MemoryReader = {
+      read(_address, length) {
+        // Mimics a reader that honours the request size only partially.
+        return Buffer.alloc(Math.min(length, 8))
+      }
+    }
+    expect(cachedReader(short).read(0x1000n, 64)).toBeNull()
+  })
+
+  it('serves a read spanning three pages from the underlying reader', () => {
+    const backing = Buffer.alloc(0x4000)
+    for (let i = 0; i < backing.length; i++) backing[i] = i & 0xff
+    const inner: MemoryReader = {
+      read(address, length) {
+        const start = Number(address)
+        if (start < 0 || start + length > backing.length) return null
+        return backing.subarray(start, start + length)
+      }
+    }
+    const reader = cachedReader(inner)
+    const got = reader.read(0xffen, 0x2004)
+    expect(got).not.toBeNull()
+    expect(got).toEqual(backing.subarray(0xffe, 0xffe + 0x2004))
+  })
+
+  it('propagates a failed read as null rather than zeros', () => {
+    const inner: MemoryReader = { read: () => null }
+    expect(cachedReader(inner).read(0x1000n, 16)).toBeNull()
   })
 })
 

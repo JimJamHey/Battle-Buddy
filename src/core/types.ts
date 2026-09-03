@@ -74,7 +74,6 @@ export interface AppSettings {
   showSessionOnOverlay: boolean
   showLobbyOnOverlay: boolean
   overlayLayout: OverlayLayout
-  showRatingCaptureRegions: boolean
   ratingCapture: RatingCaptureSettings
   currentMmr: number | null
   theme: ThemeId
@@ -93,7 +92,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showSessionOnOverlay: true,
   showLobbyOnOverlay: false,
   overlayLayout: DEFAULT_OVERLAY_LAYOUT,
-  showRatingCaptureRegions: false,
   ratingCapture: DEFAULT_RATING_CAPTURE,
   currentMmr: null,
   theme: 'hearth'
@@ -288,6 +286,8 @@ export type MemoryProbeFailure =
   | 'not-windows'
   | 'no-process'
   | 'no-handle'
+  | 'wow64'
+  | 'timeout'
   | 'no-mono-module'
   | 'no-export-table'
   | 'no-root-domain-export'

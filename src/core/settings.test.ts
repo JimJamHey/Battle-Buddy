@@ -20,18 +20,15 @@ describe('sanitizeSettings', () => {
     expect(next.showLobbyOnOverlay).toBe(false)
     expect(next.currentMmr).toBe(30000)
     expect(next.theme).toBe('hearth')
-    expect(next.showRatingCaptureRegions).toBe(false)
   })
 
   it('clamps custom rating capture boxes', () => {
     const next = sanitizeSettings(DEFAULT_SETTINGS, {
-      showRatingCaptureRegions: false,
       ratingCapture: {
         play: { x: -10, y: 90, w: 4, h: 200 },
         results: { x: 40, y: 40, w: 20, h: 20 }
       }
     })
-    expect(next.showRatingCaptureRegions).toBe(false)
     expect(next.ratingCapture.play.w).toBe(8)
     expect(next.ratingCapture.play.x).toBeGreaterThanOrEqual(0)
     expect(next.ratingCapture.results).toEqual({ x: 40, y: 40, w: 20, h: 20 })

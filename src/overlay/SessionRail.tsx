@@ -72,11 +72,7 @@ export function SessionRail({
           </span>
         ) : null}
       </div>
-      <div
-        className="session-dynamic capture-mouse"
-        aria-label="Active match buffs"
-        data-empty={buffs.length === 0 ? 'true' : undefined}
-      >
+      <div className="session-dynamic capture-mouse" role="group" aria-label="Active match buffs">
         {buffs.length === 0 ? (
           <p className="session-dynamic-empty">
             {live ? 'No active buffs yet' : 'Active buffs appear here during a match'}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { DEFAULT_OVERLAY_LAYOUT, DEFAULT_RATING_CAPTURE, OVERLAY_SAFE_BOTTOM_PX, OVERLAY_SAFE_TOP_POOL_PX, type OverlayLayout, type OverlayPos, type OverlaySnapshot, type RatingCaptureSettings } from '../core/types'
+import { DEFAULT_OVERLAY_LAYOUT, OVERLAY_SAFE_BOTTOM_PX, OVERLAY_SAFE_TOP_POOL_PX, type OverlayLayout, type OverlayPos, type OverlaySnapshot } from '../core/types'
 import {
   clampLeftDockedPanel,
   clampPanelWidth,
@@ -18,7 +18,6 @@ import { CombatBar } from './CombatBar'
 import { DraggablePanel } from './DraggablePanel'
 import { LastSeenOpponent } from './LastSeen'
 import { PoolBrowser } from './PoolBrowser'
-import { RatingCaptureGuide } from './RatingCaptureGuide'
 import { SessionRail } from './SessionRail'
 import { SeenBoardCard } from './SeenBoard'
 import { useClickThrough } from './useClickThrough'
@@ -26,7 +25,6 @@ import { useClickThrough } from './useClickThrough'
 export function OverlayApp() {
   const [state, setState] = useState<OverlaySnapshot | null>(null)
   const [layout, setLayout] = useState<OverlayLayout>(DEFAULT_OVERLAY_LAYOUT)
-  const [capture, setCapture] = useState<RatingCaptureSettings>(DEFAULT_RATING_CAPTURE)
   const dragging = useRef(false)
   const [hoverGame, setHoverGame] = useState<number | null>(null)
   const [ocrCapture, setOcrCapture] = useState(false)
@@ -43,14 +41,8 @@ export function OverlayApp() {
     setLayout(state.settings.overlayLayout)
   }, [state?.settings.overlayLayout])
 
-  useEffect(() => {
-    if (!state || dragging.current) return
-    setCapture(state.settings.ratingCapture ?? DEFAULT_RATING_CAPTURE)
-  }, [state?.settings.ratingCapture])
-
   const unlocked = Boolean(state?.settings.layoutUnlocked)
-  const calibrating = Boolean(state?.settings.showRatingCaptureRegions)
-  useClickThrough(!unlocked && !calibrating)
+  useClickThrough(!unlocked)
 
   useEffect(() => {
     if (!state) return
@@ -146,28 +138,6 @@ export function OverlayApp() {
           Drag combat odds to place · drag inner edge to resize · Ctrl+Shift+L to lock
           Session stays left · pool stays right · combat defaults to top center
         </div>
-      ) : null}
-
-      {state.settings.showRatingCaptureRegions ? (
-        <RatingCaptureGuide
-          capture={capture}
-          ocr={state.status.ratingOcr}
-          onChange={(next) => {
-            dragging.current = true
-            setCapture(next)
-          }}
-          onChangeEnd={(next) => {
-            setCapture(next)
-            void window.battleBuddy.setSettings({ ratingCapture: next }).finally(() => {
-              dragging.current = false
-            })
-          }}
-          onInteract={interact}
-          onScan={async () => {
-            const next = await window.battleBuddy.scanRating()
-            setState(next)
-          }}
-        />
       ) : null}
 
       {showCombat ? (

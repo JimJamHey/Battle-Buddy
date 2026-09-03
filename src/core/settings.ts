@@ -38,9 +38,6 @@ export function sanitizeSettings(base: AppSettings, patch: Partial<AppSettings> 
   if (typeof patch.keepFullscreenOverlay === 'boolean') next.keepFullscreenOverlay = patch.keepFullscreenOverlay
   if (typeof patch.showSessionOnOverlay === 'boolean') next.showSessionOnOverlay = patch.showSessionOnOverlay
   next.showLobbyOnOverlay = false
-  if (typeof patch.showRatingCaptureRegions === 'boolean') {
-    next.showRatingCaptureRegions = patch.showRatingCaptureRegions
-  }
   next.ratingCapture = sanitizeRatingCapture(patch.ratingCapture ?? next.ratingCapture ?? DEFAULT_RATING_CAPTURE)
   if (patch.overlayLayout) {
     next.overlayLayout = clampLayout(
