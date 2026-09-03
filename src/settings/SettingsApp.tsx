@@ -173,19 +173,6 @@ export function SettingsApp() {
             onChange={(e) => patch({ layoutUnlocked: e.target.checked })}
           />
         </label>
-        <label className="toggle">
-          <span>Show rating capture boxes</span>
-          <input
-            type="checkbox"
-            checked={state.settings.showRatingCaptureRegions}
-            onChange={(e) => patch({ showRatingCaptureRegions: e.target.checked })}
-          />
-        </label>
-        <p className="hint">
-          Session stats on the left, minion pool on the right. Drag the inner edge of a panel to
-          resize it. Unlock layout to reposition the combat bar (Ctrl+Shift+L). Capture boxes are
-          only for calibrating MMR OCR — leave them off for normal play.
-        </p>
         <div className="row" style={{ marginTop: 4, marginBottom: 10 }}>
           <button
             className="ghost"
@@ -261,39 +248,6 @@ export function SettingsApp() {
           onBlur={() => commitTag(tagDraft)}
         />
         <p className="hint">Used to find your rating on the leaderboard.</p>
-        <label htmlFor="current-mmr">Current rating (optional seed)</label>
-        <input
-          id="current-mmr"
-          type="number"
-          min={0}
-          max={30000}
-          step={1}
-          placeholder="e.g. 5200"
-          value={state.settings.currentMmr ?? ''}
-          onChange={(e) => {
-            const raw = e.target.value.trim()
-            patch({ currentMmr: raw === '' ? null : Number(raw) })
-          }}
-        />
-        <p className="hint">
-          Used to match your games on the leaderboard. Your rating is read from the number under the
-          pink Rating label on the Battlegrounds Play screen.
-        </p>
-        <div className="row" style={{ marginTop: 4 }}>
-          <button className="ghost" type="button" onClick={() => void window.battleBuddy.refreshRating()}>
-            Read rating from screen
-          </button>
-        </div>
-        {state.status.ratingOcr.at ? (
-          <p className="hint">
-            Last read:{' '}
-            {state.status.ratingOcr.rating != null
-              ? state.status.ratingOcr.rating.toLocaleString('en-US')
-              : 'no number found'}
-          </p>
-        ) : (
-          <p className="hint">Open the Battlegrounds Play screen, then use Read rating from screen.</p>
-        )}
         <label htmlFor="path">Hearthstone folder</label>
         <div className="row">
           <input id="path" type="text" value={state.settings.hearthstonePath} readOnly />

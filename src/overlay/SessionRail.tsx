@@ -72,12 +72,6 @@ export function SessionRail({
           </span>
         ) : null}
       </div>
-      {selfRating(state) == null && !state.match.spectating ? (
-        <p className="hint">Open the Battlegrounds Play screen so we can read your rating.</p>
-      ) : null}
-      {state.status.ratingOcr?.failed ? (
-        <p className="hint">Could not read Rating after the last game. Stay on the results or Play screen, or set it in Settings.</p>
-      ) : null}
       <div
         className="session-dynamic capture-mouse"
         aria-label="Active match buffs"
